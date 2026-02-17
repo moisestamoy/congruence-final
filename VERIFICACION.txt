@@ -1,0 +1,4 @@
+Si ves este archivo en GitHub Desktop,
+significa que estás en la carpeta correcta.
+
+¡Por favor dime si lo ves en la lista de "Changes"!

@@ -1,0 +1,14 @@
+{
+    "nav": {
+        "finances": "Finanzas",
+        "todo": "To-Do List",
+        "tracker": "Tracker",
+        "stats": "Estadísticas"
+    },
+    "habits": {
+        "title": "Hábitos",
+        "subtitle": "Construye mejor, un día a la vez",
+        "stability": "Estabilidad",
+        "momentum": "Momentum"
+    }
+}
