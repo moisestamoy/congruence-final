@@ -138,24 +138,24 @@ export default function HabitsPage() {
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-8 lg:gap-12"
                     >
                         {/* Columna Izquierda (Anillo) - 50% */}
-                        <div className="flex flex-col justify-center items-center relative min-h-[50vh] lg:min-h-0 lg:h-full">
+                        <div className="flex flex-col justify-center items-center relative min-h-[30vh] lg:min-h-0 lg:h-full mt-4 lg:mt-0">
                             {/* Ambient Glow behind rings - Dynamic based on level */}
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
 
-                            <div className="scale-75 lg:scale-110 relative z-10 transition-transform duration-500">
+                            <div className="scale-[0.55] lg:scale-110 relative z-10 transition-transform duration-500">
                                 <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
                             </div>
-                            <p className="mt-4 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-sm lg:text-base">
+                            <p className="-mt-12 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                         </div>
 
                         {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
                         <div className="flex flex-col justify-center h-full lg:max-h-[90vh]">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-[2rem] lg:rounded-[3rem] p-6 lg:p-10 h-full flex flex-col relative overflow-hidden group">
+                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2.5rem] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group">
                                 {/* Subtle internal sheen/gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
 
@@ -250,20 +250,20 @@ export default function HabitsPage() {
                         </div>
 
                         {/* Columna Central (Núcleo) - 6/12 - Orden 2 - GIANT NEON RING */}
-                        <div className="w-full lg:col-span-6 flex justify-center items-center relative min-h-[350px] lg:min-h-0 order-1 lg:order-2 my-4 lg:my-0">
+                        <div className="w-full lg:col-span-6 flex justify-center items-center relative min-h-[150px] lg:min-h-0 order-1 lg:order-2 my-2 lg:my-0">
                             {/* Ambient Glow */}
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[150px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
-                            <div className="scale-50 md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500">
+                            <div className="scale-[0.45] md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500">
                                 <CongruenceLevelIndicator percentage={congruence} size={600} strokeWidth={35} level={currentLevel} />
                             </div>
                         </div>
 
                         {/* Columna Derecha (Hábitos Lista) - 3/12 - Orden 3 - GLASS LIST */}
                         <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center py-4 lg:py-12 order-3">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] rounded-[2rem] lg:rounded-[2.5rem] h-full p-6 flex flex-col relative overflow-hidden shadow-2xl min-h-[400px]">
+                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] rounded-t-[2.5rem] lg:rounded-[2.5rem] h-full p-4 lg:p-6 flex flex-col relative overflow-hidden shadow-2xl min-h-[400px]">
                                 {/* Header */}
                                 <div className="mb-4 lg:mb-6 pb-4 border-b border-white/5 flex items-center justify-between">
                                     <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-3">
