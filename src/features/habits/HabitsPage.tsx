@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
@@ -82,6 +82,16 @@ export default function HabitsPage() {
         setEditingHabit(habit);
         setIsFormOpen(true);
     };
+
+    // Global FAB Event Listener
+    useEffect(() => {
+        const handleFabClick = () => {
+            handleCreateHabit();
+        };
+
+        window.addEventListener('fab-action-habit', handleFabClick);
+        return () => window.removeEventListener('fab-action-habit', handleFabClick);
+    }, []);
 
     // Handler for toggling habit (+ Points Logic)
     const handleToggleHabit = (habitId: string) => {

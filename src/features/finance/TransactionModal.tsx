@@ -11,8 +11,9 @@ interface TransactionModalProps {
     type: 'income' | 'expense';
     date: string; // YYYY-MM-DD
     initialData?: { amount: number; category: string; description?: string };
-    onSave: (amount: number, category: string, description: string) => void;
+    onSave: (amount: number, category: string, description: string, finalDate?: string, finalType?: 'income' | 'expense') => void;
     onDelete?: () => void;
+    isGlobal?: boolean;
 }
 
 const INCOME_CATEGORIES = [
@@ -44,27 +45,36 @@ const EXPENSE_CATEGORIES = [
     '🧠 Inversión en mentoría'
 ];
 
-export function TransactionModal({ isOpen, onClose, type, date, initialData, onSave, onDelete }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, type, date, initialData, onSave, onDelete, isGlobal }: TransactionModalProps) {
     const [amount, setAmount] = useState<string>(initialData ? initialData.amount.toString() : '');
     const [category, setCategory] = useState<string>(initialData ? initialData.category : '');
     const [description, setDescription] = useState<string>(initialData?.description || '');
+
+    // For Global FAB Support
+    const [activeType, setActiveType] = useState<'income' | 'expense'>(type);
+    const [activeDate, setActiveDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
 
     // Reset state when opening clean or with new data
     // (Note: This simple resetting depends on the key or onClose behavior. 
     // Ideally use useEffect or key to reset form.)
     if (!isOpen) return null;
 
-    const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const categories = activeType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
     const isEditing = !!initialData;
-    const title = isEditing ? (type === 'income' ? 'Editar Ingreso' : 'Editar Gasto') : (type === 'income' ? 'Nueva Entrada' : 'Nuevo Gasto');
-    const accentColor = type === 'income' ? 'text-emerald-400' : 'text-rose-400';
-    const btnColor = type === 'income' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-rose-500 hover:bg-rose-400';
-    const borderColor = type === 'income' ? 'focus:border-emerald-500' : 'focus:border-rose-500';
+    const title = isEditing ? (activeType === 'income' ? 'Editar Ingreso' : 'Editar Gasto') : (activeType === 'income' ? 'Nueva Entrada' : 'Nuevo Gasto');
+    const accentColor = activeType === 'income' ? 'text-emerald-400' : 'text-rose-400';
+    const btnColor = activeType === 'income' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-rose-500 hover:bg-rose-400';
+    const borderColor = activeType === 'income' ? 'focus:border-emerald-500' : 'focus:border-rose-500';
 
     const handleSave = () => {
         if (!amount || isNaN(Number(amount))) return;
         const finalAmount = Math.round(Number(amount));
-        onSave(finalAmount, category || 'Otros', description);
+
+        if (isGlobal) {
+            onSave(finalAmount, category || 'Otros', description, activeDate, activeType);
+        } else {
+            onSave(finalAmount, category || 'Otros', description);
+        }
         // Only clear if adding; if editing, maybe keep? But onClose usually unmounts or hides.
         if (!isEditing) {
             setAmount('');
@@ -81,9 +91,11 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                 <div className="flex justify-between items-center p-4 border-b border-white/5">
                     <div>
                         <h3 className={cn("text-lg font-bold", accentColor)}>{title}</h3>
-                        <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">
-                            {date ? format(parseISO(date), "d 'de' MMMM", { locale: es }) : ''}
-                        </p>
+                        {!isGlobal && (
+                            <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">
+                                {date ? format(parseISO(date), "d 'de' MMMM", { locale: es }) : ''}
+                            </p>
+                        )}
                     </div>
                     <button onClick={onClose} className="p-2 text-neutral-400 hover:text-white transition-colors">
                         <X size={20} />
@@ -92,6 +104,40 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
 
                 {/* Body */}
                 <div className="p-6 space-y-6">
+
+                    {/* Global Overrides: Type and Date Selector */}
+                    {isGlobal && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-neutral-500">¿Qué tipo?</label>
+                                <div className="flex bg-[#111] border border-white/5 rounded-xl p-1">
+                                    <button
+                                        onClick={() => setActiveType('expense')}
+                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", activeType === 'expense' ? "bg-rose-500/20 text-rose-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
+                                    >
+                                        Gasto
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveType('income')}
+                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", activeType === 'income' ? "bg-emerald-500/20 text-emerald-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
+                                    >
+                                        Ingreso
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-neutral-500">¿Cuándo?</label>
+                                <input
+                                    type="date"
+                                    value={activeDate}
+                                    onChange={(e) => setActiveDate(e.target.value)}
+                                    className="w-full bg-[#111] border border-white/5 rounded-xl px-4 py-[0.62rem] text-sm font-medium text-white outline-none transition-all placeholder-neutral-700 focus:border-cyan-500"
+                                    style={{ colorScheme: "dark" }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Amount */}
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-neutral-500">Monto (€)</label>

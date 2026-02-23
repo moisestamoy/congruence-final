@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addMonths, parseISO, isSameMonth, differenceInCalendarDays, endOfMonth, startOfToday } from 'date-fns';
 import { es, enUS, pt } from 'date-fns/locale';
@@ -33,13 +33,31 @@ export default function FinancesPage() {
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
     const [isAlertsOpen, setIsAlertsOpen] = useState(false);
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
-    const [txModal, setTxModal] = useState<{ isOpen: boolean; type: 'income' | 'expense'; date: string }>({ isOpen: false, type: 'income', date: '' });
+    const [txModal, setTxModal] = useState<{ isOpen: boolean; type: 'income' | 'expense'; date: string; isGlobal?: boolean }>({ isOpen: false, type: 'income', date: '' });
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
 
-    const handleAddTransaction = (amount: number, category: string, _description: string) => {
-        if (!txModal.date) return;
+    // Global FAB Event Listener
+    useEffect(() => {
+        const handleFabFinanceClick = () => {
+            setTxModal({
+                isOpen: true,
+                type: 'expense',
+                date: format(new Date(), 'yyyy-MM-dd'),
+                isGlobal: true
+            });
+        };
+
+        window.addEventListener('fab-action-finance', handleFabFinanceClick);
+        return () => window.removeEventListener('fab-action-finance', handleFabFinanceClick);
+    }, []);
+
+    const handleAddTransaction = (amount: number, category: string, _description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
+        const targetDate = globalDate || txModal.date;
+        const targetType = globalType || txModal.type;
+        if (!targetDate) return;
+
         // Use addTransaction for distinct entries (additive)
-        addTransaction(txModal.date, txModal.type, amount, category);
+        addTransaction(targetDate, targetType, amount, category);
     };
 
     const dateLocale = useMemo(() => {
@@ -592,6 +610,7 @@ export default function FinancesPage() {
                 onClose={() => setTxModal({ ...txModal, isOpen: false })}
                 type={txModal.type}
                 date={txModal.date}
+                isGlobal={txModal.isGlobal}
                 onSave={handleAddTransaction}
             />
 
@@ -691,6 +710,7 @@ export default function FinancesPage() {
                 onClose={() => setTxModal({ ...txModal, isOpen: false })}
                 type={txModal.type}
                 date={txModal.date}
+                isGlobal={txModal.isGlobal}
                 onSave={handleAddTransaction}
             />
         </div>

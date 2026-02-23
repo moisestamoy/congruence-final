@@ -99,7 +99,7 @@ export default function MainLayout() {
 
             {/* BEVEL MOBILE BOTTOM NAVIGATION */}
             <div className="lg:hidden fixed bottom-6 inset-x-4 z-50 flex items-center gap-3">
-                <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex justify-between items-center shadow-2xl">
+                <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex justify-between items-center shadow-2xl mr-2">
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
                         return (
