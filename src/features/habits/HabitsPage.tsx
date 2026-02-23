@@ -108,7 +108,7 @@ export default function HabitsPage() {
 
 
             {/* HEADER ACTIONS */}
-            <div className="absolute top-8 right-8 z-40 flex gap-4">
+            <div className="absolute top-4 right-4 lg:top-8 lg:right-8 z-40 flex gap-4">
                 <button
                     onClick={() => setIsIdentityBuilderOpen(true)}
                     className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group"
@@ -138,12 +138,11 @@ export default function HabitsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-8 lg:gap-12"
+                        className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
                     >
-                        {/* Columna Izquierda (Anillo) - 50% */}
                         <div className={cn(
-                            "flex flex-col justify-center items-center relative lg:min-h-0 lg:h-full mt-4 lg:mt-0 transition-all duration-500",
-                            isMobileCircleVisible ? "min-h-[30vh]" : "min-h-[15vh] -mb-8"
+                            "flex flex-col justify-center items-center relative lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500",
+                            isMobileCircleVisible ? "min-h-[220px]" : "min-h-[80px]"
                         )}>
                             {/* Ambient Glow behind rings - Dynamic based on level */}
                             <div className={cn(
@@ -151,10 +150,18 @@ export default function HabitsPage() {
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
 
-                            <div className={cn("relative z-10 transition-transform duration-500", isMobileCircleVisible ? "scale-[0.55] lg:scale-110" : "scale-[0.35] mt-[-2rem] lg:mt-0 lg:scale-110")}>
-                                <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
+                            <div className={cn(
+                                "relative z-10 flex items-center justify-center transition-all duration-500",
+                                isMobileCircleVisible ? "h-[220px] lg:h-auto" : "h-[120px] lg:h-auto"
+                            )}>
+                                <div className={cn(
+                                    "transition-transform duration-500 origin-center",
+                                    isMobileCircleVisible ? "scale-[0.50] lg:scale-110" : "scale-[0.25] lg:scale-110"
+                                )}>
+                                    <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
+                                </div>
                             </div>
-                            <p className="-mt-12 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+                            <p className="mt-0 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                             <div className="flex justify-center mt-4 mb-2 lg:hidden w-full relative z-20">
