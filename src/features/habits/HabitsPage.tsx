@@ -11,6 +11,7 @@ import { cn } from '../../utils/cn';
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
 import { Habit } from '../../types';
 import { useGameStore } from '../gamification/useGameStore'; // Import GameStore
+import { useFabStore } from '../../hooks/useFabStore';
 
 export default function HabitsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -19,6 +20,7 @@ export default function HabitsPage() {
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
+    const { fabActionTick } = useFabStore();
 
     const navigateDate = (days: number) => {
         setCurrentDate(prev => addDays(prev, days));
@@ -83,15 +85,12 @@ export default function HabitsPage() {
         setIsFormOpen(true);
     };
 
-    // Global FAB Event Listener
+    // Global FAB Event Listener using Zustand
     useEffect(() => {
-        const handleFabClick = () => {
+        if (fabActionTick > 0) {
             handleCreateHabit();
-        };
-
-        window.addEventListener('fab-action-habit', handleFabClick);
-        return () => window.removeEventListener('fab-action-habit', handleFabClick);
-    }, []);
+        }
+    }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handler for toggling habit (+ Points Logic)
     const handleToggleHabit = (habitId: string) => {

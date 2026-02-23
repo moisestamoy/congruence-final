@@ -6,12 +6,14 @@ import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
 import { SupabaseSync } from '../features/sync/SupabaseSync';
+import { useFabStore } from '../hooks/useFabStore';
 
 export default function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { user, signOut } = useAuth();
+    const { triggerFab } = useFabStore();
 
     const navItems = [
         { path: '/', icon: LayoutDashboard, label: 'Tracker' },
@@ -123,12 +125,15 @@ export default function MainLayout() {
                     })}
                 </nav>
 
-                <button
-                    onClick={() => { }}
-                    className="w-[4.8rem] h-[4.8rem] rounded-[2.4rem] bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
-                >
-                    <Plus size={32} strokeWidth={2.5} />
-                </button>
+                {/* DYNAMIC FAB */}
+                {location.pathname !== '/stats' && location.pathname !== '/coach' && (
+                    <button
+                        onClick={triggerFab}
+                        className="w-[4.8rem] h-[4.8rem] rounded-[2.4rem] bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+                    >
+                        <Plus size={32} strokeWidth={2.5} />
+                    </button>
+                )}
             </div>
 
             {/* MAIN CONTENT */}
