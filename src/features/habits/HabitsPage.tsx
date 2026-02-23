@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { HabitForm } from './HabitForm';
@@ -18,6 +18,7 @@ export default function HabitsPage() {
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
 
     const navigateDate = (days: number) => {
         setCurrentDate(prev => addDays(prev, days));
@@ -115,16 +116,18 @@ export default function HabitsPage() {
                 >
                     <User size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
                 </button>
-                <button
-                    onClick={() => setLayoutView(layoutView === 'split' ? 'central' : 'split')}
-                    className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all shadow-lg hover:shadow-white/20 flex items-center justify-center group"
-                    title={layoutView === 'split' ? "Cambiar a Vista Central" : "Cambiar a Vista Dividida"}
-                >
-                    {layoutView === 'split' ?
-                        <Monitor size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" /> :
-                        <LayoutTemplate size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
-                    }
-                </button>
+                <div className="hidden lg:block">
+                    <button
+                        onClick={() => setLayoutView(layoutView === 'split' ? 'central' : 'split')}
+                        className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-white hover:bg-white/10 transition-all shadow-lg hover:shadow-white/20 flex items-center justify-center group"
+                        title={layoutView === 'split' ? "Cambiar a Vista Central" : "Cambiar a Vista Dividida"}
+                    >
+                        {layoutView === 'split' ?
+                            <Monitor size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" /> :
+                            <LayoutTemplate size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                        }
+                    </button>
+                </div>
             </div>
 
             <AnimatePresence mode="wait">
@@ -138,7 +141,10 @@ export default function HabitsPage() {
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-8 lg:gap-12"
                     >
                         {/* Columna Izquierda (Anillo) - 50% */}
-                        <div className="flex flex-col justify-center items-center relative min-h-[30vh] lg:min-h-0 lg:h-full mt-4 lg:mt-0">
+                        <div className={cn(
+                            "flex-col justify-center items-center relative min-h-[30vh] lg:min-h-0 lg:h-full mt-4 lg:mt-0 lg:flex transition-all duration-500",
+                            isMobileCircleVisible ? "flex opacity-100" : "hidden opacity-0"
+                        )}>
                             {/* Ambient Glow behind rings - Dynamic based on level */}
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
@@ -154,8 +160,11 @@ export default function HabitsPage() {
                         </div>
 
                         {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
-                        <div className="flex flex-col justify-center h-full lg:max-h-[90vh]">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2.5rem] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group">
+                        <div className={cn("flex flex-col justify-center lg:max-h-[90vh] transition-all duration-500", isMobileCircleVisible ? "h-full" : "h-[90vh]")}>
+                            <div className={cn(
+                                "backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500",
+                                isMobileCircleVisible ? "rounded-t-[2.5rem]" : "rounded-t-none lg:rounded-t-[3rem]"
+                            )}>
                                 {/* Subtle internal sheen/gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
 
@@ -164,23 +173,32 @@ export default function HabitsPage() {
                                         <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-white drop-shadow-md mb-1">Tu Hábito</h2>
                                         <p className="text-cyan-400 text-xs lg:text-sm font-bold uppercase tracking-widest leading-none">Panel de Control</p>
                                     </div>
-                                    <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
+                                    <div className="flex items-center gap-3">
                                         <button
-                                            onClick={() => navigateDate(-1)}
-                                            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                                            onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
+                                            className="lg:hidden p-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center group"
+                                            title={isMobileCircleVisible ? "Ocultar progreso" : "Ver progreso"}
                                         >
-                                            <ChevronLeft size={16} />
+                                            {isMobileCircleVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
-                                        <span className="text-xs lg:text-sm text-neutral-200 font-mono tracking-wider px-2 font-bold min-w-[100px] text-center">
-                                            {format(currentDate, 'dd MMM yyyy')}
-                                        </span>
-                                        <button
-                                            onClick={() => navigateDate(1)}
-                                            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-                                            disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
-                                        >
-                                            <ChevronRight size={16} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
-                                        </button>
+                                        <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
+                                            <button
+                                                onClick={() => navigateDate(-1)}
+                                                className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                                            >
+                                                <ChevronLeft size={16} />
+                                            </button>
+                                            <span className="text-xs lg:text-sm text-neutral-200 font-mono tracking-wider px-2 font-bold min-w-[100px] text-center">
+                                                {format(currentDate, 'dd MMM yyyy')}
+                                            </span>
+                                            <button
+                                                onClick={() => navigateDate(1)}
+                                                className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                                                disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
+                                            >
+                                                <ChevronRight size={16} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
