@@ -4,7 +4,6 @@ import { supabase } from '../../lib/supabase';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { Loader2, CloudOff } from 'lucide-react';
-import { cn } from '../../utils/cn';
 
 export function SupabaseSync() {
     const { user } = useAuth();
