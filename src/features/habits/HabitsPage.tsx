@@ -140,28 +140,27 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
                     >
-                        <div className={cn(
-                            "flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500",
-                            isMobileCircleVisible ? "min-h-[260px]" : "min-h-[140px]"
-                        )}>
-                            {/* Ambient Glow behind rings - Dynamic based on level */}
-                            <div className={cn(
-                                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
-                            )} />
+                        <div className="flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500">
 
                             <div className={cn(
-                                "relative z-10 flex items-start justify-center transition-all duration-500",
-                                isMobileCircleVisible ? "h-[260px] lg:h-auto" : "h-[140px] lg:h-auto"
+                                "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
+                                isMobileCircleVisible ? "h-[370px] lg:h-[600px]" : "h-[200px] lg:h-[600px]"
                             )}>
                                 <div className={cn(
-                                    "transition-transform duration-500 origin-top lg:origin-center",
+                                    "transition-transform duration-500 origin-top lg:origin-center relative",
                                     isMobileCircleVisible ? "scale-[0.65] lg:scale-110" : "scale-[0.35] lg:scale-110"
                                 )}>
+                                    {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
+                                    <div className={cn(
+                                        "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
+                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
+                                    )} />
+
                                     <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
                                 </div>
                             </div>
-                            <p className="-mt-8 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+
+                            <p className="mt-2 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                             <div className="flex justify-center mt-4 mb-2 lg:hidden w-full relative z-20">
