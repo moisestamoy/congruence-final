@@ -141,8 +141,8 @@ export default function HabitsPage() {
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
                     >
                         <div className={cn(
-                            "flex flex-col justify-center items-center relative lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500",
-                            isMobileCircleVisible ? "min-h-[220px]" : "min-h-[80px]"
+                            "flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500",
+                            isMobileCircleVisible ? "min-h-[260px]" : "min-h-[140px]"
                         )}>
                             {/* Ambient Glow behind rings - Dynamic based on level */}
                             <div className={cn(
@@ -151,17 +151,17 @@ export default function HabitsPage() {
                             )} />
 
                             <div className={cn(
-                                "relative z-10 flex items-center justify-center transition-all duration-500",
-                                isMobileCircleVisible ? "h-[220px] lg:h-auto" : "h-[120px] lg:h-auto"
+                                "relative z-10 flex items-start justify-center transition-all duration-500",
+                                isMobileCircleVisible ? "h-[260px] lg:h-auto" : "h-[140px] lg:h-auto"
                             )}>
                                 <div className={cn(
-                                    "transition-transform duration-500 origin-center",
-                                    isMobileCircleVisible ? "scale-[0.50] lg:scale-110" : "scale-[0.25] lg:scale-110"
+                                    "transition-transform duration-500 origin-top lg:origin-center",
+                                    isMobileCircleVisible ? "scale-[0.65] lg:scale-110" : "scale-[0.35] lg:scale-110"
                                 )}>
                                     <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
                                 </div>
                             </div>
-                            <p className="mt-0 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+                            <p className="-mt-8 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                             <div className="flex justify-center mt-4 mb-2 lg:hidden w-full relative z-20">
