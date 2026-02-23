@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { HabitForm } from './HabitForm';
@@ -142,8 +142,8 @@ export default function HabitsPage() {
                     >
                         {/* Columna Izquierda (Anillo) - 50% */}
                         <div className={cn(
-                            "flex-col justify-center items-center relative min-h-[30vh] lg:min-h-0 lg:h-full mt-4 lg:mt-0 lg:flex transition-all duration-500",
-                            isMobileCircleVisible ? "flex opacity-100" : "hidden opacity-0"
+                            "flex flex-col justify-center items-center relative lg:min-h-0 lg:h-full mt-4 lg:mt-0 transition-all duration-500",
+                            isMobileCircleVisible ? "min-h-[30vh]" : "min-h-[15vh] -mb-8"
                         )}>
                             {/* Ambient Glow behind rings - Dynamic based on level */}
                             <div className={cn(
@@ -151,20 +151,26 @@ export default function HabitsPage() {
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
 
-                            <div className="scale-[0.55] lg:scale-110 relative z-10 transition-transform duration-500">
+                            <div className={cn("relative z-10 transition-transform duration-500", isMobileCircleVisible ? "scale-[0.55] lg:scale-110" : "scale-[0.35] mt-[-2rem] lg:mt-0 lg:scale-110")}>
                                 <CongruenceLevelIndicator percentage={congruence} size={450} strokeWidth={35} level={currentLevel} />
                             </div>
                             <p className="-mt-12 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
+                            <div className="flex justify-center mt-4 mb-2 lg:hidden w-full relative z-20">
+                                <button
+                                    onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
+                                    className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-2 group"
+                                >
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
+                                    {isMobileCircleVisible ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
-                        <div className={cn("flex flex-col justify-center lg:max-h-[90vh] transition-all duration-500", isMobileCircleVisible ? "h-full" : "h-[90vh]")}>
-                            <div className={cn(
-                                "backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500",
-                                isMobileCircleVisible ? "rounded-t-[2.5rem]" : "rounded-t-none lg:rounded-t-[3rem]"
-                            )}>
+                        <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
+                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2.5rem] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
                                 {/* Subtle internal sheen/gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
 
@@ -174,13 +180,6 @@ export default function HabitsPage() {
                                         <p className="text-cyan-400 text-xs lg:text-sm font-bold uppercase tracking-widest leading-none">Panel de Control</p>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
-                                            className="lg:hidden p-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center group"
-                                            title={isMobileCircleVisible ? "Ocultar progreso" : "Ver progreso"}
-                                        >
-                                            {isMobileCircleVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
                                         <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
                                             <button
                                                 onClick={() => navigateDate(-1)}
