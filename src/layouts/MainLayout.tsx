@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Menu, X, LogIn, LogOut, Brain } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Wallet, PieChart, Brain, LogIn, LogOut, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,6 @@ import { SupabaseSync } from '../features/sync/SupabaseSync';
 export default function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { user, signOut } = useAuth();
 
@@ -98,88 +97,42 @@ export default function MainLayout() {
                 </div>
             </header>
 
-            {/* MOBILE HEADER */}
-            <div className="lg:hidden fixed top-0 w-full h-16 bg-black/80 backdrop-blur-md border-b border-white/5 z-50 flex items-center justify-between px-4">
-                <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
-                    <span className="text-lg font-bold tracking-tight text-white">CONGRUENCE</span>
-                </div>
-                <button onClick={() => setIsMobileMenuOpen(true)} className="text-neutral-400 hover:text-white">
-                    <Menu size={24} />
+            {/* BEVEL MOBILE BOTTOM NAVIGATION */}
+            <div className="lg:hidden fixed bottom-6 inset-x-4 z-50 flex items-center gap-3">
+                <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex justify-between items-center shadow-2xl">
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        return (
+                            <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className={cn(
+                                    "relative flex flex-col items-center justify-center w-[4.5rem] h-[3.8rem] rounded-[2rem] transition-all duration-300",
+                                    isActive ? "bg-white/15 text-white shadow-inner" : "text-neutral-500 active:bg-white/5"
+                                )}
+                            >
+                                <item.icon size={20} className={cn("mb-1 transition-colors", isActive ? "text-white" : "")} strokeWidth={isActive ? 2.5 : 2} />
+                                <span className={cn(
+                                    "text-[10px] font-semibold tracking-wide transition-colors",
+                                    isActive ? "text-white" : "text-neutral-500"
+                                )}>
+                                    {item.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </nav>
+
+                <button
+                    onClick={() => { }}
+                    className="w-[4.8rem] h-[4.8rem] rounded-[2.4rem] bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+                >
+                    <Plus size={32} strokeWidth={2.5} />
                 </button>
             </div>
 
-            {/* MOBILE MENU OVERLAY */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="fixed inset-0 bg-black/80 z-[60] lg:hidden backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            className="fixed right-0 top-0 h-screen w-64 bg-[#0a0a0a] border-l border-white/10 z-[70] lg:hidden p-6 flex flex-col"
-                        >
-                            <div className="flex justify-end mb-8">
-                                <button onClick={() => setIsMobileMenuOpen(false)} className="text-neutral-400 hover:text-white">
-                                    <X size={24} />
-                                </button>
-                            </div>
-                            <nav className="flex-1 space-y-4">
-                                {navItems.map((item) => {
-                                    const isActive = location.pathname === item.path;
-                                    return (
-                                        <button
-                                            key={item.path}
-                                            onClick={() => {
-                                                navigate(item.path);
-                                                setIsMobileMenuOpen(false);
-                                            }}
-                                            className={cn(
-                                                "w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all",
-                                                isActive ? "bg-white/10 text-white" : "text-neutral-500"
-                                            )}
-                                        >
-                                            <item.icon size={20} className={isActive ? "text-cyan-400" : ""} />
-                                            <span className="font-medium text-lg">{item.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </nav>
-
-                            <button
-                                onClick={() => {
-                                    if (user) signOut();
-                                    else setIsAuthModalOpen(true);
-                                    setIsMobileMenuOpen(false);
-                                }}
-                                className="mt-8 w-full flex items-center gap-4 px-4 py-3 rounded-xl text-neutral-500 hover:bg-white/5 transition-all"
-                            >
-                                {user ? (
-                                    <>
-                                        <LogOut size={20} />
-                                        <span>Cerrar Sesión</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <LogIn size={20} />
-                                        <span>Iniciar Sesión</span>
-                                    </>
-                                )}
-                            </button>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-
             {/* MAIN CONTENT */}
-            <main className="flex-1 min-w-0 pt-20 lg:pt-0 relative z-10">
+            <main className="flex-1 min-w-0 pb-32 lg:pb-0 relative z-10">
                 <Outlet />
             </main>
         </div>
