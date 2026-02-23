@@ -19,7 +19,6 @@ export default function MainLayout() {
         { path: '/finances', icon: Wallet, label: 'Finanzas' },
         { path: '/stats', icon: PieChart, label: 'Estadísticas' },
         { path: '/coach', icon: Brain, label: 'Coach' },
-        { path: '/store', icon: ShoppingBag, label: 'Tienda' },
     ];
 
     return (
