@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Menu, X, LogIn, LogOut, Brain, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, Menu, X, LogIn, LogOut, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
