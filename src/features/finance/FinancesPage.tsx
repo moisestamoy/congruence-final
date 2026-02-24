@@ -482,6 +482,14 @@ export default function FinancesPage() {
                                     ...realExpenses.filter(e => e.date === day.date).map(e => ({ ...e, type: 'expense' as const, source: 'realExpense' as const, isRecurring: false }))
                                 ];
 
+                                // DEBUG LOG
+                                if (dayEvents.length > 0 || realExpenses.length > 0) {
+                                    console.log(`[Mobile List] Day: ${day.date}`, {
+                                        globalRealExpenses: realExpenses,
+                                        dayEventsMapped: dayEvents
+                                    });
+                                }
+
                                 return (
                                     <div key={day.date} className={cn("transition-all duration-500", isExpanded ? "mb-4 rounded-xl overflow-hidden bg-[#080808] border border-white/5 shadow-2xl" : "mb-0.5")}>
                                         <div
