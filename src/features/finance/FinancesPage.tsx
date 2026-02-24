@@ -639,17 +639,6 @@ export default function FinancesPage() {
                 ))}
             </div>
 
-            <TransactionModal
-                isOpen={txModal.isOpen}
-                onClose={() => setTxModal({ ...txModal, isOpen: false, editingId: undefined, editingSource: undefined, initialData: undefined })}
-                type={txModal.type}
-                date={txModal.date}
-                isGlobal={txModal.isGlobal}
-                initialData={txModal.initialData}
-                onSave={handleAddTransaction}
-                onDelete={txModal.editingId ? handleDeleteTransaction : undefined}
-            />
-
             {/* STATS SECTION (Bottom) */}
             <div className="w-full max-w-[1800px] mx-auto mt-12">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

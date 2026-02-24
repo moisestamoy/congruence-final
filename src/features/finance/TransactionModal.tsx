@@ -46,40 +46,49 @@ const EXPENSE_CATEGORIES = [
 ];
 
 export function TransactionModal({ isOpen, onClose, type, date, initialData, onSave, onDelete, isGlobal }: TransactionModalProps) {
+    // Form input states
     const [amount, setAmount] = useState<string>(initialData ? initialData.amount.toString() : '');
     const [category, setCategory] = useState<string>(initialData ? initialData.category : '');
     const [description, setDescription] = useState<string>(initialData?.description || '');
 
-    // For Global FAB Support
-    const [activeType, setActiveType] = useState<'income' | 'expense'>(type);
-    const [activeDate, setActiveDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
+    // Global toggle states
+    const [globalType, setGlobalType] = useState<'income' | 'expense'>('income');
+    const [globalDate, setGlobalDate] = useState<string>('');
 
-    // Sync state with props every time the modal opens
+    // Sync form state when modal opens
     useEffect(() => {
         if (isOpen) {
             setAmount(initialData ? initialData.amount.toString() : '');
             setCategory(initialData ? initialData.category : '');
             setDescription(initialData?.description || '');
-            setActiveType(type);
-            setActiveDate(date || format(new Date(), 'yyyy-MM-dd'));
+
+            // If opening in global mode, initialize the global states
+            if (isGlobal) {
+                setGlobalType(type);
+                setGlobalDate(date || format(new Date(), 'yyyy-MM-dd'));
+            }
         }
-    }, [isOpen, initialData, type, date]);
+    }, [isOpen, initialData, isGlobal, type, date]);
 
     if (!isOpen) return null;
 
-    const categories = activeType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    // The single source of truth for the views
+    const displayType = isGlobal ? globalType : type;
+    const displayDate = isGlobal ? globalDate : date;
+
+    const categories = displayType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
     const isEditing = !!initialData;
-    const title = isEditing ? (activeType === 'income' ? 'Editar Ingreso' : 'Editar Gasto') : (activeType === 'income' ? 'Nueva Entrada' : 'Nuevo Gasto');
-    const accentColor = activeType === 'income' ? 'text-emerald-400' : 'text-rose-400';
-    const btnColor = activeType === 'income' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-rose-500 hover:bg-rose-400';
-    const borderColor = activeType === 'income' ? 'focus:border-emerald-500' : 'focus:border-rose-500';
+    const title = isEditing ? (displayType === 'income' ? 'Editar Ingreso' : 'Editar Gasto') : (displayType === 'income' ? 'Nueva Entrada' : 'Nuevo Gasto');
+    const accentColor = displayType === 'income' ? 'text-emerald-400' : 'text-rose-400';
+    const btnColor = displayType === 'income' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-rose-500 hover:bg-rose-400';
+    const borderColor = displayType === 'income' ? 'focus:border-emerald-500' : 'focus:border-rose-500';
 
     const handleSave = () => {
         if (!amount || isNaN(Number(amount))) return;
         const finalAmount = Math.round(Number(amount));
 
         if (isGlobal) {
-            onSave(finalAmount, category || 'Otros', description, activeDate, activeType);
+            onSave(finalAmount, category || 'Otros', description, globalDate, globalType);
         } else {
             onSave(finalAmount, category || 'Otros', description);
         }
@@ -101,7 +110,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                         <h3 className={cn("text-lg font-bold", accentColor)}>{title}</h3>
                         {!isGlobal && (
                             <p className="text-xs text-neutral-500 font-medium uppercase tracking-wider">
-                                {date ? format(parseISO(date), "d 'de' MMMM", { locale: es }) : ''}
+                                {displayDate ? format(parseISO(displayDate), "d 'de' MMMM", { locale: es }) : ''}
                             </p>
                         )}
                     </div>
@@ -120,14 +129,14 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                                 <label className="text-xs font-bold uppercase tracking-widest text-neutral-500">¿Qué tipo?</label>
                                 <div className="flex bg-[#111] border border-white/5 rounded-xl p-1">
                                     <button
-                                        onClick={() => setActiveType('expense')}
-                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", activeType === 'expense' ? "bg-rose-500/20 text-rose-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
+                                        onClick={() => setGlobalType('expense')}
+                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", globalType === 'expense' ? "bg-rose-500/20 text-rose-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
                                     >
                                         Gasto
                                     </button>
                                     <button
-                                        onClick={() => setActiveType('income')}
-                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", activeType === 'income' ? "bg-emerald-500/20 text-emerald-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
+                                        onClick={() => setGlobalType('income')}
+                                        className={cn("flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all", globalType === 'income' ? "bg-emerald-500/20 text-emerald-400" : "text-neutral-500 hover:text-white hover:bg-white/5")}
                                     >
                                         Ingreso
                                     </button>
@@ -137,8 +146,8 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                                 <label className="text-xs font-bold uppercase tracking-widest text-neutral-500">¿Cuándo?</label>
                                 <input
                                     type="date"
-                                    value={activeDate}
-                                    onChange={(e) => setActiveDate(e.target.value)}
+                                    value={globalDate}
+                                    onChange={(e) => setGlobalDate(e.target.value)}
                                     className="w-full bg-[#111] border border-white/5 rounded-xl px-4 py-[0.62rem] text-sm font-medium text-white outline-none transition-all placeholder-neutral-700 focus:border-cyan-500"
                                     style={{ colorScheme: "dark" }}
                                 />
