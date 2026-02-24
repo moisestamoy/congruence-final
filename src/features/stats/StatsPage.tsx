@@ -88,41 +88,53 @@ export default function StatsPage() {
                 </div>
             </header>
 
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                <MetricCard
-                    label="Congruencia (30d)"
-                    value={`${avgCongruence}%`}
-                    icon={Activity}
-                    color="text-emerald-400"
-                    glow="shadow-emerald-500/50"
-                    trend={avgCongruence > 80 ? 'Excelente' : 'Mejorable'}
-                />
-                <MetricCard
-                    label="Hábitos Activos"
-                    value={totalHabits.toString()}
-                    icon={Target}
-                    color="text-purple-400"
-                    glow="shadow-purple-500/50"
-                    trend={`${habits.filter(h => h.type === 'boolean').length} Simples`}
-                />
-                {/* Placeholder Financial Metrics */}
-                <MetricCard
-                    label="Flujo Neto (14d)"
-                    value={`${chartData.reduce((acc, d) => acc + d.netFlow, 0)}€`}
-                    icon={Wallet}
-                    color="text-cyan-400"
-                    glow="shadow-cyan-500/50"
-                    trend="Balance reciente"
-                />
-                <MetricCard
-                    label="Gastos (14d)"
-                    value={`${chartData.reduce((acc, d) => acc + d.expenses, 0)}€`}
-                    icon={TrendingUp}
-                    color="text-rose-400"
-                    glow="shadow-rose-500/50"
-                    trend="Controlar"
-                />
+            {/* MASTER COMMAND CARD (2x2 Grid) */}
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-2xl p-6 md:p-8 shrink-0 mb-12">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-purple-500/5 to-transparent pointer-events-none opacity-50" />
+
+                <h2 className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-6 relative z-10">Resumen Estadístico</h2>
+
+                <div className="grid grid-cols-2 gap-4 md:gap-6 relative z-10">
+                    {/* Congruence */}
+                    <div className="flex flex-col border-r border-b border-white/5 pb-4 pr-4">
+                        <div className="flex items-center gap-2 mb-2 text-emerald-400">
+                            <Activity size={14} className="drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Congruencia (30d)</span>
+                        </div>
+                        <span className="text-3xl lg:text-4xl font-black tracking-tighter text-white">{avgCongruence}%</span>
+                        <span className="text-[10px] text-neutral-600 font-medium mt-1">{avgCongruence > 80 ? 'Excelente' : 'Mejorable'}</span>
+                    </div>
+
+                    {/* Active Habits */}
+                    <div className="flex flex-col border-b border-white/5 pb-4 pl-2 lg:pl-4">
+                        <div className="flex items-center gap-2 mb-2 text-purple-400">
+                            <Target size={14} className="drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Hábitos Activos</span>
+                        </div>
+                        <span className="text-3xl lg:text-4xl font-black tracking-tighter text-white">{totalHabits}</span>
+                        <span className="text-[10px] text-neutral-600 font-medium mt-1">{habits.filter(h => h.type === 'boolean').length} Simples</span>
+                    </div>
+
+                    {/* Net Flow */}
+                    <div className="flex flex-col border-r border-white/5 pt-2 pr-4">
+                        <div className="flex items-center gap-2 mb-2 text-cyan-400">
+                            <Wallet size={14} className="drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Flujo Neto (14d)</span>
+                        </div>
+                        <span className="text-3xl lg:text-4xl font-bold font-mono text-cyan-50">{chartData.reduce((acc, d) => acc + d.netFlow, 0)}€</span>
+                        <span className="text-[10px] text-neutral-600 font-medium mt-1">Balance reciente</span>
+                    </div>
+
+                    {/* Expenses */}
+                    <div className="flex flex-col pt-2 pl-2 lg:pl-4">
+                        <div className="flex items-center gap-2 mb-2 text-rose-400">
+                            <TrendingUp size={14} className="drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos (14d)</span>
+                        </div>
+                        <span className="text-3xl lg:text-4xl font-bold font-mono text-rose-50">{Math.abs(chartData.reduce((acc, d) => acc + d.expenses, 0))}€</span>
+                        <span className="text-[10px] text-neutral-600 font-medium mt-1">Controlar</span>
+                    </div>
+                </div>
             </div>
 
             {/* Main Correlation Chart */}
@@ -264,26 +276,4 @@ export default function StatsPage() {
 
         </div>
     );
-}
-
-function MetricCard({ label, value, unit, icon: Icon, color, glow, trend }: any) {
-    return (
-        <motion.div
-            whileHover={{ y: -5 }}
-            className="backdrop-blur-2xl bg-[#050505]/60 border border-white/5 rounded-[2rem] p-6 shadow-xl group relative overflow-hidden"
-        >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-            <div className="relative z-10">
-                <div className={cn("p-3 rounded-xl w-fit mb-4 bg-white/5 transition-all group-hover:bg-white/10", color, glow)}>
-                    <Icon size={20} />
-                </div>
-                <h3 className="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-1">{label}</h3>
-                <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-white tracking-tight">{value}</span>
-                    {unit && <span className="text-sm font-medium text-neutral-500">{unit}</span>}
-                </div>
-                {trend && <div className="mt-2 text-xs font-bold text-neutral-600">{trend}</div>}
-            </div>
-        </motion.div>
-    )
 }
