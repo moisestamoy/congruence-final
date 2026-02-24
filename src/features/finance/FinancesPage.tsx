@@ -18,7 +18,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
-    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, savingsGoals, savingsEntries } = useFinanceStore();
+    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries } = useFinanceStore();
 
     // Force 2 months view for this specific "Dashboard" requirement
     const [horizon, setHorizon] = useState<number>(2);
@@ -34,7 +34,15 @@ export default function FinancesPage() {
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
     const [isAlertsOpen, setIsAlertsOpen] = useState(false);
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
-    const [txModal, setTxModal] = useState<{ isOpen: boolean; type: 'income' | 'expense'; date: string; isGlobal?: boolean }>({ isOpen: false, type: 'income', date: '' });
+    const [txModal, setTxModal] = useState<{
+        isOpen: boolean;
+        type: 'income' | 'expense';
+        date: string;
+        isGlobal?: boolean;
+        editingId?: string;
+        editingSource?: 'event' | 'realExpense';
+        initialData?: { amount: number; category: string; description?: string };
+    }>({ isOpen: false, type: 'income', date: '' });
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
     const { fabActionTick } = useFabStore();
 
@@ -50,13 +58,23 @@ export default function FinancesPage() {
         }
     }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleAddTransaction = (amount: number, category: string, _description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
+    const handleAddTransaction = (amount: number, category: string, description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
         const targetDate = globalDate || txModal.date;
         const targetType = globalType || txModal.type;
         if (!targetDate) return;
 
-        // Use addTransaction for distinct entries (additive)
-        addTransaction(targetDate, targetType, amount, category);
+        if (txModal.editingId && txModal.editingSource) {
+            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
+        } else {
+            // Use addTransaction for distinct entries (additive)
+            addTransaction(targetDate, targetType, amount, category);
+        }
+    };
+
+    const handleDeleteTransaction = () => {
+        if (txModal.editingId && txModal.editingSource) {
+            deleteTransaction(txModal.editingId, txModal.editingSource);
+        }
     };
 
     const dateLocale = useMemo(() => {
@@ -459,7 +477,10 @@ export default function FinancesPage() {
                                 const dailyNet = day.income - day.totalExpense;
 
                                 // Filter events for this day
-                                const dayEvents = events.filter(e => e.date === day.date);
+                                const dayEvents = [
+                                    ...events.filter(e => e.date === day.date).map(e => ({ ...e, source: 'event' as const })),
+                                    ...realExpenses.filter(e => e.date === day.date).map(e => ({ ...e, type: 'expense' as const, source: 'realExpense' as const, isRecurring: false }))
+                                ];
 
                                 return (
                                     <div key={day.date} className={cn("transition-all duration-500", isExpanded ? "mb-4 rounded-xl overflow-hidden bg-[#080808] border border-white/5 shadow-2xl" : "mb-0.5")}>
@@ -551,12 +572,26 @@ export default function FinancesPage() {
                                                         </div>
                                                     )}
                                                     {dayEvents.map(event => (
-                                                        <div key={event.id} className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/[0.02]">
+                                                        <div
+                                                            key={`${event.source}-${event.id}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setTxModal({
+                                                                    isOpen: true,
+                                                                    type: event.type,
+                                                                    date: event.date || day.date,
+                                                                    editingId: event.id,
+                                                                    editingSource: event.source,
+                                                                    initialData: { amount: event.amount, category: event.category, description: '' }
+                                                                });
+                                                            }}
+                                                            className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/[0.02] cursor-pointer hover:bg-white/[0.05] transition-colors"
+                                                        >
                                                             <div className="flex items-center gap-3">
                                                                 <div className={cn("w-1 h-8 rounded-full", event.type === 'income' ? 'bg-emerald-500' : 'bg-red-500')} />
                                                                 <div className="flex flex-col">
                                                                     <span className="text-sm font-bold text-white">{event.category}</span>
-                                                                    <span className="text-[9px] text-neutral-500 uppercase tracking-wider">{event.type === 'income' ? 'Ingreso Extra' : 'Gasto Variable'}</span>
+                                                                    <span className="text-[9px] text-neutral-500 uppercase tracking-wider">{event.type === 'income' ? 'Ingreso' : 'Gasto Variable'}</span>
                                                                 </div>
                                                             </div>
                                                             <span className={cn("font-mono font-bold text-sm", event.type === 'income' ? "text-emerald-400" : "text-red-400")}>
@@ -571,7 +606,7 @@ export default function FinancesPage() {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setTxModal({ isOpen: true, type: 'income', date: day.date });
+                                                            setTxModal({ isOpen: true, type: 'income', date: day.date, editingId: undefined, editingSource: undefined, initialData: undefined });
                                                         }}
                                                         className="group flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-500/[0.08] hover:bg-emerald-500/[0.15] border border-emerald-500/10 active:scale-[0.98] transition-all"
                                                     >
@@ -584,7 +619,7 @@ export default function FinancesPage() {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setTxModal({ isOpen: true, type: 'expense', date: day.date });
+                                                            setTxModal({ isOpen: true, type: 'expense', date: day.date, editingId: undefined, editingSource: undefined, initialData: undefined });
                                                         }}
                                                         className="group flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-red-500/[0.08] hover:bg-red-500/[0.15] border border-red-500/10 active:scale-[0.98] transition-all"
                                                     >
@@ -606,11 +641,13 @@ export default function FinancesPage() {
 
             <TransactionModal
                 isOpen={txModal.isOpen}
-                onClose={() => setTxModal({ ...txModal, isOpen: false })}
+                onClose={() => setTxModal({ ...txModal, isOpen: false, editingId: undefined, editingSource: undefined, initialData: undefined })}
                 type={txModal.type}
                 date={txModal.date}
                 isGlobal={txModal.isGlobal}
+                initialData={txModal.initialData}
                 onSave={handleAddTransaction}
+                onDelete={txModal.editingId ? handleDeleteTransaction : undefined}
             />
 
             {/* STATS SECTION (Bottom) */}
@@ -706,11 +743,13 @@ export default function FinancesPage() {
 
             <TransactionModal
                 isOpen={txModal.isOpen}
-                onClose={() => setTxModal({ ...txModal, isOpen: false })}
+                onClose={() => setTxModal({ ...txModal, isOpen: false, editingId: undefined, editingSource: undefined, initialData: undefined })}
                 type={txModal.type}
                 date={txModal.date}
                 isGlobal={txModal.isGlobal}
+                initialData={txModal.initialData}
                 onSave={handleAddTransaction}
+                onDelete={txModal.editingId ? handleDeleteTransaction : undefined}
             />
         </div>
     );
