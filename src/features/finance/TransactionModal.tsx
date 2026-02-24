@@ -1,6 +1,6 @@
 
 import { X, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -54,9 +54,17 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
     const [activeType, setActiveType] = useState<'income' | 'expense'>(type);
     const [activeDate, setActiveDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
 
-    // Reset state when opening clean or with new data
-    // (Note: This simple resetting depends on the key or onClose behavior. 
-    // Ideally use useEffect or key to reset form.)
+    // Sync state with props every time the modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setAmount(initialData ? initialData.amount.toString() : '');
+            setCategory(initialData ? initialData.category : '');
+            setDescription(initialData?.description || '');
+            setActiveType(type);
+            setActiveDate(date || format(new Date(), 'yyyy-MM-dd'));
+        }
+    }, [isOpen, initialData, type, date]);
+
     if (!isOpen) return null;
 
     const categories = activeType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
