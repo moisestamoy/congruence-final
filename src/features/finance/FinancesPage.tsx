@@ -317,30 +317,30 @@ export default function FinancesPage() {
 
                 {/* --- MOBILE VIEW: COMPACT FINANCIAL MASTER CARD --- */}
                 <div className="block md:hidden space-y-2 relative z-10 w-full">
-                    <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-2xl p-6 shrink-0">
+                    <div className="relative w-full rounded-[28px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-2xl p-5 shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
 
-                        <div className="flex justify-between items-start mb-6 relative z-10">
+                        <div className="flex justify-between items-start mb-4 relative z-10">
                             <div>
-                                <h1 className="text-2xl font-black tracking-tight text-white mb-1">Finanzas</h1>
-                                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Balance General</p>
+                                <h1 className="text-xl font-black tracking-tight text-white mb-0.5">Finanzas</h1>
+                                <p className="text-[9px] text-neutral-400 font-bold uppercase tracking-widest">Balance General</p>
                             </div>
 
-                            <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-col items-end gap-1.5">
                                 <div className="flex bg-[#111] backdrop-blur-md border border-white/5 rounded-full p-1 items-center shadow-lg">
-                                    <button onClick={() => navigateMonth(-1)} className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="-rotate-90" size={12} />
+                                    <button onClick={() => navigateMonth(-1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
+                                        <ChevronUp className="-rotate-90" size={10} />
                                     </button>
-                                    <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-neutral-300 min-w-[70px] text-center">
+                                    <span className="px-1.5 text-[9px] font-bold uppercase tracking-wider text-neutral-300 min-w-[60px] text-center">
                                         {format(currentDate, 'MMM yy', { locale: dateLocale })}
                                     </span>
-                                    <button onClick={() => navigateMonth(1)} className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="rotate-90" size={12} />
+                                    <button onClick={() => navigateMonth(1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
+                                        <ChevronUp className="rotate-90" size={10} />
                                     </button>
                                 </div>
                                 <div className="flex bg-[#111] border border-white/5 rounded-full p-0.5 shadow-lg">
                                     {[1, 2, 3].map(m => (
-                                        <button key={m} onClick={() => setHorizon(m)} className={cn("min-w-[24px] h-5 rounded-full text-[9px] font-bold transition-all uppercase tracking-widest", horizon === m ? "bg-white text-black shadow-md" : "text-neutral-500 hover:text-white")}>
+                                        <button key={m} onClick={() => setHorizon(m)} className={cn("min-w-[20px] h-4 rounded-full text-[8px] font-bold transition-all uppercase tracking-widest", horizon === m ? "bg-white text-black shadow-md" : "text-neutral-500 hover:text-white")}>
                                             {m}M
                                         </button>
                                     ))}
@@ -348,43 +348,43 @@ export default function FinancesPage() {
                             </div>
                         </div>
 
-                        <div className="mb-8 relative z-10">
-                            <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm">Flujo Neto Global</div>
-                            <div className={cn("text-5xl font-black font-mono tracking-tighter drop-shadow-2xl mt-1", netFlow >= 0 ? "text-cyan-400" : "text-amber-400")}>
+                        <div className="mb-5 relative z-10">
+                            <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm">Flujo Neto Global</div>
+                            <div className={cn("text-4xl font-black font-mono tracking-tighter drop-shadow-2xl mt-0.5", netFlow >= 0 ? "text-cyan-400" : "text-amber-400")}>
                                 {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString()}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 mb-6 relative z-10">
-                            <div className="flex-1 bg-black/40 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-4 relative z-10">
+                            <div className="flex-1 bg-black/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
                                 <div className="flex justify-between items-center mb-1">
-                                    <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</div>
-                                    <Plus size={10} className="text-emerald-500/50" />
+                                    <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</div>
+                                    <Plus size={8} className="text-emerald-500/50" />
                                 </div>
-                                <div className="text-xl font-bold font-mono text-emerald-400">€{totalIncome.toLocaleString()}</div>
+                                <div className="text-lg font-bold font-mono text-emerald-400">€{totalIncome.toLocaleString()}</div>
                             </div>
-                            <div className="flex-1 bg-black/40 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                            <div className="flex-1 bg-black/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
                                 <div className="flex justify-between items-center mb-1">
-                                    <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</div>
-                                    <Minus size={10} className="text-rose-500/50" />
+                                    <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</div>
+                                    <Minus size={8} className="text-rose-500/50" />
                                 </div>
-                                <div className="text-xl font-bold font-mono text-rose-400">€{Math.abs(totalExpenses).toLocaleString()}</div>
+                                <div className="text-lg font-bold font-mono text-rose-400">€{Math.abs(totalExpenses).toLocaleString()}</div>
                             </div>
                         </div>
 
-                        <div className="border-t border-white/5 pt-5 flex justify-between items-center relative z-10">
+                        <div className="border-t border-white/5 pt-4 flex justify-between items-center relative z-10">
                             <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                    <ShieldCheck size={12} className="text-emerald-400" />
+                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                    <ShieldCheck size={10} className="text-emerald-400" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Gasto Seguro</span>
-                                    <span className="text-[9px] text-neutral-500">Restan {safemetric_daysRemaining} días</span>
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500">Gasto Seguro</span>
+                                    <span className="text-[8px] text-neutral-500">Restan {safemetric_daysRemaining} días</span>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <span className="font-mono text-xl font-black text-white">€{safemetric_dailyBase}</span>
-                                <span className="text-[10px] text-neutral-500 ml-1 font-bold uppercase">/día</span>
+                                <span className="font-mono text-lg font-black text-white">€{safemetric_dailyBase}</span>
+                                <span className="text-[9px] text-neutral-500 ml-0.5 font-bold uppercase">/día</span>
                             </div>
                         </div>
                     </div>
