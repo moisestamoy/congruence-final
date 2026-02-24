@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Task } from '../../types';
+import { generateId } from '../../utils/id';
 
 interface TaskState {
     tasks: Task[];
@@ -44,7 +45,7 @@ export const useTaskStore = create<TaskState>()(
             addTask: (taskData) => {
                 const newTask: Task = {
                     ...taskData,
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     completed: false,
                     tags: []
                 };

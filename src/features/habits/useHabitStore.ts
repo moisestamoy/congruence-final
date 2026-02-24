@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Habit } from '../../types';
+import { generateId } from '../../utils/id';
 
 interface HabitsState {
     habits: Habit[];
@@ -81,7 +82,7 @@ export const useHabitStore = create<HabitsState>()(
             addHabit: (habitData: Omit<Habit, 'id' | 'logs'>) => {
                 const newHabit: Habit = {
                     ...habitData,
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     logs: {},
                 };
                 set((state) => ({ habits: [...state.habits, newHabit] }));

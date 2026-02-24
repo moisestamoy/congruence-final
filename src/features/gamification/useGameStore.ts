@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { generateId } from '../../utils/id';
 
 export interface StoreItem {
     id: string;
@@ -67,7 +68,7 @@ export const useGameStore = create<GameState>()(
             addPoints: (amount, reason) => set((state) => ({
                 points: state.points + amount,
                 history: [
-                    { id: crypto.randomUUID(), type: 'earn', amount, description: reason, date: new Date().toISOString() },
+                    { id: generateId(), type: 'earn', amount, description: reason, date: new Date().toISOString() },
                     ...state.history
                 ]
             })),
@@ -84,7 +85,7 @@ export const useGameStore = create<GameState>()(
                     points: state.points - item.price,
                     inventory: [...state.inventory, itemId],
                     history: [
-                        { id: crypto.randomUUID(), type: 'spend', amount: item.price, description: `Comprado: ${item.name}`, date: new Date().toISOString() },
+                        { id: generateId(), type: 'spend', amount: item.price, description: `Comprado: ${item.name}`, date: new Date().toISOString() },
                         ...state.history
                     ]
                 }));

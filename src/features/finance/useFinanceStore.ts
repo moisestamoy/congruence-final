@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { FinancialConfig, FinancialEvent, DailyOverride, DailyRealExpense } from '../../types';
+import { generateId } from '../../utils/id';
 
 interface FinanceState {
     config: FinancialConfig;
@@ -36,8 +37,8 @@ interface FinanceState {
     setRealDailyExpense: (date: string, amount: number) => void;
 
     // Edit/Delete support
-    updateTransaction: (id: string, type: 'income' | 'expense', updates: { amount?: number; category?: string; date?: string; note?: string }) => void;
-    deleteTransaction: (id: string, type: 'income' | 'expense') => void;
+    updateTransaction: (id: string, source: 'event' | 'realExpense', updates: { amount?: number; category?: string; date?: string; note?: string; type?: 'income' | 'expense' }) => void;
+    deleteTransaction: (id: string, source: 'event' | 'realExpense') => void;
     categoryBudgets: Record<string, number>;
     setCategoryBudget: (category: string, amount: number) => void;
 }
@@ -116,7 +117,7 @@ export const useFinanceStore = create<FinanceState>()(
                     }
 
                     const newEvent: FinancialEvent = {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         date,
                         type,
                         amount,
@@ -133,7 +134,7 @@ export const useFinanceStore = create<FinanceState>()(
                             events: [
                                 ...state.events,
                                 {
-                                    id: crypto.randomUUID(),
+                                    id: generateId(),
                                     date,
                                     type,
                                     amount,
@@ -147,7 +148,7 @@ export const useFinanceStore = create<FinanceState>()(
                             realExpenses: [
                                 ...state.realExpenses,
                                 {
-                                    id: crypto.randomUUID(),
+                                    id: generateId(),
                                     date,
                                     amount,
                                     category: category || 'Variable'
@@ -169,7 +170,7 @@ export const useFinanceStore = create<FinanceState>()(
                 set((state) => ({
                     savingsEntries: [
                         {
-                            id: crypto.randomUUID(),
+                            id: generateId(),
                             date: new Date().toISOString(),
                             amount,
                             note
@@ -217,7 +218,7 @@ export const useFinanceStore = create<FinanceState>()(
                     // Let's assume if they type, they mean it.
 
                     const newExpense: DailyRealExpense = {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         date,
                         amount,
                         category: 'Variable'
@@ -225,9 +226,9 @@ export const useFinanceStore = create<FinanceState>()(
                     return { realExpenses: [...filtered, newExpense] };
                 }),
 
-            updateTransaction: (id, type, updates) =>
+            updateTransaction: (id, source, updates) =>
                 set((state) => {
-                    if (type === 'income') {
+                    if (source === 'event') {
                         return {
                             events: state.events.map(e => e.id === id ? { ...e, ...updates } : e)
                         };
@@ -238,9 +239,9 @@ export const useFinanceStore = create<FinanceState>()(
                     }
                 }),
 
-            deleteTransaction: (id, type) =>
+            deleteTransaction: (id, source) =>
                 set((state) => {
-                    if (type === 'income') {
+                    if (source === 'event') {
                         return { events: state.events.filter(e => e.id !== id) };
                     } else {
                         return { realExpenses: state.realExpenses.filter(e => e.id !== id) };
