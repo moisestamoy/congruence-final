@@ -15,16 +15,19 @@ export function DayDetailsModal({ date, onClose }: DayDetailsModalProps) {
     const { events, realExpenses, updateTransaction, deleteTransaction, addTransaction } = useFinanceStore();
 
     // Local state for the Edit/Add form layer
-    const [editingTx, setEditingTx] = useState<{ id: string; type: 'income' | 'expense'; data: any } | null>(null);
+    const [editingTx, setEditingTx] = useState<{ id: string; type: 'income' | 'expense'; source: 'event' | 'realExpense'; data: any } | null>(null);
     const [isAdding, setIsAdding] = useState<'income' | 'expense' | null>(null);
 
     // Filter data for this date
-    const dayIncomes = events.filter(e => e.date === date);
-    const dayExpenses = realExpenses.filter(e => e.date === date);
+    const dayIncomes = events.filter(e => e.date === date && e.type === 'income');
+    const dayExpenses = [
+        ...events.filter(e => e.date === date && e.type === 'expense').map(e => ({ ...e, source: 'event' as const })),
+        ...realExpenses.filter(e => e.date === date).map(e => ({ ...e, source: 'realExpense' as const }))
+    ];
 
     const handleSave = (amount: number, category: string, description: string) => {
         if (editingTx) {
-            updateTransaction(editingTx.id, editingTx.type, { amount, category, note: description });
+            updateTransaction(editingTx.id, editingTx.source, { amount, category, note: description, type: editingTx.type });
             setEditingTx(null);
         } else if (isAdding) {
             addTransaction(date, isAdding, amount, category);
@@ -46,7 +49,7 @@ export function DayDetailsModal({ date, onClose }: DayDetailsModalProps) {
 
     const handleDelete = () => {
         if (editingTx) {
-            deleteTransaction(editingTx.id, editingTx.type);
+            deleteTransaction(editingTx.id, editingTx.source);
             setEditingTx(null);
         }
     };
@@ -95,7 +98,7 @@ export function DayDetailsModal({ date, onClose }: DayDetailsModalProps) {
                                     {dayIncomes.map(inc => (
                                         <div
                                             key={inc.id}
-                                            onClick={() => setEditingTx({ id: inc.id!, type: 'income', data: inc })}
+                                            onClick={() => setEditingTx({ id: inc.id!, type: 'income', source: 'event', data: inc })}
                                             className="flex justify-between items-center p-3 bg-emerald-900/5 hover:bg-emerald-900/10 border border-emerald-500/10 rounded-xl cursor-pointer transition-all active:scale-[0.98] group"
                                         >
                                             <div className="flex flex-col">
@@ -127,8 +130,8 @@ export function DayDetailsModal({ date, onClose }: DayDetailsModalProps) {
                                 <div className="space-y-2">
                                     {dayExpenses.map(exp => (
                                         <div
-                                            key={exp.id}
-                                            onClick={() => setEditingTx({ id: exp.id!, type: 'expense', data: exp })}
+                                            key={`${exp.source}-${exp.id}`}
+                                            onClick={() => setEditingTx({ id: exp.id!, type: 'expense', source: exp.source, data: exp })}
                                             className="flex justify-between items-center p-3 bg-rose-900/5 hover:bg-rose-900/10 border border-rose-500/10 rounded-xl cursor-pointer transition-all active:scale-[0.98] group"
                                         >
                                             <div className="flex flex-col">

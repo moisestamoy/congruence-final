@@ -14,6 +14,7 @@ import { CategoryBreakdownWidget } from './CategoryBreakdownWidget';
 import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
+import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
@@ -35,21 +36,19 @@ export default function FinancesPage() {
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
     const [txModal, setTxModal] = useState<{ isOpen: boolean; type: 'income' | 'expense'; date: string; isGlobal?: boolean }>({ isOpen: false, type: 'income', date: '' });
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
+    const { fabActionTick } = useFabStore();
 
-    // Global FAB Event Listener
+    // Global FAB Event Listener using Zustand
     useEffect(() => {
-        const handleFabFinanceClick = () => {
+        if (fabActionTick > 0) {
             setTxModal({
                 isOpen: true,
                 type: 'expense',
                 date: format(new Date(), 'yyyy-MM-dd'),
                 isGlobal: true
             });
-        };
-
-        window.addEventListener('fab-action-finance', handleFabFinanceClick);
-        return () => window.removeEventListener('fab-action-finance', handleFabFinanceClick);
-    }, []);
+        }
+    }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAddTransaction = (amount: number, category: string, _description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
         const targetDate = globalDate || txModal.date;
