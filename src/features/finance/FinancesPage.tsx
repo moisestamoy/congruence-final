@@ -216,7 +216,7 @@ export default function FinancesPage() {
                     </div>
 
                     {/* Summary Widgets Grid (Minimalist Desktop) */}
-                    <div className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl p-6 flex flex-col items-center justify-center">
+                    <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl py-6 px-8 flex flex-col items-center justify-center">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
 
                         {/* Current/Projected Balance */}
@@ -225,7 +225,7 @@ export default function FinancesPage() {
                                 Saldo Fin de Mes
                             </span>
                             <div className={cn(
-                                "text-5xl lg:text-6xl font-black font-mono tracking-tighter drop-shadow-2xl",
+                                "text-5xl lg:text-5xl font-black font-mono tracking-tight drop-shadow-2xl",
                                 safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
                             )}>
                                 €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
@@ -233,16 +233,16 @@ export default function FinancesPage() {
 
                             {/* Monthly Goal Progress */}
                             {savingsGoals?.monthly > 0 && (
-                                <div className="mt-4 w-full flex flex-col items-center">
-                                    <div className="flex justify-between w-[50%] text-[10px] font-bold uppercase tracking-[0.3em] mb-2">
+                                <div className="mt-2 w-[50%] flex flex-col items-center">
+                                    <div className="flex justify-between w-full text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5">
                                         <span className="text-neutral-500">Progreso Meta</span>
                                         <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
                                             €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
                                         </span>
                                     </div>
-                                    <div className="w-[50%] h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                                         <div
-                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_15px_#34d399]" : "bg-cyan-500 shadow-[0_0_15px_#06b6d4]")}
+                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-cyan-500 shadow-[0_0_8px_#06b6d4]")}
                                             style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
                                         />
                                     </div>
@@ -250,25 +250,25 @@ export default function FinancesPage() {
                             )}
 
                             {/* Income / Expenses Split */}
-                            <div className="flex items-center gap-6 mt-6 w-full max-w-xl">
+                            <div className="flex items-center gap-3 mt-4 w-full max-w-lg">
                                 {/* Income */}
-                                <div className="flex-1 bg-white/[0.02] p-4 rounded-[20px] border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Plus size={14} className="text-emerald-500" />
-                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos Totales</span>
+                                <div className="flex-1 bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <Plus size={12} className="text-emerald-500" />
+                                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos Totales</span>
                                     </div>
-                                    <span className="text-2xl font-bold font-mono text-emerald-400">
+                                    <span className="text-xl font-bold font-mono text-emerald-400">
                                         €{totalIncome.toLocaleString()}
                                     </span>
                                 </div>
 
                                 {/* Expenses */}
-                                <div className="flex-1 bg-white/[0.02] p-4 rounded-[20px] border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Minus size={14} className="text-rose-500" />
-                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gastos Totales</span>
+                                <div className="flex-1 bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <Minus size={12} className="text-rose-500" />
+                                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos Totales</span>
                                     </div>
-                                    <span className="text-2xl font-bold font-mono text-rose-400">
+                                    <span className="text-xl font-bold font-mono text-rose-400">
                                         €{Math.abs(totalExpenses).toLocaleString()}
                                     </span>
                                 </div>
