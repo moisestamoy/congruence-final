@@ -359,6 +359,24 @@ export default function FinancesPage() {
                             )}>
                                 €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
                             </div>
+
+                            {/* Monthly Goal Progress */}
+                            {savingsGoals?.monthly > 0 && (
+                                <div className="mt-5 w-[85%] flex flex-col items-center">
+                                    <div className="flex justify-between w-full text-[8px] font-bold uppercase tracking-[0.2em] mb-2">
+                                        <span className="text-neutral-500">Progreso Meta</span>
+                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
+                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]")}
+                                            style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Income / Expenses Split */}
