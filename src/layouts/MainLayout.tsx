@@ -100,8 +100,8 @@ export default function MainLayout() {
             </header>
 
             {/* BEVEL MOBILE BOTTOM NAVIGATION */}
-            <div className="lg:hidden fixed bottom-6 inset-x-4 z-50 flex items-center gap-3">
-                <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-2 flex justify-between items-center shadow-2xl mr-2">
+            <div className="lg:hidden fixed bottom-6 inset-x-4 z-50 flex items-center gap-2">
+                <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 flex justify-between items-center shadow-2xl">
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
                         return (
@@ -109,13 +109,13 @@ export default function MainLayout() {
                                 key={item.path}
                                 onClick={() => navigate(item.path)}
                                 className={cn(
-                                    "relative flex flex-col items-center justify-center w-[4.5rem] h-[3.8rem] rounded-[2rem] transition-all duration-300",
+                                    "relative flex flex-col items-center justify-center w-16 h-14 rounded-[1.5rem] transition-all duration-300",
                                     isActive ? "bg-white/15 text-white shadow-inner" : "text-neutral-500 active:bg-white/5"
                                 )}
                             >
-                                <item.icon size={20} className={cn("mb-1 transition-colors", isActive ? "text-white" : "")} strokeWidth={isActive ? 2.5 : 2} />
+                                <item.icon size={18} className={cn("mb-0.5 transition-colors", isActive ? "text-white" : "")} strokeWidth={isActive ? 2.5 : 2} />
                                 <span className={cn(
-                                    "text-[10px] font-semibold tracking-wide transition-colors",
+                                    "text-[9px] font-semibold tracking-wide transition-colors",
                                     isActive ? "text-white" : "text-neutral-500"
                                 )}>
                                     {item.label}
@@ -129,9 +129,9 @@ export default function MainLayout() {
                 {location.pathname !== '/stats' && location.pathname !== '/coach' && (
                     <button
                         onClick={triggerFab}
-                        className="w-[4.8rem] h-[4.8rem] rounded-[2.4rem] bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+                        className="w-14 h-14 rounded-full bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
                     >
-                        <Plus size={32} strokeWidth={2.5} />
+                        <Plus size={28} strokeWidth={2.5} />
                     </button>
                 )}
             </div>
