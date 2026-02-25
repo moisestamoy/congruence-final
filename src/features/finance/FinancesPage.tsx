@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addMonths, parseISO, isSameMonth, differenceInCalendarDays, endOfMonth, startOfToday } from 'date-fns';
 import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, ShieldCheck } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { SafeToSpendWidget } from './SafeToSpendWidget';
@@ -348,43 +348,41 @@ export default function FinancesPage() {
                             </div>
                         </div>
 
-                        <div className="mb-5 relative z-10">
-                            <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm">Flujo Neto Global</div>
-                            <div className={cn("text-4xl font-black font-mono tracking-tighter drop-shadow-2xl mt-0.5", netFlow >= 0 ? "text-cyan-400" : "text-amber-400")}>
-                                {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString()}
+                        {/* Current/Projected Balance */}
+                        <div className="mb-6 relative z-10 flex flex-col items-center border-b border-white/5 pb-6">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm mb-1">
+                                Saldo Fin de Mes
+                            </span>
+                            <div className={cn(
+                                "text-5xl font-black font-mono tracking-tighter drop-shadow-2xl",
+                                safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
+                            )}>
+                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <div className="flex-1 bg-black/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                <div className="flex justify-between items-center mb-1">
-                                    <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</div>
-                                    <Plus size={8} className="text-emerald-500/50" />
+                        {/* Income / Expenses Split */}
+                        <div className="flex items-center gap-3 relative z-10">
+                            {/* Income */}
+                            <div className="flex-1 bg-white/[0.02] p-4 rounded-2xl border border-white/5 backdrop-blur-sm flex flex-col items-center">
+                                <div className="flex flex-col items-center mb-1">
+                                    <Plus size={12} className="text-emerald-500 mb-1" />
+                                    <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
                                 </div>
-                                <div className="text-lg font-bold font-mono text-emerald-400">€{totalIncome.toLocaleString()}</div>
+                                <span className="text-xl font-bold font-mono text-emerald-400">
+                                    €{totalIncome.toLocaleString()}
+                                </span>
                             </div>
-                            <div className="flex-1 bg-black/40 p-3 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                <div className="flex justify-between items-center mb-1">
-                                    <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</div>
-                                    <Minus size={8} className="text-rose-500/50" />
-                                </div>
-                                <div className="text-lg font-bold font-mono text-rose-400">€{Math.abs(totalExpenses).toLocaleString()}</div>
-                            </div>
-                        </div>
 
-                        <div className="border-t border-white/5 pt-4 flex justify-between items-center relative z-10">
-                            <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                                    <ShieldCheck size={10} className="text-emerald-400" />
+                            {/* Expenses */}
+                            <div className="flex-1 bg-white/[0.02] p-4 rounded-2xl border border-white/5 backdrop-blur-sm flex flex-col items-center">
+                                <div className="flex flex-col items-center mb-1">
+                                    <Minus size={12} className="text-rose-500 mb-1" />
+                                    <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500">Gasto Seguro</span>
-                                    <span className="text-[8px] text-neutral-500">Restan {safemetric_daysRemaining} días</span>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="font-mono text-lg font-black text-white">€{safemetric_dailyBase}</span>
-                                <span className="text-[9px] text-neutral-500 ml-0.5 font-bold uppercase">/día</span>
+                                <span className="text-xl font-bold font-mono text-rose-400">
+                                    €{Math.abs(totalExpenses).toLocaleString()}
+                                </span>
                             </div>
                         </div>
                     </div>
