@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, addMonths, parseISO, isSameMonth, differenceInCalendarDays, endOfMonth, startOfToday } from 'date-fns';
+import { format, addMonths, parseISO, isSameMonth, startOfToday } from 'date-fns';
 import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
@@ -8,7 +8,6 @@ import { cn } from '../../utils/cn';
 import { Info, Target, Plus, Minus, ChevronUp, Calculator } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
-import { SafeToSpendWidget } from './SafeToSpendWidget';
 import { CashFlowChart } from './CashFlowChart';
 import { CategoryBreakdownWidget } from './CategoryBreakdownWidget';
 import { DayDetailsModal } from './DayDetailsModal';
@@ -191,15 +190,9 @@ export default function FinancesPage() {
     const currentMonthData = monthsData.find(m => isSameMonth(m.date, today));
 
     let safemetric_projectedEnd = 0;
-    let safemetric_daysRemaining = 0;
-    let safemetric_chartData: any[] = [];
-    let safemetric_dailyBase = Math.ceil(config.monthlyFixedBudget / 30); // Approx
 
     if (currentMonthData) {
         safemetric_projectedEnd = currentMonthData.days[currentMonthData.days.length - 1].balance;
-        safemetric_daysRemaining = differenceInCalendarDays(endOfMonth(today), today) + 1;
-        safemetric_chartData = currentMonthData.days;
-        safemetric_dailyBase = Math.ceil(config.monthlyFixedBudget / currentMonthData.days.length);
     }
 
     return (
@@ -222,36 +215,64 @@ export default function FinancesPage() {
                         </div>
                     </div>
 
-                    {/* Summary Widgets Grid (4 Columns) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* Ingresos Totales */}
-                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Ingresos Totales</span>
-                            <div className="text-xl font-bold font-mono text-emerald-400 mt-1 relative z-10">€{totalIncome.toLocaleString()}</div>
-                        </div>
-                        {/* Gastos Totales */}
-                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Gastos Totales</span>
-                            <div className="text-xl font-bold font-mono text-rose-400 mt-1 relative z-10">€{Math.abs(totalExpenses).toLocaleString()}</div>
-                        </div>
-                        {/* Flujo Neto */}
-                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Flujo Neto</span>
-                            <div className={cn("text-xl font-bold font-mono mt-1 relative z-10", netFlow >= 0 ? "text-cyan-400" : "text-amber-400")}>
-                                {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString()}
+                    {/* Summary Widgets Grid (Minimalist Desktop) */}
+                    <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl p-8 flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
+
+                        {/* Current/Projected Balance */}
+                        <div className="relative z-10 flex flex-col items-center w-full max-w-3xl">
+                            <span className="text-[12px] font-bold text-neutral-500 uppercase tracking-[0.2em] shadow-sm mb-2">
+                                Saldo Fin de Mes
+                            </span>
+                            <div className={cn(
+                                "text-7xl lg:text-8xl font-black font-mono tracking-tighter drop-shadow-2xl",
+                                safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
+                            )}>
+                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
                             </div>
-                        </div>
-                        {/* Safe-To-Spend Widget */}
-                        <div className="h-full">
-                            <SafeToSpendWidget
-                                dailyBaseBudget={safemetric_dailyBase}
-                                projectedEndBalance={safemetric_projectedEnd}
-                                savingsGoal={savingsGoals.monthly}
-                                daysRemaining={safemetric_daysRemaining}
-                            />
+
+                            {/* Monthly Goal Progress */}
+                            {savingsGoals?.monthly > 0 && (
+                                <div className="mt-8 w-full flex flex-col items-center">
+                                    <div className="flex justify-between w-[60%] text-[10px] font-bold uppercase tracking-[0.3em] mb-3">
+                                        <span className="text-neutral-500">Progreso Meta</span>
+                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
+                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                        </span>
+                                    </div>
+                                    <div className="w-[60%] h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_15px_#34d399]" : "bg-cyan-500 shadow-[0_0_15px_#06b6d4]")}
+                                            style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Income / Expenses Split */}
+                            <div className="flex items-center gap-6 mt-12 w-full max-w-2xl">
+                                {/* Income */}
+                                <div className="flex-1 bg-white/[0.02] p-6 rounded-[24px] border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Plus size={16} className="text-emerald-500" />
+                                        <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos Totales</span>
+                                    </div>
+                                    <span className="text-3xl font-bold font-mono text-emerald-400">
+                                        €{totalIncome.toLocaleString()}
+                                    </span>
+                                </div>
+
+                                {/* Expenses */}
+                                <div className="flex-1 bg-white/[0.02] p-6 rounded-[24px] border border-white/5 backdrop-blur-sm flex flex-col items-center hover:bg-white/[0.04] transition-colors">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Minus size={16} className="text-rose-500" />
+                                        <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest">Gastos Totales</span>
+                                    </div>
+                                    <span className="text-3xl font-bold font-mono text-rose-400">
+                                        €{Math.abs(totalExpenses).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -789,7 +810,7 @@ export default function FinancesPage() {
 
             {/* 6. CASH FLOW WAVE CHART (Moved to Bottom) */}
             <div className="w-full max-w-[1800px] mx-auto mt-12 mb-12">
-                <CashFlowChart data={safemetric_chartData} />
+                <CashFlowChart data={currentMonthData?.days || []} />
             </div>
 
             {/* MODALS */}
