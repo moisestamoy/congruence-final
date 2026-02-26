@@ -40,7 +40,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             )}
         >
             {/* Left Section: Controls and Info */}
-            <div className="flex items-center gap-4 lg:gap-5 z-10 flex-1 overflow-hidden pr-2 lg:pr-4">
+            <div className="flex items-center gap-4 lg:gap-5 z-10 flex-1 min-w-0 pr-2 lg:pr-4">
                 {/* Custom Neon Checkbox */}
                 <button
                     onClick={onToggle}
@@ -55,7 +55,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                 </button>
 
                 {/* Text Content */}
-                <div className="flex flex-col justify-center overflow-hidden">
+                <div className="flex flex-col justify-center flex-1 min-w-0">
                     <div className="flex items-center gap-2 lg:gap-3">
                         {/* Icon Display */}
                         <span className="text-xl lg:text-2xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
@@ -68,13 +68,13 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     </div>
 
                     {/* Subtitle / Input */}
-                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10 truncate">
+                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10 h-5">
                         {habit.type === 'boolean' ? (
                             <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest truncate">
                                 {habit.subtitle || '1 días de racha'}
                             </p>
                         ) : (
-                            <div className="flex items-center gap-1.5 truncate">
+                            <div className="flex items-center gap-1.5 min-w-0">
                                 <input
                                     ref={inputRef}
                                     type="number"
