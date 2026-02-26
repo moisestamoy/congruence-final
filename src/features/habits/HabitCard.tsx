@@ -94,14 +94,14 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             {/* Right Section: Mini Activity Graph & Edit Button */}
             <div className="flex items-center gap-3 lg:gap-4 z-10">
                 {/* 7x3 Grid for 21 days */}
-                <div className="grid grid-cols-7 grid-rows-3 gap-[2px] opacity-70 group-hover:opacity-100 transition-opacity">
+                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                     {pastDays.map((dateStr) => {
                         const isDayCompleted = !!habit.logs[dateStr]?.completed;
                         return (
                             <div
                                 key={dateStr}
                                 className={cn(
-                                    "w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-[1px] transition-colors",
+                                    "w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-[2px] transition-colors",
                                     isDayCompleted ? activeColor : inactiveColor
                                 )}
                                 title={`${dateStr}: ${isDayCompleted ? 'Completado' : 'No completado'}`}
