@@ -33,19 +33,19 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         <motion.div
             layout
             className={cn(
-                "group relative flex items-center justify-between p-4 lg:p-5 rounded-2xl transition-all duration-300 mb-2 lg:mb-3 overflow-hidden",
+                "group relative flex items-center justify-between p-5 lg:p-6 rounded-[20px] transition-all duration-300 mb-3 overflow-hidden",
                 "bg-white/[0.03] border border-white/[0.05] backdrop-blur-md",
-                "hover:bg-white/[0.06] hover:shadow-[0_0_20px_rgba(6,182,212,0.1)] hover:border-white/10",
+                "hover:bg-white/[0.06] hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:border-white/10",
                 isCompleted && "opacity-80"
             )}
         >
             {/* Left Section: Controls and Info */}
-            <div className="flex items-center gap-3 lg:gap-4 z-10 flex-1 min-w-0 pr-2">
+            <div className="flex items-center gap-4 lg:gap-5 z-10">
                 {/* Custom Neon Checkbox */}
                 <button
                     onClick={onToggle}
                     className={cn(
-                        "flex h-7 w-7 lg:h-8 lg:w-8 shrink-0 items-center justify-center rounded-full transition-all duration-300 border relative overflow-hidden",
+                        "flex h-8 w-8 lg:h-9 lg:w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300 border relative overflow-hidden",
                         isCompleted
                             ? "bg-gradient-to-br from-cyan-400 to-blue-500 border-transparent shadow-[0_0_15px_rgba(6,182,212,0.6)]"
                             : "bg-black/50 border-white/20 hover:border-white/50"
@@ -56,11 +56,11 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
                 {/* Text Content */}
                 <div className="flex flex-col justify-center min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 lg:gap-3">
                         {/* Icon Display */}
-                        <span className="text-lg lg:text-xl drop-shadow-md">{habit.icon || '🎯'}</span>
+                        <span className="text-xl lg:text-2xl drop-shadow-md">{habit.icon || '🎯'}</span>
                         <h3 className={cn(
-                            "font-bold text-sm lg:text-base tracking-wide truncate transition-colors drop-shadow-sm",
+                            "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm",
                             isCompleted ? "text-white" : "text-neutral-200"
                         )}>
                             {habit.title}
@@ -68,9 +68,9 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     </div>
 
                     {/* Subtitle / Input */}
-                    <div className="mt-0.5 lg:mt-1 pl-8">
+                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10">
                         {habit.type === 'boolean' ? (
-                            <p className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-widest">
+                            <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest">
                                 {habit.subtitle || '1 días de racha'}
                             </p>
                         ) : (
@@ -92,24 +92,22 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             </div>
 
             {/* Right Section: Mini Activity Graph & Edit Button */}
-            <div className="flex items-center gap-2 lg:gap-4 z-10 shrink-0">
+            <div className="flex items-center gap-4 lg:gap-5 z-10">
                 {/* 7x3 Grid for 21 days */}
-                <div className="w-[60px] lg:w-[84px] flex-shrink-0">
-                    <div className="grid grid-cols-7 grid-rows-3 gap-[2px] lg:gap-1 opacity-80 group-hover:opacity-100 transition-opacity justify-items-end">
-                        {pastDays.map((dateStr) => {
-                            const isDayCompleted = !!habit.logs[dateStr]?.completed;
-                            return (
-                                <div
-                                    key={dateStr}
-                                    className={cn(
-                                        "w-[6px] h-[6px] lg:w-2.5 lg:h-2.5 rounded-[1.5px] lg:rounded-[2px] transition-colors",
-                                        isDayCompleted ? activeColor : inactiveColor
-                                    )}
-                                    title={`${dateStr}: ${isDayCompleted ? 'Completado' : 'No completado'}`}
-                                />
-                            )
-                        })}
-                    </div>
+                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    {pastDays.map((dateStr) => {
+                        const isDayCompleted = !!habit.logs[dateStr]?.completed;
+                        return (
+                            <div
+                                key={dateStr}
+                                className={cn(
+                                    "w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-[3px] transition-colors",
+                                    isDayCompleted ? activeColor : inactiveColor
+                                )}
+                                title={`${dateStr}: ${isDayCompleted ? 'Completado' : 'No completado'}`}
+                            />
+                        )
+                    })}
                 </div>
 
                 {/* Edit Button (Visible on Hover in Desktop, always subtle in Mobile) */}
