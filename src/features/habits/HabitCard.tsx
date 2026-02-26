@@ -40,7 +40,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             )}
         >
             {/* Left Section: Controls and Info */}
-            <div className="flex items-center gap-4 lg:gap-5 z-10">
+            <div className="flex items-center gap-4 lg:gap-5 z-10 flex-1 min-w-0 pr-2 lg:pr-4">
                 {/* Custom Neon Checkbox */}
                 <button
                     onClick={onToggle}
@@ -92,16 +92,16 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             </div>
 
             {/* Right Section: Mini Activity Graph & Edit Button */}
-            <div className="flex items-center gap-4 lg:gap-5 z-10">
+            <div className="flex items-center gap-4 lg:gap-5 z-10 shrink-0">
                 {/* 7x3 Grid for 21 days */}
-                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-[4px] opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
                     {pastDays.map((dateStr) => {
                         const isDayCompleted = !!habit.logs[dateStr]?.completed;
                         return (
                             <div
                                 key={dateStr}
                                 className={cn(
-                                    "w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-[3px] transition-colors",
+                                    "w-2.5 h-2.5 lg:w-[11px] lg:h-[11px] rounded-[3px] transition-colors shrink-0",
                                     isDayCompleted ? activeColor : inactiveColor
                                 )}
                                 title={`${dateStr}: ${isDayCompleted ? 'Completado' : 'No completado'}`}
