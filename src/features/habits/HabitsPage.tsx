@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { HabitForm } from './HabitForm';
@@ -12,15 +12,20 @@ import { IdentityProtocolWizard } from './IdentityProtocolWizard';
 import { Habit } from '../../types';
 import { useGameStore } from '../gamification/useGameStore'; // Import GameStore
 import { useFabStore } from '../../hooks/useFabStore';
+import { useAuth } from '../../context/AuthContext';
+import { AuthModal } from '../auth/AuthModal';
 
 export default function HabitsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isIdentityBuilderOpen, setIsIdentityBuilderOpen] = useState(false);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
     const { fabActionTick } = useFabStore();
+    const { user, signOut } = useAuth();
 
     const navigateDate = (days: number) => {
         setCurrentDate(prev => addDays(prev, days));
@@ -118,13 +123,64 @@ export default function HabitsPage() {
 
             {/* HEADER ACTIONS */}
             <div className="absolute top-4 right-4 lg:top-8 lg:right-8 z-40 flex gap-4">
-                <button
-                    onClick={() => setIsIdentityBuilderOpen(true)}
-                    className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group"
-                    title="Definir Identidad"
-                >
-                    <User size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
-                </button>
+                <div className="relative">
+                    <button
+                        onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                        className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group"
+                        title="Opciones de Perfil"
+                    >
+                        <User size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                    </button>
+
+                    <AnimatePresence>
+                        {isProfileMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-56 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
+                                >
+                                    <button
+                                        onClick={() => {
+                                            setIsProfileMenuOpen(false);
+                                            setIsIdentityBuilderOpen(true);
+                                        }}
+                                        className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors text-left"
+                                    >
+                                        <Shield size={16} className="text-cyan-400" />
+                                        Protocolo de Persona
+                                    </button>
+                                    <div className="h-px bg-white/10 mx-2" />
+                                    {user ? (
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileMenuOpen(false);
+                                                signOut();
+                                            }}
+                                            className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                                        >
+                                            <LogOut size={16} />
+                                            Cerrar Sesión
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                setIsProfileMenuOpen(false);
+                                                setIsAuthModalOpen(true);
+                                            }}
+                                            className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors text-left"
+                                        >
+                                            <LogIn size={16} />
+                                            Iniciar Sesión
+                                        </button>
+                                    )}
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+                </div>
                 <div className="hidden lg:block">
                     <button
                         onClick={() => setLayoutView(layoutView === 'split' ? 'central' : 'split')}
@@ -361,6 +417,7 @@ export default function HabitsPage() {
                 isOpen={isIdentityBuilderOpen}
                 onClose={() => setIsIdentityBuilderOpen(false)}
             />
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         </div>
     );
 }

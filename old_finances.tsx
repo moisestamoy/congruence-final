@@ -1,13 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { format, addMonths, parseISO, isSameMonth, startOfToday } from 'date-fns';
+import { format, addMonths, parseISO, isSameMonth, differenceInCalendarDays, endOfMonth, startOfToday } from 'date-fns';
 import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
+import { SafeToSpendWidget } from './SafeToSpendWidget';
 import { CashFlowChart } from './CashFlowChart';
 import { CategoryBreakdownWidget } from './CategoryBreakdownWidget';
 import { DayDetailsModal } from './DayDetailsModal';
@@ -17,7 +18,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
-    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries, resetAll } = useFinanceStore();
+    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries } = useFinanceStore();
 
     // Force 2 months view for this specific "Dashboard" requirement
     const [horizon, setHorizon] = useState<number>(2);
@@ -189,10 +190,17 @@ export default function FinancesPage() {
     const today = startOfToday();
     const currentMonthData = monthsData.find(m => isSameMonth(m.date, today));
 
+    // Default safe values if data not ready
     let safemetric_projectedEnd = 0;
+    let safemetric_daysRemaining = 0;
+    let safemetric_chartData: any[] = [];
+    let safemetric_dailyBase = Math.ceil(config.monthlyFixedBudget / 30); // Approx
 
     if (currentMonthData) {
         safemetric_projectedEnd = currentMonthData.days[currentMonthData.days.length - 1].balance;
+        safemetric_daysRemaining = differenceInCalendarDays(endOfMonth(today), today) + 1;
+        safemetric_chartData = currentMonthData.days;
+        safemetric_dailyBase = Math.ceil(config.monthlyFixedBudget / currentMonthData.days.length);
     }
 
     return (
@@ -205,241 +213,130 @@ export default function FinancesPage() {
 
             <div className="w-full max-w-[1600px] mx-auto p-4 md:p-8 relative z-10 space-y-8">
 
-                {/* --- DESKTOP VIEW: PRO COMMAND CENTER (Hidden on Mobile) --- */}
-                <div className="hidden md:block space-y-8">
+                {/* 1. FINANCIAL COMMAND CENTER HEADER */}
+                <div className="space-y-8">
                     {/* Title & Actions */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">Finanzas</h1>
                             <p className="text-neutral-400 font-medium">Panel de Control & Proyección</p>
                         </div>
+
                     </div>
 
-                    {/* Summary Widgets Grid (Minimalist Desktop Horizontal) */}
-                    <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl py-3 px-6 flex items-center justify-between">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
-
-                        {/* Left Flank: Income */}
-                        <div className="relative z-10 flex-1 flex flex-col items-start justify-center pl-8">
-                            <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-start hover:bg-white/[0.04] transition-colors shadow-lg">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <Plus size={14} className="text-emerald-500" />
-                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
-                                </div>
-                                <span className="text-xl lg:text-2xl font-bold font-mono text-emerald-400">
-                                    €{totalIncome.toLocaleString()}
-                                </span>
+                    {/* Summary Widgets Grid (4 Columns) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        {/* Ingresos Totales */}
+                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Ingresos Totales</span>
+                            <div className="text-xl font-bold font-mono text-emerald-400 mt-1 relative z-10">€{totalIncome.toLocaleString()}</div>
+                        </div>
+                        {/* Gastos Totales */}
+                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Gastos Totales</span>
+                            <div className="text-xl font-bold font-mono text-rose-400 mt-1 relative z-10">€{Math.abs(totalExpenses).toLocaleString()}</div>
+                        </div>
+                        {/* Flujo Neto */}
+                        <div className="p-3 rounded-2xl bg-[#0a0a0a] border border-white/5 shadow-xl relative overflow-hidden group hover:border-white/10 transition-colors">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest relative z-10">Flujo Neto</span>
+                            <div className={cn("text-xl font-bold font-mono mt-1 relative z-10", netFlow >= 0 ? "text-cyan-400" : "text-amber-400")}>
+                                {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString()}
                             </div>
                         </div>
-
-                        {/* Center Core: Balance & Progress */}
-                        <div className="relative z-10 flex-2 flex flex-col items-center justify-center px-8 min-w-[400px]">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] shadow-sm mb-0.5">
-                                Saldo Fin de Mes
-                            </span>
-                            <div className={cn(
-                                "text-5xl lg:text-6xl font-black font-mono tracking-tight drop-shadow-2xl",
-                                safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
-                            )}>
-                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
-                            </div>
-
-                            {/* Monthly Goal Progress */}
-                            {savingsGoals?.monthly > 0 && (
-                                <div className="mt-2 w-full flex flex-col items-center">
-                                    <div className="flex justify-between w-[80%] text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5">
-                                        <span className="text-neutral-500">Progreso Meta</span>
-                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
-                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
-                                        </span>
-                                    </div>
-                                    <div className="w-[80%] h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]")}
-                                            style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right Flank: Expenses */}
-                        <div className="relative z-10 flex-1 flex flex-col items-end justify-center pr-8">
-                            <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-end hover:bg-white/[0.04] transition-colors shadow-lg">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <Minus size={14} className="text-rose-500" />
-                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
-                                </div>
-                                <span className="text-xl lg:text-2xl font-bold font-mono text-rose-400">
-                                    €{Math.abs(totalExpenses).toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* CONTROL BAR (Floating & Unified) */}
-                    <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
-                        {/* LEFT: Date Navigation & Horizon & Reset */}
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                            <button onClick={() => { if (window.confirm('¿Estás seguro de que quieres reiniciar todo? Esta acción no se puede deshacer.')) resetAll(); }} className="flex justify-center items-center p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all shrink-0" title="Reiniciar todo">
-                                <RotateCcw size={16} />
-                            </button>
-                            <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-                            <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1 shrink-0">
-                                <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                                    <ChevronUp className="-rotate-90" size={16} />
-                                </button>
-                                <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
-                                    {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
-                                    {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
-                                </span>
-                                <button onClick={() => navigateMonth(1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                                    <ChevronUp className="rotate-90" size={16} />
-                                </button>
-                            </div>
-
-                            <div className="w-px h-6 bg-white/10 mx-2" />
-
-                            <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1 gap-1">
-                                {[1, 2, 3, 4, 12].map(m => (
-                                    <button
-                                        key={m}
-                                        onClick={() => setHorizon(m)}
-                                        className={cn(
-                                            "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest min-w-[32px]",
-                                            horizon === m ? "bg-white text-black shadow-lg scale-105" : "text-neutral-500 hover:text-white hover:bg-white/5"
-                                        )}
-                                    >
-                                        {m === 1 && '1M'}
-                                        {m === 2 && '2M'}
-                                        {m === 3 && '3M'}
-                                        {m === 4 && '4M'}
-                                        {m === 12 && '1A'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* RIGHT: Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => setIsAlertsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-blue-400/50 hover:text-blue-400 transition-colors cursor-pointer shrink-0" title="Ver alertas">
-                                <div className="relative">
-                                    <Info size={18} />
-                                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                                </div>
-                            </button>
-
-                            <div className="h-6 w-px bg-white/10 mx-1 shrink-0" />
-
-                            <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-2 px-3 lg:px-5 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all whitespace-nowrap">
-                                <Calculator size={14} className="shrink-0" /> <span className="hidden lg:inline">Presupuesto</span>
-                            </button>
-                            <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-2 px-3 lg:px-5 py-2.5 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] whitespace-nowrap">
-                                <Target size={14} className="shrink-0" /> <span className="hidden lg:inline">Metas</span>
-                            </button>
+                        {/* Safe-To-Spend Widget */}
+                        <div className="h-full">
+                            <SafeToSpendWidget
+                                dailyBaseBudget={safemetric_dailyBase}
+                                projectedEndBalance={safemetric_projectedEnd}
+                                savingsGoal={savingsGoals.monthly}
+                                daysRemaining={safemetric_daysRemaining}
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* --- MOBILE VIEW: COMPACT FINANCIAL MASTER CARD --- */}
-                <div className="block md:hidden space-y-2 relative z-10 w-full mb-4">
-                    <div className="relative w-full rounded-[20px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-lg p-4 shrink-0">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
+                {/* 3. CONTROL BAR (Floating & Unified) */}
+                <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 w-full">
 
-                        <div className="flex justify-between items-start mb-3 relative z-10">
-                            <div>
-                                <h1 className="text-lg font-black tracking-tight text-white mb-0">Finanzas</h1>
-                                <p className="text-[8px] text-neutral-400 font-bold uppercase tracking-widest">Balance General</p>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-1.5">
-                                <div className="flex bg-[#111] backdrop-blur-md border border-white/5 rounded-full p-0.5 items-center shadow-md">
-                                    <button onClick={() => navigateMonth(-1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="-rotate-90" size={10} />
-                                    </button>
-                                    <span className="px-1 text-[9px] font-bold uppercase tracking-wider text-neutral-300 min-w-[50px] text-center">
-                                        {format(currentDate, 'MMM yy', { locale: dateLocale })}
-                                    </span>
-                                    <button onClick={() => navigateMonth(1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="rotate-90" size={10} />
-                                    </button>
-                                </div>
-                                <div className="flex bg-[#111] border border-white/5 rounded-full p-0.5 shadow-md">
-                                    {[1, 2, 3].map(m => (
-                                        <button key={m} onClick={() => setHorizon(m)} className={cn("min-w-[20px] h-4 rounded-full text-[8px] font-bold transition-all uppercase tracking-widest", horizon === m ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-white")}>
-                                            {m}M
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Current/Projected Balance */}
-                        <div className="mb-4 relative z-10 flex flex-col items-center border-b border-white/5 pb-4">
-                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm mb-1">
-                                Saldo Fin de Mes
+                    {/* LEFT: Date Navigation & Horizon */}
+                    <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+                        {/* Date Nav */}
+                        <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1">
+                            <button
+                                onClick={() => navigateMonth(-1)}
+                                className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                            >
+                                <ChevronUp className="-rotate-90" size={16} />
+                            </button>
+                            <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
+                                {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
+                                {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
                             </span>
-                            <div className={cn(
-                                "text-4xl font-black font-mono tracking-tighter drop-shadow-xl",
-                                safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
-                            )}>
-                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
-                            </div>
-
-                            {/* Monthly Goal Progress */}
-                            {savingsGoals?.monthly > 0 && (
-                                <div className="mt-3 w-[90%] flex flex-col items-center">
-                                    <div className="flex justify-between w-full text-[7.5px] font-bold uppercase tracking-[0.2em] mb-1.5">
-                                        <span className="text-neutral-500">Progreso Meta</span>
-                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
-                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
-                                        </span>
-                                    </div>
-                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-cyan-500 shadow-[0_0_8px_#06b6d4]")}
-                                            style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
+                            <button
+                                onClick={() => navigateMonth(1)}
+                                className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                            >
+                                <ChevronUp className="rotate-90" size={16} />
+                            </button>
                         </div>
 
-                        {/* Income / Expenses Split */}
-                        <div className="flex items-center gap-2 relative z-10">
-                            {/* Income */}
-                            <div className="flex-1 bg-white/[0.02] p-3 rounded-[16px] border border-white/5 backdrop-blur-sm flex flex-col items-center">
-                                <div className="flex flex-col items-center mb-0.5">
-                                    <Plus size={10} className="text-emerald-500 mb-0.5" />
-                                    <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
-                                </div>
-                                <span className="text-lg font-bold font-mono text-emerald-400">
-                                    €{totalIncome.toLocaleString()}
-                                </span>
-                            </div>
+                        {/* Separator */}
+                        <div className="w-px h-6 bg-white/10 mx-2 hidden md:block" />
 
-                            {/* Expenses */}
-                            <div className="flex-1 bg-white/[0.02] p-3 rounded-[16px] border border-white/5 backdrop-blur-sm flex flex-col items-center">
-                                <div className="flex flex-col items-center mb-0.5">
-                                    <Minus size={10} className="text-rose-500 mb-0.5" />
-                                    <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
-                                </div>
-                                <span className="text-lg font-bold font-mono text-rose-400">
-                                    €{Math.abs(totalExpenses).toLocaleString()}
-                                </span>
-                            </div>
+                        {/* Horizon Selector (Pill Style) */}
+                        <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1 gap-1">
+                            {[1, 2, 3, 4, 12].map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => setHorizon(m)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest min-w-[32px]",
+                                        horizon === m
+                                            ? "bg-white text-black shadow-lg scale-105"
+                                            : "text-neutral-500 hover:text-white hover:bg-white/5"
+                                    )}
+                                >
+                                    {m === 1 && '1M'}
+                                    {m === 2 && '2M'}
+                                    {m === 3 && '3M'}
+                                    {m === 4 && '4M'}
+                                    {m === 12 && '1A'}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-[16px] shadow-md sticky top-4 z-40 gap-1.5">
-                        <button onClick={() => { if (window.confirm('¿Estás seguro de que quieres reiniciar todo? Esta acción no se puede deshacer.')) resetAll(); }} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-rose-500/10 text-rose-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-all">
-                            <RotateCcw size={12} /> Reiniciar
+                    {/* RIGHT: Actions */}
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                        {/* Alerts (Subtle) */}
+                        <button
+                            onClick={() => setIsAlertsOpen(true)}
+                            className="hidden md:flex items-center gap-2 px-3 py-2 text-blue-400/50 hover:text-blue-400 transition-colors cursor-pointer"
+                            title="Ver alertas"
+                        >
+                            <div className="relative">
+                                <Info size={18} />
+                                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                            </div>
                         </button>
-                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-cyan-500/10 text-cyan-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all">
-                            <Calculator size={12} /> Presup.
+
+                        <div className="h-6 w-px bg-white/10 mx-1 hidden md:block" />
+
+                        <button
+                            onClick={() => setIsBudgetOpen(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all"
+                        >
+                            <Calculator size={14} /> Presupuesto
                         </button>
-                        <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-emerald-500 text-black border border-emerald-400 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                            <Target size={12} /> Metas
+
+                        <button
+                            onClick={() => setIsGoalsOpen(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                        >
+                            <Target size={14} /> Metas
                         </button>
                     </div>
                 </div>
@@ -818,7 +715,7 @@ export default function FinancesPage() {
 
             {/* 6. CASH FLOW WAVE CHART (Moved to Bottom) */}
             <div className="w-full max-w-[1800px] mx-auto mt-12 mb-12">
-                <CashFlowChart data={currentMonthData?.days || []} />
+                <CashFlowChart data={safemetric_chartData} />
             </div>
 
             {/* MODALS */}

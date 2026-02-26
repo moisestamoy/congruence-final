@@ -41,6 +41,7 @@ interface FinanceState {
     deleteTransaction: (id: string, source: 'event' | 'realExpense') => void;
     categoryBudgets: Record<string, number>;
     setCategoryBudget: (category: string, amount: number) => void;
+    resetAll: () => void;
 }
 
 export const useFinanceStore = create<FinanceState>()(
@@ -80,6 +81,24 @@ export const useFinanceStore = create<FinanceState>()(
             },
             savingsEntries: [],
             categoryBudgets: {},
+
+            resetAll: () => set({
+                config: {
+                    initialBalance: 0,
+                    monthlyFixedBudget: 1500,
+                    cycleStartDate: 1,
+                    monthlyIncomeGoal: 3000
+                },
+                events: [],
+                overrides: [],
+                realExpenses: [],
+                savingsGoals: {
+                    annual: 20000,
+                    monthly: 1500
+                },
+                savingsEntries: [],
+                categoryBudgets: {}
+            }),
 
             setCategoryBudget: (category, amount) =>
                 set((state) => ({
