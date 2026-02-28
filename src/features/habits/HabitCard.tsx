@@ -40,7 +40,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             )}
         >
             {/* Left Section: Controls and Info */}
-            <div className="flex items-center gap-4 lg:gap-5 z-10 flex-1 min-w-0 pr-2 lg:pr-4">
+            <div className="flex items-center gap-4 lg:gap-5 z-10 w-full shrink-0">
                 {/* Custom Neon Checkbox */}
                 <button
                     onClick={onToggle}
@@ -55,12 +55,12 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                 </button>
 
                 {/* Text Content */}
-                <div className="flex flex-col justify-center flex-1 min-w-0">
-                    <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                <div className="flex flex-col justify-center">
+                    <div className="flex items-center gap-2 lg:gap-3">
                         {/* Icon Display */}
-                        <span className="text-xl lg:text-2xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
+                        <span className="text-xl lg:text-2xl drop-shadow-md">{habit.icon || '🎯'}</span>
                         <h3 className={cn(
-                            "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm flex-1",
+                            "font-bold text-base lg:text-lg tracking-wide transition-colors drop-shadow-sm",
                             isCompleted ? "text-white" : "text-neutral-200"
                         )}>
                             {habit.title}
@@ -68,23 +68,23 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     </div>
 
                     {/* Subtitle / Input */}
-                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10 min-w-0">
+                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10">
                         {habit.type === 'boolean' ? (
-                            <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest truncate">
+                            <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest whitespace-nowrap">
                                 {habit.subtitle || '1 días de racha'}
                             </p>
                         ) : (
-                            <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="flex items-center gap-1.5">
                                 <input
                                     ref={inputRef}
                                     type="number"
-                                    className="w-10 bg-black/20 rounded-md border border-white/10 px-1 py-0.5 text-white focus:outline-none focus:border-cyan-500 text-center text-xs font-mono font-bold transition-all shrink-0"
+                                    className="w-10 bg-black/20 rounded-md border border-white/10 px-1 py-0.5 text-white focus:outline-none focus:border-cyan-500 text-center text-xs font-mono font-bold transition-all"
                                     value={currentValue || ''}
                                     placeholder="0"
                                     onChange={(e) => onValueChange(Number(e.target.value))}
                                     onClick={(e) => e.stopPropagation()}
                                 />
-                                <span className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-wider truncate">/ {habit.goal} {habit.unit}</span>
+                                <span className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-wider whitespace-nowrap">/ {habit.goal} {habit.unit}</span>
                             </div>
                         )}
                     </div>
