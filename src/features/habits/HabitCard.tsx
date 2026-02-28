@@ -56,11 +56,11 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
                 {/* Text Content */}
                 <div className="flex flex-col justify-center flex-1 min-w-0">
-                    <div className="flex items-center gap-2 lg:gap-3">
+                    <div className="flex items-center gap-2 lg:gap-3 min-w-0">
                         {/* Icon Display */}
                         <span className="text-xl lg:text-2xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
                         <h3 className={cn(
-                            "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm",
+                            "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm flex-1",
                             isCompleted ? "text-white" : "text-neutral-200"
                         )}>
                             {habit.title}
@@ -68,7 +68,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     </div>
 
                     {/* Subtitle / Input */}
-                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10 h-5">
+                    <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-10 min-w-0">
                         {habit.type === 'boolean' ? (
                             <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest truncate">
                                 {habit.subtitle || '1 días de racha'}
@@ -94,7 +94,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             {/* Right Section: Mini Activity Graph & Edit Button */}
             <div className="flex items-center gap-4 lg:gap-5 z-10 shrink-0">
                 {/* 7x3 Grid for 21 days */}
-                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-[4px] opacity-80 group-hover:opacity-100 transition-opacity min-w-max">
+                <div className="grid grid-cols-7 grid-rows-3 gap-[3px] lg:gap-[4px] opacity-80 group-hover:opacity-100 transition-opacity w-[88px] lg:w-[101px] shrink-0">
                     {pastDays.map((dateStr) => {
                         const isDayCompleted = !!habit.logs[dateStr]?.completed;
                         return (
