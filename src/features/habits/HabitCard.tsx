@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Edit2 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
@@ -15,8 +15,6 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit }: HabitCardProps) {
-    const inputRef = useRef<HTMLInputElement>(null);
-
     // Calculate streak locally (helper inside component for simplicity like before)
     const [streak, setStreak] = useState(0);
 
