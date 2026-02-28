@@ -61,7 +61,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                             {/* Icon Display */}
                             <span className="text-xl lg:text-2xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
                             <h3 className={cn(
-                                "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm",
+                                "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm max-w-full",
                                 isCompleted ? "text-white" : "text-neutral-200"
                             )}>
                                 {habit.title}
@@ -71,7 +71,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                         {/* Subtitle / Input */}
                         <div className="mt-1 lg:mt-1.5 pl-9 lg:pl-[2.75rem] min-w-0">
                             {habit.type === 'boolean' ? (
-                                <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest truncate">
+                                <p className="text-xs lg:text-sm text-neutral-500 font-bold uppercase tracking-widest truncate max-w-full">
                                     {habit.subtitle || '1 días de racha'}
                                 </p>
                             ) : (
@@ -85,7 +85,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                                         onChange={(e) => onValueChange(Number(e.target.value))}
                                         onClick={(e) => e.stopPropagation()}
                                     />
-                                    <span className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-wider truncate">/ {habit.goal} {habit.unit}</span>
+                                    <span className="text-[10px] lg:text-xs text-neutral-500 font-bold uppercase tracking-wider truncate max-w-full">/ {habit.goal} {habit.unit}</span>
                                 </div>
                             )}
                         </div>
