@@ -203,7 +203,7 @@ export default function HabitsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
+                        className="flex flex-col h-full gap-2 lg:gap-3"
                     >
                         <div className="flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500">
 
