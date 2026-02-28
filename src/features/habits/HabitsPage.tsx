@@ -272,9 +272,9 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 relative z-10 content-start">
+                                <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 relative z-10 content-start">
                                     {sortedHabits.map(habit => (
-                                        <div key={habit.id} className="group h-full relative">
+                                        <div key={habit.id} className="group relative">
                                             <HabitCard
                                                 habit={habit}
                                                 isCompleted={!!habit.logs[selectedDate]?.completed}
