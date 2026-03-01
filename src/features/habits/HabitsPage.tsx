@@ -209,11 +209,11 @@ export default function HabitsPage() {
 
                             <div className={cn(
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
-                                isMobileCircleVisible ? "h-[370px] lg:h-[600px]" : "h-[200px] lg:h-[600px]"
+                                isMobileCircleVisible ? "h-[250px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
                             )}>
                                 <div className={cn(
-                                    "transition-transform duration-500 origin-top lg:origin-center relative",
-                                    isMobileCircleVisible ? "scale-[0.65] lg:scale-110" : "scale-[0.35] lg:scale-110"
+                                    "transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0", // Added subtle pt for mobile
+                                    isMobileCircleVisible ? "scale-[0.45] lg:scale-110" : "scale-[0.25] lg:scale-110" // Scaled down significantly for mobile
                                 )}>
                                     {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
                                     <div className={cn(
@@ -225,30 +225,30 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
-                            <p className="mt-2 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+                            <p className="mt-0 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
-                            <div className="flex justify-center mt-4 mb-2 lg:hidden w-full relative z-20">
+                            <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
                                 <button
                                     onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
-                                    className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-2 group"
+                                    className="px-3 py-1.5 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
                                 >
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
-                                    {isMobileCircleVisible ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    <span className="text-[9px] font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
+                                    {isMobileCircleVisible ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                 </button>
                             </div>
                         </div>
 
                         {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
                         <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2.5rem] lg:rounded-[3rem] p-4 lg:p-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
+                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
                                 {/* Subtle internal sheen/gradient */}
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
 
-                                <div className="flex justify-between items-end mb-6 lg:mb-10 relative z-10 border-b border-white/5 pb-4 lg:pb-6">
+                                <div className="flex justify-between items-end mb-4 lg:mb-10 relative z-10 border-b border-white/5 pb-3 lg:pb-6">
                                     <div>
-                                        <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-white drop-shadow-md mb-1">Tu Hábito</h2>
-                                        <p className="text-cyan-400 text-xs lg:text-sm font-bold uppercase tracking-widest leading-none">Panel de Control</p>
+                                        <h2 className="text-xl lg:text-3xl font-bold tracking-tight text-white drop-shadow-md mb-0.5 lg:mb-1">Tu Hábito</h2>
+                                        <p className="text-cyan-400 text-[10px] lg:text-sm font-bold uppercase tracking-widest leading-none">Panel de Control</p>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
