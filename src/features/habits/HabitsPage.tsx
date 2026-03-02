@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { HabitForm } from './HabitForm';
@@ -126,10 +126,21 @@ export default function HabitsPage() {
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                        className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group"
+                        className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group relative overflow-hidden"
                         title="Opciones de Perfil"
                     >
-                        <User size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                        {user && user.email ? (
+                            <span className="font-bold text-lg text-cyan-300 group-hover:text-cyan-400 transition-colors drop-shadow-md">
+                                {user.email.charAt(0).toUpperCase()}
+                            </span>
+                        ) : (
+                            <User size={22} className="opacity-80 group-hover:opacity-100 transition-opacity" />
+                        )}
+                        {/* Status Dot */}
+                        <div className={cn(
+                            "absolute top-2.5 right-2.5 w-2 h-2 rounded-full border border-[#050505] shadow-[0_0_8px_rgba(0,0,0,0.5)]",
+                            user ? "bg-emerald-400" : "bg-orange-400"
+                        )} />
                     </button>
 
                     <AnimatePresence>
@@ -137,44 +148,98 @@ export default function HabitsPage() {
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute right-0 mt-2 w-56 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col"
+                                    initial="hidden"
+                                    animate="visible"
+                                    exit="exit"
+                                    variants={{
+                                        hidden: { opacity: 0, y: 10, scale: 0.95 },
+                                        visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0, duration: 0.3, staggerChildren: 0.05 } },
+                                        exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.2 } }
+                                    }}
+                                    className="absolute right-0 mt-2 w-64 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-50 flex flex-col pointer-events-auto"
                                 >
-                                    <button
+                                    {/* Stats & Greeting Header */}
+                                    <div className="px-5 py-4 border-b border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent">
+                                        <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">¡A por el día!</p>
+                                        <h3 className="text-lg font-bold text-white tracking-wide truncate">
+                                            {user ? (user.user_metadata?.name || user.email?.split('@')[0] || 'Viajero') : 'Viajero Anónimo'}
+                                        </h3>
+
+                                        <div className="flex gap-4 mt-3">
+                                            <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                                                <CheckCircle2 size={14} className="text-cyan-400" />
+                                                <span className="font-medium text-white">
+                                                    {habits.filter(h => h.logs[format(selectedDate, 'yyyy-MM-dd')]?.completed).length}
+                                                </span> hoy
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                                                <Flame size={14} className="text-fuchsia-400" />
+                                                <span className="font-medium text-white">{habits.length}</span> rastreados
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Identity Builder Option */}
+                                    <motion.button
+                                        variants={{
+                                            hidden: { opacity: 0, x: -10 },
+                                            visible: { opacity: 1, x: 0 }
+                                        }}
                                         onClick={() => {
                                             setIsProfileMenuOpen(false);
                                             setIsIdentityBuilderOpen(true);
                                         }}
-                                        className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors text-left"
+                                        className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors text-left group"
                                     >
-                                        <Shield size={16} className="text-cyan-400" />
-                                        Protocolo de Persona
-                                    </button>
-                                    <div className="h-px bg-white/10 mx-2" />
+                                        <div className="w-8 h-8 rounded-full bg-cyan-400/10 flex items-center justify-center group-hover:bg-cyan-400/20 transition-colors shrink-0">
+                                            <Shield size={16} className="text-cyan-400" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-white tracking-wide">Protocolo de Persona</span>
+                                            <span className="text-[10px] text-neutral-500 mt-0.5 leading-tight">Tu brújula de 90 días</span>
+                                        </div>
+                                    </motion.button>
+
+                                    <div className="h-px bg-white/5 mx-4" />
+
+                                    {/* Auth Option */}
                                     {user ? (
-                                        <button
+                                        <motion.button
+                                            variants={{
+                                                hidden: { opacity: 0, x: -10 },
+                                                visible: { opacity: 1, x: 0 }
+                                            }}
                                             onClick={() => {
                                                 setIsProfileMenuOpen(false);
                                                 signOut();
                                             }}
-                                            className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                                            className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors text-left group"
                                         >
-                                            <LogOut size={16} />
-                                            Cerrar Sesión
-                                        </button>
+                                            <div className="w-8 h-8 rounded-full bg-red-400/10 flex items-center justify-center group-hover:bg-red-400/20 transition-colors shrink-0">
+                                                <LogOut size={16} />
+                                            </div>
+                                            <span className="font-bold tracking-wide">Cerrar Sesión</span>
+                                        </motion.button>
                                     ) : (
-                                        <button
+                                        <motion.button
+                                            variants={{
+                                                hidden: { opacity: 0, x: -10 },
+                                                visible: { opacity: 1, x: 0 }
+                                            }}
                                             onClick={() => {
                                                 setIsProfileMenuOpen(false);
                                                 setIsAuthModalOpen(true);
                                             }}
-                                            className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors text-left"
+                                            className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors text-left group"
                                         >
-                                            <LogIn size={16} />
-                                            Iniciar Sesión
-                                        </button>
+                                            <div className="w-8 h-8 rounded-full bg-emerald-400/10 flex items-center justify-center group-hover:bg-emerald-400/20 transition-colors shrink-0">
+                                                <LogIn size={16} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold tracking-wide">Iniciar Sesión</span>
+                                                <span className="text-[10px] text-emerald-500/60 mt-0.5 leading-tight">Guarda tu progreso</span>
+                                            </div>
+                                        </motion.button>
                                     )}
                                 </motion.div>
                             </>
