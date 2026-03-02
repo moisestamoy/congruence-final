@@ -209,7 +209,7 @@ export default function HabitsPage() {
 
                             <div className={cn(
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
-                                isMobileCircleVisible ? "h-[270px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
+                                isMobileCircleVisible ? "h-[320px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
                             )}>
                                 <div className={cn(
                                     "transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0", // Added subtle pt for mobile
@@ -225,7 +225,7 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
-                            <p className="mt-0 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+                            <p className="mt-4 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                             <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
