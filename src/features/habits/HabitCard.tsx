@@ -156,16 +156,16 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                 </div>
 
                 {/* Right Side: History Graph & Edit Button */}
-                <div className="flex flex-col items-end justify-between h-full pl-2 lg:pl-4 border-l border-white/5 shrink-0 min-w-[60px] lg:min-w-[80px]">
+                <div className="flex flex-col items-end justify-between h-full pl-3 lg:pl-5 border-l border-white/5 shrink-0 min-w-[80px] lg:min-w-[110px]">
 
                     {/* Minimalist History Dots (7 columns x 2 rows = 14 days) */}
-                    <div className="grid grid-cols-7 gap-1 lg:gap-1.5 mb-2 mt-1">
+                    <div className="grid grid-cols-7 gap-1.5 lg:gap-2 mb-2 mt-1">
                         {historyDays.map((day, idx) => (
                             <div
                                 key={idx}
                                 title={day.date}
                                 className={cn(
-                                    "w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full transition-colors",
+                                    "w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full transition-colors",
                                     day.completed
                                         ? "bg-cyan-400/80 shadow-[0_0_4px_rgba(6,182,212,0.5)]"
                                         : "bg-white/10"
