@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Activity, Heart, Briefcase, Smile } from 'lucide-react';
+import { X, Activity, Heart, Briefcase, Smile, Trash2 } from 'lucide-react';
 import { useHabitStore } from './useHabitStore';
 import { cn } from '../../utils/cn';
 import { Habit } from '../../types';
@@ -213,18 +213,33 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="p-6 border-t border-white/5 bg-black/40 backdrop-blur-md flex gap-4">
+                <div className="p-6 border-t border-white/5 bg-black/40 backdrop-blur-md flex gap-3 lg:gap-4 flex-wrap">
+                    {initialData && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (window.confirm('¿Estás seguro de que quieres eliminar este hábito? Se perderá todo su historial.')) {
+                                    useHabitStore.getState().removeHabit(initialData.id);
+                                    onClose();
+                                }
+                            }}
+                            className="flex-shrink-0 w-full lg:w-auto px-4 py-3 lg:py-4 rounded-xl border border-red-500/30 text-red-400 font-bold hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Trash2 size={18} />
+                            <span className="lg:hidden">Eliminar Hábito</span>
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-4 rounded-xl border border-white/10 text-neutral-400 font-bold hover:bg-white/5 transition-colors"
+                        className="flex-1 py-3 lg:py-4 rounded-xl border border-white/10 text-neutral-400 font-bold hover:bg-white/5 transition-colors"
                     >
                         Cancelar
                     </button>
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        className="flex-[2] py-4 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                        className="flex-[2] py-3 lg:py-4 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                     >
                         {initialData ? 'Guardar Cambios' : 'Crear Hábito'}
                     </button>
