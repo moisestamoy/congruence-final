@@ -101,12 +101,20 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                 </div>
             )}
 
-            <div
+            <motion.div
                 className={cn(
                     "relative shrink-0 transition-all duration-1000",
                     level >= 4 ? "animate-pulse-slow" : ""
                 )}
                 style={{ width: size, height: size, filter: containerFilter }}
+                animate={{
+                    scale: [1, 1.03, 1],
+                }}
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
             >
                 <svg className="w-full h-full transform -rotate-90">
                     <defs>
@@ -162,7 +170,7 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                         );
                     })}
                 </svg>
-            </div>
+            </motion.div>
 
             {/* Percentage & Label below */}
             <div className="mt-6 flex flex-col items-center z-10">
