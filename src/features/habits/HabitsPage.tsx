@@ -209,11 +209,11 @@ export default function HabitsPage() {
 
                             <div className={cn(
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
-                                isMobileCircleVisible ? "h-[250px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
+                                isMobileCircleVisible ? "h-[270px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
                             )}>
                                 <div className={cn(
                                     "transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0", // Added subtle pt for mobile
-                                    isMobileCircleVisible ? "scale-[0.45] lg:scale-110" : "scale-[0.25] lg:scale-110" // Scaled down significantly for mobile
+                                    isMobileCircleVisible ? "scale-[0.55] lg:scale-110" : "scale-[0.25] lg:scale-110" // Scaled down significantly for mobile
                                 )}>
                                     {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
                                     <div className={cn(
