@@ -5,6 +5,7 @@ export interface HabitLog {
     date: string; // ISO YYYY-MM-DD
     completed: boolean;
     value?: number;
+    status?: 'completed' | 'rest' | 'emergency';
 }
 
 export interface Habit {

@@ -67,7 +67,7 @@ export default function HabitsPage() {
         }
     };
 
-    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto } = useHabitStore();
+    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const selectedDate = format(currentDate, 'yyyy-MM-dd');
     const congruence = getCongruence(selectedDate);
@@ -349,6 +349,7 @@ export default function HabitsPage() {
                                                 onToggle={() => handleToggleHabit(habit.id)}
                                                 onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
                                                 onEdit={() => handleEditHabit(habit)}
+                                                onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
                                             />
                                         </div>
                                     ))}
@@ -456,6 +457,7 @@ export default function HabitsPage() {
                                                 onToggle={() => handleToggleHabit(habit.id)}
                                                 onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
                                                 onEdit={() => handleEditHabit(habit)}
+                                                onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
                                             />
                                         </div>
                                     ))}

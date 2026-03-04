@@ -17,6 +17,7 @@ interface HabitsState {
     toggleHabit: (habitId: string, date: string) => void;
     setHabitValue: (habitId: string, date: string, value: number) => void;
     removeHabit: (id: string) => void;
+    markHabitSkip: (habitId: string, date: string, status: 'rest' | 'emergency') => void;
     getCongruence: (date: string) => number; // 0-100
 }
 
@@ -144,16 +145,38 @@ export const useHabitStore = create<HabitsState>()(
                     return { habits };
                 });
             },
+            markHabitSkip: (habitId, date, status) => {
+                set((state) => {
+                    const habits = [...state.habits];
+                    const habitIndex = habits.findIndex((h) => h.id === habitId);
+                    if (habitIndex === -1) return {};
+
+                    const habit = habits[habitIndex];
+                    habit.logs[date] = { date, completed: false, status };
+
+                    habits[habitIndex] = { ...habit };
+                    return { habits };
+                });
+            },
             getCongruence: (date) => {
                 const { habits } = get();
                 if (habits.length === 0) return 0;
 
                 let completedCount = 0;
+                let applicableHabitsCount = 0;
+
                 habits.forEach(h => {
-                    if (h.logs[date]?.completed) completedCount++;
+                    const log = h.logs[date];
+                    if (log?.status === 'rest' || log?.status === 'emergency') {
+                        // Do not count this habit towards the total for the day
+                        return;
+                    }
+                    applicableHabitsCount++;
+                    if (log?.completed) completedCount++;
                 });
 
-                return Math.round((completedCount / habits.length) * 100);
+                if (applicableHabitsCount === 0) return 100; // or 0, depending on preference. 100 means a full rest day is "perfect" congruence.
+                return Math.round((completedCount / applicableHabitsCount) * 100);
             }
         }),
         {

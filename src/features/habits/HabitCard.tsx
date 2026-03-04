@@ -12,19 +12,20 @@ interface HabitCardProps {
     onToggle: () => void;
     onValueChange: (val: number) => void;
     onEdit: () => void;
+    onSkip?: () => void;
 }
 
-export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit }: HabitCardProps) {
+export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit, onSkip }: HabitCardProps) {
     const [streak, setStreak] = useState(0);
-    // Generate last 14 days for the mini history graph
-    const [historyDays, setHistoryDays] = useState<{ date: string; completed: boolean }[]>([]);
+    const [historyDays, setHistoryDays] = useState<{ date: string; completed: boolean; status?: 'completed' | 'rest' | 'emergency' }[]>([]);
 
     useEffect(() => {
         let count = 0;
         let d = new Date();
         const todayStr = format(d, 'yyyy-MM-dd');
+        const todayLog = habit.logs[todayStr];
 
-        if (habit.logs[todayStr]?.completed) {
+        if (todayLog?.completed) {
             count++;
         }
 
@@ -32,8 +33,13 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         let streakDate = subDays(new Date(), 1);
         while (true) {
             const dStr = format(streakDate, 'yyyy-MM-dd');
-            if (habit.logs[dStr]?.completed) {
+            const log = habit.logs[dStr];
+
+            if (log?.completed) {
                 count++;
+                streakDate = subDays(streakDate, 1);
+            } else if (log?.status === 'rest' || log?.status === 'emergency') {
+                // Skip this day in streak calculation
                 streakDate = subDays(streakDate, 1);
             } else {
                 break;
@@ -46,9 +52,11 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         for (let i = 13; i >= 0; i--) {
             const historyDate = subDays(new Date(), i);
             const dStr = format(historyDate, 'yyyy-MM-dd');
+            const log = habit.logs[dStr];
             days.push({
                 date: dStr,
-                completed: !!habit.logs[dStr]?.completed
+                completed: !!log?.completed,
+                status: log?.status,
             });
         }
         setHistoryDays(days);
@@ -168,23 +176,41 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                                     "w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full transition-colors",
                                     day.completed
                                         ? "bg-cyan-400/80 shadow-[0_0_4px_rgba(6,182,212,0.5)]"
-                                        : "bg-white/10"
+                                        : day.status === 'rest' || day.status === 'emergency'
+                                            ? "bg-amber-400/80 shadow-[0_0_4px_rgba(251,191,36,0.5)]"
+                                            : "bg-white/10"
                                 )}
                             />
                         ))}
                     </div>
 
-                    {/* Edit Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit();
-                        }}
-                        className="p-1.5 lg:p-2 text-neutral-500 hover:text-cyan-400 transition-all rounded-lg hover:bg-white/10 bg-white/5 cursor-pointer mt-auto"
-                        title="Editar Hábito"
-                    >
-                        <Edit2 size={12} className="lg:w-3.5 lg:h-3.5" />
-                    </button>
+                    <div className="flex gap-1.5 mt-auto">
+                        {/* Skip Button */}
+                        {onSkip && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSkip();
+                                }}
+                                className="p-1.5 lg:p-2 text-neutral-500 hover:text-amber-400 transition-all rounded-lg hover:bg-white/10 bg-white/5 cursor-pointer"
+                                title="Marcar como Día de Descanso/Emergencia (No rompe la racha)"
+                            >
+                                <span className="text-[10px] lg:text-xs">⏸️</span>
+                            </button>
+                        )}
+
+                        {/* Edit Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit();
+                            }}
+                            className="p-1.5 lg:p-2 text-neutral-500 hover:text-cyan-400 transition-all rounded-lg hover:bg-white/10 bg-white/5 cursor-pointer"
+                            title="Editar Hábito"
+                        >
+                            <Edit2 size={12} className="lg:w-3.5 lg:h-3.5" />
+                        </button>
+                    </div>
                 </div>
 
             </div>
