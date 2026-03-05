@@ -118,7 +118,7 @@ export const useHabitStore = create<HabitsState>()(
                         const { [date]: _, ...rest } = habit.logs; // remove log
                         habit.logs = rest;
                     } else {
-                        habit.logs[date] = { date, completed: true };
+                        habit.logs = { ...habit.logs, [date]: { date, completed: true } };
                     }
 
                     habits[habitIndex] = { ...habit };
@@ -138,7 +138,7 @@ export const useHabitStore = create<HabitsState>()(
                         const { [date]: _, ...rest } = habit.logs;
                         habit.logs = rest;
                     } else {
-                        habit.logs[date] = { date, completed: isCompleted, value };
+                        habit.logs = { ...habit.logs, [date]: { date, completed: isCompleted, value } };
                     }
 
                     habits[habitIndex] = { ...habit };
@@ -152,7 +152,7 @@ export const useHabitStore = create<HabitsState>()(
                     if (habitIndex === -1) return {};
 
                     const habit = habits[habitIndex];
-                    habit.logs[date] = { date, completed: false, status };
+                    habit.logs = { ...habit.logs, [date]: { date, completed: false, status } };
 
                     habits[habitIndex] = { ...habit };
                     return { habits };
