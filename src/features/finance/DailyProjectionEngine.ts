@@ -38,8 +38,23 @@ export class DailyProjectionEngine {
 
         let currentBalance = startBalance;
 
+        // Resolve active budget for this specific month
+        const targetYearMonth = `${year}-${(month + 1).toString().padStart(2, '0')}`;
+        let activeBudget = config.monthlyFixedBudget;
+
+        if (config.budgetChanges && Object.keys(config.budgetChanges).length > 0) {
+            // Find the most recent budget change <= targetYearMonth
+            const sortedChanges = Object.entries(config.budgetChanges)
+                .sort((a, b) => b[0].localeCompare(a[0])); // Descending
+
+            const applicableChange = sortedChanges.find(([ym]) => ym <= targetYearMonth);
+            if (applicableChange) {
+                activeBudget = applicableChange[1];
+            }
+        }
+
         // Dynamic Daily Budget: Total Monthly Budget / Days in Month (Rounded Up)
-        const dailyBaseBudget = Math.ceil(config.monthlyFixedBudget / daysInMonth);
+        const dailyBaseBudget = Math.ceil(activeBudget / daysInMonth);
 
         // Get real expenses grouped by date
         const realExpensesMap = realExpenses.reduce((acc, curr) => {

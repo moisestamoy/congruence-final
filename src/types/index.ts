@@ -27,6 +27,7 @@ export interface FinancialConfig {
     monthlyFixedBudget: number; // Global daily plan derived from this? Or this is the "Expense" baseline? Prompt says "presupuesto mensual fijo (gasto diario global)"
     cycleStartDate: number; // Day of month, e.g., 1
     monthlyIncomeGoal?: number;
+    budgetChanges?: Record<string, number>; // "YYYY-MM": monthlyBudgetAmount
 }
 
 export interface FinancialEvent {

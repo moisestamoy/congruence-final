@@ -13,11 +13,12 @@ import { CategoryBreakdownWidget } from './CategoryBreakdownWidget';
 import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
+import { RestartModal } from './RestartModal';
 import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
-    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries, resetAll } = useFinanceStore();
+    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries } = useFinanceStore();
 
     // Force 2 months view for this specific "Dashboard" requirement
     const [horizon, setHorizon] = useState<number>(2);
@@ -32,6 +33,7 @@ export default function FinancesPage() {
     const [isGoalsOpen, setIsGoalsOpen] = useState(false);
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
     const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+    const [isRestartOpen, setIsRestartOpen] = useState(false);
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
     const [txModal, setTxModal] = useState<{
         isOpen: boolean;
@@ -281,7 +283,7 @@ export default function FinancesPage() {
                     <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
                         {/* LEFT: Date Navigation & Horizon & Reset */}
                         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                            <button onClick={() => { if (window.confirm('¿Estás seguro de que quieres reiniciar todo? Esta acción no se puede deshacer.')) resetAll(); }} className="flex justify-center items-center p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all shrink-0" title="Reiniciar todo">
+                            <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all shrink-0" title="Reiniciar todo">
                                 <RotateCcw size={16} />
                             </button>
                             <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
@@ -432,7 +434,7 @@ export default function FinancesPage() {
                     </div>
 
                     <div className="grid grid-cols-3 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-[16px] shadow-md sticky top-4 z-40 gap-1.5">
-                        <button onClick={() => { if (window.confirm('¿Estás seguro de que quieres reiniciar todo? Esta acción no se puede deshacer.')) resetAll(); }} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-rose-500/10 text-rose-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-all">
+                        <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-rose-500/10 text-rose-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-all">
                             <RotateCcw size={12} /> Reiniciar
                         </button>
                         <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-cyan-500/10 text-cyan-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all">
@@ -822,6 +824,10 @@ export default function FinancesPage() {
             </div>
 
             {/* MODALS */}
+            {isRestartOpen && (
+                <RestartModal onClose={() => setIsRestartOpen(false)} />
+            )}
+
             {isGoalsOpen && (
                 <SavingsGoalsModal onClose={() => setIsGoalsOpen(false)} />
             )}

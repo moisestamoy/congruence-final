@@ -42,6 +42,9 @@ interface FinanceState {
     categoryBudgets: Record<string, number>;
     setCategoryBudget: (category: string, amount: number) => void;
     resetAll: () => void;
+    
+    // Selective Restart
+    setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean) => void;
 }
 
 export const useFinanceStore = create<FinanceState>()(
@@ -87,7 +90,8 @@ export const useFinanceStore = create<FinanceState>()(
                     initialBalance: 0,
                     monthlyFixedBudget: 1500,
                     cycleStartDate: 1,
-                    monthlyIncomeGoal: 3000
+                    monthlyIncomeGoal: 3000,
+                    budgetChanges: {}
                 },
                 events: [],
                 overrides: [],
@@ -98,6 +102,37 @@ export const useFinanceStore = create<FinanceState>()(
                 },
                 savingsEntries: [],
                 categoryBudgets: {}
+            }),
+
+            setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean) => set((state) => {
+                const newConfig = { 
+                    ...state.config, 
+                    budgetChanges: {
+                        ...(state.config.budgetChanges || {}),
+                        [yearMonth]: totalAmount
+                    }
+                };
+
+                // If they want to also update the master fallback (optional):
+                // We'll leave monthlyFixedBudget as the "first ever budget" unless they want to fully overwrite.
+                // Actually, best to update monthlyFixedBudget if there was no budgetChanges before.
+                if (Object.keys(newConfig.budgetChanges!).length === 1) {
+                    newConfig.monthlyFixedBudget = totalAmount;
+                }
+
+                if (clearFutureData) {
+                    // yearMonth format is "YYYY-MM"
+                    const filterDate = `${yearMonth}-01`;
+                    return {
+                        config: newConfig,
+                        overrides: state.overrides.filter(o => o.date < filterDate),
+                        realExpenses: state.realExpenses.filter(e => e.date < filterDate),
+                        // Only clear non-recurring events? Safest is to just clear overrides and realExpenses, 
+                        // Events might be Rent which they still want. Leaving events alone is safer.
+                    };
+                }
+
+                return { config: newConfig };
             }),
 
             setCategoryBudget: (category, amount) =>
@@ -206,17 +241,23 @@ export const useFinanceStore = create<FinanceState>()(
             setMonthlyDailyBudget: (date: Date, totalAmount: number) =>
                 set((state) => {
                     const year = date.getFullYear();
-                    const month = date.getMonth();
+                    const month = date.getMonth() + 1; // 1-indexed for YYYY-MM
+                    const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
 
-                    // 1. Update Global Config (Propagates to future months automatically via Projection Engine)
-                    const newConfig = { ...state.config, monthlyFixedBudget: totalAmount };
+                    // Update Global Config AND budgetChanges so it's a historical record
+                    const newConfig = { 
+                        ...state.config, 
+                        monthlyFixedBudget: totalAmount,
+                        budgetChanges: {
+                            ...(state.config.budgetChanges || {}),
+                            [yearMonth]: totalAmount
+                        }
+                    };
 
-                    // 2. Clear overrides for THIS month (to allow new config to take precedence)
-                    // If we previously "batched" overrides, we need to remove them.
+                    // Clear overrides for THIS month
                     const filteredOverrides = state.overrides.filter(o => {
                         const d = new Date(o.date);
-                        // Keep overrides that are NOT in the target month
-                        return d.getFullYear() !== year || d.getMonth() !== month;
+                        return d.getFullYear() !== year || d.getMonth() !== (month - 1);
                     });
 
                     return {
