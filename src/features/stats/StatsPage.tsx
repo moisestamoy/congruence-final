@@ -1,16 +1,21 @@
 import { useMemo } from 'react';
-import { TrendingUp, Activity, Wallet, Target } from 'lucide-react';
+import { TrendingUp, Activity, Wallet, Target, Hexagon, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { useHolisticStore } from './useHolisticStore';
+import { HolisticCheckInModal } from './HolisticCheckInModal';
 import { motion } from 'framer-motion';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, Cell } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { cn } from '../../utils/cn';
 
 export default function StatsPage() {
     const { habits, getCongruence } = useHabitStore();
     const { events, realExpenses } = useFinanceStore();
+    const { getLatestCheckIn } = useHolisticStore();
+    const [isHolisticModalOpen, setIsHolisticModalOpen] = useState(false);
 
     // 1. Calculate Global Metrics
     const totalHabits = habits.length;
@@ -73,6 +78,20 @@ export default function StatsPage() {
         });
     }, [getCongruence]);
 
+    // 4. Holistic Data
+    const latestHolistic = getLatestCheckIn();
+    const holisticData = useMemo(() => {
+        const h = latestHolistic || { physical: 0, emotional: 0, vision: 0, standards: 0, growth: 0, environment: 0 };
+        return [
+            { subject: 'Físico', A: h.physical * 10, fullMark: 100 },
+            { subject: 'Crecimiento', A: h.growth * 10, fullMark: 100 },
+            { subject: 'Visión', A: h.vision * 10, fullMark: 100 },
+            { subject: 'Emocional', A: h.emotional * 10, fullMark: 100 },
+            { subject: 'Entorno', A: h.environment * 10, fullMark: 100 },
+            { subject: 'Disciplina', A: h.standards * 10, fullMark: 100 },
+        ];
+    }, [latestHolistic]);
+
     return (
         <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] from-[#0a1a2a] via-[#020508] to-black text-white p-8 font-sans overflow-y-auto pb-32">
 
@@ -134,6 +153,61 @@ export default function StatsPage() {
                         <span className="text-3xl lg:text-4xl font-bold font-mono text-rose-50">{Math.abs(chartData.reduce((acc, d) => acc + d.expenses, 0))}€</span>
                         <span className="text-[10px] text-neutral-600 font-medium mt-1">Controlar</span>
                     </div>
+                </div>
+            </div>
+
+            {/* HOLISTIC PROFILE WIDGET */}
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-2xl p-6 md:p-8 shrink-0 mb-12 flex flex-col lg:flex-row items-center gap-8">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="w-full lg:w-1/3 flex flex-col justify-center relative z-10 text-center lg:text-left">
+                    <div className="inline-flex items-center justify-center lg:justify-start gap-3 mb-4">
+                        <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-400">
+                            <Hexagon size={24} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">Perfil Holístico</h2>
+                    </div>
+                    <p className="text-sm text-neutral-400 mb-8 max-w-sm mx-auto lg:mx-0">
+                        Una representación visual de tu estado actual en las 6 áreas clave de la congruencia: Física, Emocional y Mental.
+                    </p>
+                    
+                    <button 
+                        onClick={() => setIsHolisticModalOpen(true)}
+                        className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-4 rounded-xl bg-purple-500 text-black font-bold uppercase tracking-widest text-xs hover:bg-purple-400 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] active:scale-95"
+                    >
+                        <Plus size={16} /> Realizar Check-In
+                    </button>
+                    {!latestHolistic && (
+                        <p className="text-xs text-neutral-600 mt-4 italic">
+                            Aún no has registrado ningún Check-In. 
+                        </p>
+                    )}
+                </div>
+
+                <div className="w-full lg:w-2/3 h-[300px] sm:h-[400px] relative z-10 flex justify-center items-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={holisticData}>
+                            <PolarGrid stroke="#ffffff20" />
+                            <PolarAngleAxis 
+                                dataKey="subject" 
+                                tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 'bold' }} 
+                            />
+                            <PolarRadiusAxis 
+                                angle={30} 
+                                domain={[0, 100]} 
+                                tick={false} 
+                                axisLine={false} 
+                            />
+                            <Radar
+                                name="Nivel Actual"
+                                dataKey="A"
+                                stroke="#a855f7"
+                                strokeWidth={3}
+                                fill="#a855f7"
+                                fillOpacity={0.4}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
 
@@ -274,6 +348,9 @@ export default function StatsPage() {
                 </motion.div>
             </div>
 
+            {isHolisticModalOpen && (
+                <HolisticCheckInModal onClose={() => setIsHolisticModalOpen(false)} />
+            )}
         </div>
     );
 }
