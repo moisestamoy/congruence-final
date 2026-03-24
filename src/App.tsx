@@ -7,7 +7,7 @@ import './i18n/config';
 import HabitsPage from './features/habits/HabitsPage';
 import FinancesPage from './features/finance/FinancesPage';
 import StatsPage from './features/stats/StatsPage';
-import CoachPage from './features/coach/CoachPage';
+import IdentityPage from './features/identity/IdentityPage';
 
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
                         <Route path="/" element={<HabitsPage />} />
                         <Route path="/finances" element={<FinancesPage />} />
                         <Route path="/stats" element={<StatsPage />} />
-                        <Route path="/coach" element={<CoachPage />} />
+                        <Route path="/identity" element={<IdentityPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>

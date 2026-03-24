@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, Brain, LogIn, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, BrainCircuit, LogIn, LogOut, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
@@ -19,7 +19,7 @@ export default function MainLayout() {
         { path: '/', icon: LayoutDashboard, label: 'Tracker' },
         { path: '/finances', icon: Wallet, label: 'Finanzas' },
         { path: '/stats', icon: PieChart, label: 'Estadísticas' },
-        { path: '/coach', icon: Brain, label: 'Coach' },
+        { path: '/identity', icon: BrainCircuit, label: 'Identidad' },
     ];
 
     return (
@@ -126,7 +126,7 @@ export default function MainLayout() {
                 </nav>
 
                 {/* DYNAMIC FAB */}
-                {location.pathname !== '/stats' && location.pathname !== '/coach' && (
+                {location.pathname !== '/stats' && location.pathname !== '/identity' && (
                     <button
                         onClick={triggerFab}
                         className="w-14 h-14 rounded-full bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Save, BrainCircuit, Activity, Heart, Target, TrendingUp, Compass } from 'lucide-react';
 import { useHolisticStore, HolisticCheckIn } from './useHolisticStore';
+import { useHabitStore } from '../habits/useHabitStore';
 import { cn } from '../../utils/cn';
 
 interface HolisticCheckInModalProps {
@@ -66,6 +67,7 @@ const AXES = [
 
 export function HolisticCheckInModal({ onClose }: HolisticCheckInModalProps) {
     const { addCheckIn, getLatestCheckIn } = useHolisticStore();
+    const { manifesto } = useHabitStore();
     const latest = getLatestCheckIn();
 
     const [form, setForm] = useState({
@@ -142,6 +144,22 @@ export function HolisticCheckInModal({ onClose }: HolisticCheckInModalProps) {
                                         <span className="text-xs text-neutral-600">/10</span>
                                     </span>
                                 </div>
+
+                                {manifesto && (
+                                    <div className="mt-2 p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                                        <div className="flex items-start gap-2">
+                                            <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" style={{ color: "currentColor" }} />
+                                            <span className="text-neutral-300">
+                                                {axis.id === 'physical' && <><strong className="text-white">Identidad:</strong> {manifesto.identities.personal || '...'}</>}
+                                                {axis.id === 'emotional' && <><strong className="text-white">Identidad Prof:</strong> {manifesto.identities.professional || '...'}</>}
+                                                {axis.id === 'vision' && <><strong className="text-white">Misión 90 Días:</strong> {manifesto.goals.ninetyDays || '...'}</>}
+                                                {axis.id === 'standards' && <><strong className="text-white">Plan A (Ataque):</strong> {manifesto.executionProtocol.planA_Action || '...'}</>}
+                                                {axis.id === 'growth' && <><strong className="text-white">Deuda Faltante:</strong> {manifesto.ignoranceDebt.missingSkill || '...'}</>}
+                                                {axis.id === 'environment' && <><strong className="text-white">Evitar:</strong> {manifesto.goals.antiGoals || '...'}</>}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 {/* Custom Slider */}
                                 <div className="relative h-2 bg-white/5 rounded-full mt-4 overflow-hidden">
