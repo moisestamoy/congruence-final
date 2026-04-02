@@ -10,6 +10,7 @@ import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
 import { CategoryBreakdownWidget } from './CategoryBreakdownWidget';
+import { FinanceCoach } from './FinanceCoach';
 import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
@@ -805,15 +806,19 @@ export default function FinancesPage() {
                                     de <span className="text-neutral-300">€{annualGoal.toLocaleString()}</span> objetivo
                                 </p>
                             </div>
-                        </div>
-
-                        <button
+                        </div>                        <button
                             onClick={() => setIsGoalsOpen(true)}
                             className="mt-8 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-white flex items-center justify-center gap-2 group-hover:border-emerald-500/30"
                         >
                             Ver Detalles <Target size={14} className="opacity-50" />
                         </button>
                     </div>
+
+                    <FinanceCoach
+                        finances={realExpenses}
+                        config={config}
+                        savingsGoals={savingsGoals}
+                    />
 
                 </div>
             </div>
