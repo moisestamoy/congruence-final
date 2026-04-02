@@ -39,7 +39,13 @@ export default function MainLayout() {
             <header className="hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
                 {/* Logo */}
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">
+                        <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
+                        <circle cx="16" cy="16" r="12.8" stroke="#22d3ee" strokeWidth="0.96" strokeOpacity="0.25"/>
+                        <circle cx="16" cy="16" r="9.6" stroke="#22d3ee" strokeWidth="1.12" strokeOpacity="0.60"/>
+                        <circle cx="16" cy="16" r="6.4" stroke="#22d3ee" strokeWidth="1.28" strokeOpacity="1"/>
+                        <circle cx="16" cy="16" r="1.12" fill="#22d3ee"/>
+                    </svg>
                     <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
                         CONGRUENCE
                     </span>
