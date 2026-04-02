@@ -31,6 +31,11 @@ export interface IdentityManifesto {
         professional: string;
         financial: string;
     };
+    // Belief system — "Soy el tipo de persona que..."
+    beliefs?: {
+        empowering: string[];   // 3-5 creencias potenciadoras
+        limiting?: string;      // Creencia limitante que elimino
+    };
     goals: {
         oneYear: string;
         ninetyDays: string;

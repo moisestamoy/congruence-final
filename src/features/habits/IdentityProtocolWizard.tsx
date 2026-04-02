@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, Sparkles, AlertTriangle, Target, BookOpen, Skull, Flame, Pen } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, AlertTriangle, Target, BookOpen, Skull, Flame, Pen, Brain, Plus, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useHabitStore, IdentityManifesto } from './useHabitStore';
 
@@ -9,7 +9,7 @@ interface IdentityProtocolWizardProps {
     onClose: () => void;
 }
 
-type Step = 'intro' | 'identity' | 'mission' | 'contract' | 'confirm';
+type Step = 'intro' | 'identity' | 'beliefs' | 'mission' | 'contract' | 'confirm';
 
 const slideVariants = {
     enter: (direction: number) => ({
@@ -28,13 +28,22 @@ const slideVariants = {
     })
 };
 
-
 const progressByStep: Record<Step, string> = {
     intro: '5%',
-    identity: '33%',
-    mission: '66%',
-    contract: '90%',
+    identity: '25%',
+    beliefs: '50%',
+    mission: '75%',
+    contract: '92%',
     confirm: '100%',
+};
+
+const stepColor: Record<Step, string> = {
+    intro: 'bg-transparent',
+    identity: 'bg-cyan-500',
+    beliefs: 'bg-violet-500',
+    mission: 'bg-purple-500',
+    contract: 'bg-yellow-500',
+    confirm: 'bg-emerald-500',
 };
 
 export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWizardProps) {
@@ -45,6 +54,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
     const [data, setData] = useState<IdentityManifesto>(() => ({
         identityStatement: manifesto?.identityStatement || manifesto?.identities?.personal || '',
         identities: manifesto?.identities || { personal: '', professional: '', financial: '' },
+        beliefs: manifesto?.beliefs || { empowering: ['', '', ''], limiting: '' },
         goals: {
             oneYear: manifesto?.goals?.oneYear || '',
             ninetyDays: manifesto?.goals?.ninetyDays || '',
@@ -62,23 +72,43 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
     };
 
     const handleFinish = () => {
-        setManifesto(data);
+        // Limpiar creencias vacías antes de guardar
+        const cleanedData = {
+            ...data,
+            beliefs: {
+                empowering: data.beliefs?.empowering.filter(b => b.trim()) || [],
+                limiting: data.beliefs?.limiting || '',
+            }
+        };
+        setManifesto(cleanedData);
         onClose();
     };
 
-    if (!isOpen) return null;
-
-    const stepColor: Record<Step, string> = {
-        intro: 'bg-transparent',
-        identity: 'bg-cyan-500',
-        mission: 'bg-purple-500',
-        contract: 'bg-yellow-500',
-        confirm: 'bg-emerald-500',
+    const updateBelief = (index: number, value: string) => {
+        const updated = [...(data.beliefs?.empowering || ['', '', ''])];
+        updated[index] = value;
+        setData(prev => ({ ...prev, beliefs: { ...prev.beliefs!, empowering: updated } }));
     };
+
+    const addBelief = () => {
+        const current = data.beliefs?.empowering || [];
+        if (current.length < 5) {
+            setData(prev => ({ ...prev, beliefs: { ...prev.beliefs!, empowering: [...current, ''] } }));
+        }
+    };
+
+    const removeBelief = (index: number) => {
+        const updated = (data.beliefs?.empowering || []).filter((_, i) => i !== index);
+        setData(prev => ({ ...prev, beliefs: { ...prev.beliefs!, empowering: updated } }));
+    };
+
+    const hasAtLeastOneBelief = (data.beliefs?.empowering || []).some(b => b.trim().length > 0);
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-0 lg:p-4">
-            <div className="w-full h-full lg:h-[700px] lg:max-w-4xl bg-[#020202] border border-white/10 lg:rounded-3xl shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="w-full h-full lg:h-[750px] lg:max-w-4xl bg-[#020202] border border-white/10 lg:rounded-3xl shadow-2xl relative overflow-hidden flex flex-col">
 
                 {/* Progress Bar */}
                 <div className="h-1 bg-white/5 w-full">
@@ -111,11 +141,23 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                     Escribe <span className="text-white font-bold">quién eres</span>.
                                 </p>
                                 <p className="text-neutral-700 text-sm max-w-xs mt-4">
-                                    3 pasos. Todo lo demás en la app se evalúa contra esto.
+                                    4 pasos. Cuando termines, toda la app opera en función de esto.
                                 </p>
+
+                                {/* Steps preview */}
+                                <div className="flex items-center gap-3 mt-8 text-xs text-neutral-700">
+                                    <span className="text-cyan-500 font-bold">Identidad</span>
+                                    <span>→</span>
+                                    <span className="text-violet-500 font-bold">Creencias</span>
+                                    <span>→</span>
+                                    <span className="text-purple-500 font-bold">Misión</span>
+                                    <span>→</span>
+                                    <span className="text-yellow-500 font-bold">Contrato</span>
+                                </div>
+
                                 <button
                                     onClick={() => nextStep('identity')}
-                                    className="mt-12 px-10 py-4 bg-white text-black font-bold text-lg rounded-full hover:scale-105 transition-transform flex items-center gap-3"
+                                    className="mt-10 px-10 py-4 bg-white text-black font-bold text-lg rounded-full hover:scale-105 transition-transform flex items-center gap-3"
                                 >
                                     Iniciar Protocolo <ArrowRight size={20} />
                                 </button>
@@ -133,11 +175,11 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                     <div className="text-center mb-8">
                                         <div className="flex items-center justify-center gap-2 text-cyan-400 mb-2">
                                             <Pen size={14} />
-                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 1 de 3 — Identidad</span>
+                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 1 de 4 — Identidad</span>
                                         </div>
                                         <h2 className="text-3xl font-black text-white">¿Quién eres?</h2>
                                         <p className="text-neutral-500 text-sm mt-2 max-w-sm mx-auto">
-                                            Una sola frase. Todo el peso en ella.
+                                            Una sola frase. Si dinero, status y aprobación no importaran — ¿quién serías?
                                         </p>
                                     </div>
 
@@ -160,7 +202,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
 
                                     <div className="pt-4 flex justify-end">
                                         <button
-                                            onClick={() => nextStep('mission')}
+                                            onClick={() => nextStep('beliefs')}
                                             disabled={!data.identityStatement?.trim()}
                                             className="px-8 py-3 bg-cyan-950 text-cyan-200 border border-cyan-900 rounded-lg hover:bg-cyan-900 transition-all disabled:opacity-30 flex items-center gap-2"
                                         >
@@ -171,7 +213,104 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                             </motion.div>
                         )}
 
-                        {/* ─────────── STEP 2: MISSION / FOCUS 90 DAYS ─────────── */}
+                        {/* ─────────── STEP 2: BELIEF SYSTEM ─────────── */}
+                        {step === 'beliefs' && (
+                            <motion.div
+                                key="beliefs"
+                                variants={slideVariants} initial="enter" animate="center" exit="exit" custom={direction}
+                                className="absolute inset-0 p-8 lg:p-12 overflow-y-auto"
+                            >
+                                <div className="max-w-xl mx-auto space-y-6">
+                                    <div className="text-center mb-6">
+                                        <div className="flex items-center justify-center gap-2 text-violet-400 mb-2">
+                                            <Brain size={14} />
+                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 2 de 4 — Sistema de Creencias</span>
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white">Construye tu identidad</h2>
+                                        <p className="text-neutral-500 text-sm mt-2 max-w-sm mx-auto">
+                                            Las creencias crean la identidad. La identidad genera acción. La acción construye resultados.
+                                        </p>
+                                    </div>
+
+                                    {/* Empowering beliefs */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs text-violet-400 uppercase font-bold tracking-wider flex items-center gap-2">
+                                                <Sparkles size={12} /> Creencias potenciadoras
+                                            </label>
+                                            {(data.beliefs?.empowering?.length || 0) < 5 && (
+                                                <button
+                                                    onClick={addBelief}
+                                                    className="text-xs text-violet-400/60 hover:text-violet-400 transition-colors flex items-center gap-1"
+                                                >
+                                                    <Plus size={12} /> agregar
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            {(data.beliefs?.empowering || ['', '', '']).map((belief, index) => (
+                                                <div key={index} className="flex items-center gap-2">
+                                                    <div className="flex-1 flex items-center bg-violet-950/20 border border-violet-900/40 rounded-xl overflow-hidden focus-within:border-violet-500/60 focus-within:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all">
+                                                        <span className="pl-4 pr-2 text-violet-400/60 text-sm font-bold whitespace-nowrap shrink-0">
+                                                            Soy el tipo de persona que
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            value={belief}
+                                                            onChange={e => updateBelief(index, e.target.value)}
+                                                            className="flex-1 bg-transparent py-3 pr-4 text-white placeholder-violet-900/50 focus:outline-none text-sm"
+                                                            placeholder="siempre cumple su palabra..."
+                                                        />
+                                                    </div>
+                                                    {(data.beliefs?.empowering?.length || 0) > 1 && (
+                                                        <button
+                                                            onClick={() => removeBelief(index)}
+                                                            className="text-neutral-700 hover:text-red-400 transition-colors p-1"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-neutral-700 italic">
+                                            Mínimo 1. Máximo 5. Sé específico — estas son las reglas por las que te vas a juzgar.
+                                        </p>
+                                    </div>
+
+                                    {/* Limiting belief to eliminate */}
+                                    <div className="border border-red-900/30 bg-red-950/10 rounded-xl p-4 space-y-2">
+                                        <label className="text-xs text-red-400 uppercase font-bold tracking-wider flex items-center gap-2">
+                                            <AlertTriangle size={12} /> Creencia limitante que elimino{' '}
+                                            <span className="text-neutral-600 normal-case font-normal">(opcional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={data.beliefs?.limiting || ''}
+                                            onChange={e => setData(prev => ({ ...prev, beliefs: { ...prev.beliefs!, limiting: e.target.value } }))}
+                                            className="w-full bg-transparent border-b border-red-900/40 py-2 text-red-200 placeholder-red-900/40 focus:border-red-500 focus:outline-none text-sm"
+                                            placeholder="Ej: No soy bueno con el dinero / No tengo disciplina..."
+                                        />
+                                        <p className="text-[10px] text-red-900/60 italic">
+                                            Nómbrala. Lo que se nombra, se puede eliminar.
+                                        </p>
+                                    </div>
+
+                                    <div className="pt-2 flex justify-end">
+                                        <button
+                                            onClick={() => nextStep('mission')}
+                                            disabled={!hasAtLeastOneBelief}
+                                            className="px-8 py-3 bg-violet-950 text-violet-200 border border-violet-900 rounded-lg hover:bg-violet-900 transition-all disabled:opacity-30 flex items-center gap-2"
+                                        >
+                                            Confirmar y continuar <ArrowRight size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* ─────────── STEP 3: MISSION / FOCUS 90 DAYS ─────────── */}
                         {step === 'mission' && (
                             <motion.div
                                 key="mission"
@@ -182,7 +321,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                     <div className="text-center mb-8">
                                         <div className="flex items-center justify-center gap-2 text-purple-400 mb-2">
                                             <Target size={14} />
-                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 2 de 3 — Misión</span>
+                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 3 de 4 — Misión</span>
                                         </div>
                                         <h2 className="text-3xl font-black text-white">Foco 90 Días</h2>
                                         <p className="text-neutral-500 text-sm mt-2">La única meta que importa este trimestre.</p>
@@ -190,7 +329,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
 
                                     {/* 90-day goal */}
                                     <div>
-                                        <label className="text-xs text-purple-400 uppercase font-bold tracking-wider mb-2 block flex items-center gap-2">
+                                        <label className="text-xs text-purple-400 uppercase font-bold tracking-wider mb-2 flex items-center gap-2">
                                             <Target size={12} /> La misión (90 días)
                                         </label>
                                         <textarea
@@ -218,7 +357,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
 
                                     {/* Toxic habit */}
                                     <div className="border border-red-900/30 bg-red-950/10 rounded-xl p-4">
-                                        <label className="text-xs text-red-500 uppercase font-bold tracking-wider mb-2 block flex items-center gap-2">
+                                        <label className="text-xs text-red-500 uppercase font-bold tracking-wider mb-2 flex items-center gap-2">
                                             <AlertTriangle size={12} /> Hábito tóxico que no toleraré <span className="text-neutral-600 normal-case font-normal">(opcional)</span>
                                         </label>
                                         <input
@@ -230,7 +369,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                         />
                                     </div>
 
-                                    {/* Ignorance debt — kept but compact */}
+                                    {/* Ignorance debt */}
                                     <div className="border border-rose-900/20 bg-rose-950/5 rounded-xl p-4 space-y-3">
                                         <div className="flex items-center gap-2 text-rose-400">
                                             <BookOpen size={12} />
@@ -258,7 +397,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                             </motion.div>
                         )}
 
-                        {/* ─────────── STEP 3: CONTRATO DIARIO ─────────── */}
+                        {/* ─────────── STEP 4: CONTRATO DIARIO ─────────── */}
                         {step === 'contract' && (
                             <motion.div
                                 key="contract"
@@ -269,13 +408,13 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                     <div className="text-center mb-6">
                                         <div className="flex items-center justify-center gap-2 text-yellow-400 mb-2">
                                             <Skull size={14} />
-                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 3 de 3 — El Contrato Diario</span>
+                                            <span className="font-bold tracking-widest text-xs uppercase">Paso 4 de 4 — El Contrato Diario</span>
                                         </div>
                                         <h2 className="text-3xl font-black text-white">Ataque vs Supervivencia</h2>
                                         <p className="text-neutral-500 text-sm mt-2">El Plan B es lo que te medirás cada noche.</p>
                                     </div>
 
-                                    {/* PLAN A (GREEN) */}
+                                    {/* PLAN A */}
                                     <div className="bg-emerald-950/20 border border-emerald-900/50 rounded-2xl p-6 space-y-4">
                                         <div className="flex items-center gap-3 mb-2">
                                             <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
@@ -311,7 +450,7 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                                         </div>
                                     </div>
 
-                                    {/* PLAN B (YELLOW) */}
+                                    {/* PLAN B */}
                                     <div className="bg-yellow-950/20 border border-yellow-900/50 rounded-2xl p-6 space-y-4">
                                         <div className="flex items-center gap-3 mb-2">
                                             <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-400">
@@ -352,30 +491,61 @@ export function IdentityProtocolWizard({ isOpen, onClose }: IdentityProtocolWiza
                             <motion.div
                                 key="confirm"
                                 variants={slideVariants} initial="enter" animate="center" exit="exit" custom={direction}
-                                className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
+                                className="absolute inset-0 flex flex-col items-center justify-center p-8 overflow-y-auto"
                             >
-                                <div className="w-full max-w-lg mx-auto">
-                                    {/* Plan B hero reveal */}
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/70 mb-3">
-                                        Tu contrato mínimo diario
-                                    </p>
-                                    <div className="bg-yellow-950/30 border border-yellow-500/30 rounded-3xl p-8 mb-8 shadow-[0_0_40px_rgba(234,179,8,0.1)]">
-                                        <Skull className="text-yellow-400 mx-auto mb-4" size={32} />
-                                        <p className="text-2xl md:text-3xl font-black text-yellow-100 leading-snug">
+                                <div className="w-full max-w-lg mx-auto space-y-6 py-8">
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70 mb-2">
+                                            Protocolo completo
+                                        </p>
+                                        <h2 className="text-3xl font-black text-white mb-1">Tu Sistema de Identidad</h2>
+                                        <p className="text-neutral-600 text-sm">Toda la app se evaluará contra esto.</p>
+                                    </div>
+
+                                    {/* Identity */}
+                                    <div className="bg-cyan-950/20 border border-cyan-900/40 rounded-2xl p-5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70 mb-2">Identidad</p>
+                                        <p className="text-white font-bold leading-snug">"{data.identityStatement}"</p>
+                                    </div>
+
+                                    {/* Beliefs */}
+                                    {(data.beliefs?.empowering?.filter(b => b.trim()).length || 0) > 0 && (
+                                        <div className="bg-violet-950/20 border border-violet-900/40 rounded-2xl p-5">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500/70 mb-3">Creencias</p>
+                                            <ul className="space-y-1.5">
+                                                {data.beliefs?.empowering.filter(b => b.trim()).map((b, i) => (
+                                                    <li key={i} className="text-sm text-violet-100 flex items-start gap-2">
+                                                        <span className="text-violet-400 mt-0.5">→</span>
+                                                        Soy el tipo de persona que {b}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Mission */}
+                                    <div className="bg-purple-950/20 border border-purple-900/40 rounded-2xl p-5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-purple-500/70 mb-2">Misión 90 Días</p>
+                                        <p className="text-white font-bold leading-snug">{data.goals.ninetyDays}</p>
+                                    </div>
+
+                                    {/* Contract */}
+                                    <div className="bg-yellow-950/20 border border-yellow-500/30 rounded-2xl p-5">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/70 mb-2 flex items-center gap-1">
+                                            <Skull size={10} /> Contrato Mínimo Diario
+                                        </p>
+                                        <p className="text-yellow-100 font-black text-lg leading-snug">
                                             "{data.executionProtocol.planB_Minimum}"
                                         </p>
                                     </div>
-                                    <p className="text-neutral-400 text-sm max-w-sm mx-auto mb-10">
-                                        <span className="text-white font-bold">Esto es lo que te medirás cada noche.</span><br />
-                                        Sin excusas. Sin negociación. El mínimo siempre se cumple.
-                                    </p>
+
                                     <button
                                         onClick={handleFinish}
                                         className="w-full py-5 bg-white text-black font-black text-xl rounded-xl hover:bg-neutral-100 shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all flex items-center justify-center gap-3"
                                     >
                                         FIRMAR CONTRATO <Check size={24} strokeWidth={3} />
                                     </button>
-                                    <p className="text-[10px] text-neutral-700 mt-4 italic">
+                                    <p className="text-[10px] text-neutral-700 text-center italic">
                                         Puedes editar esto en cualquier momento desde el Centro de Identidad.
                                     </p>
                                 </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Hexagon, Plus, BrainCircuit, Target, AlertTriangle, Zap, BookOpen, Flame, Skull, Edit3, ArrowRight } from 'lucide-react';
+import { Hexagon, Plus, BrainCircuit, Target, AlertTriangle, Zap, BookOpen, Flame, Skull, Edit3, ArrowRight, Brain, Sparkles } from 'lucide-react';
 import { useHolisticStore } from '../stats/useHolisticStore';
 import { HolisticCheckInModal } from '../stats/HolisticCheckInModal';
 import { useHabitStore } from '../habits/useHabitStore';
@@ -191,6 +191,39 @@ export default function IdentityPage() {
                             <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 mb-6">
                                 <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-3">Declaración de Identidad</div>
                                 <p className="text-xl font-bold text-white leading-snug">"{displayedIdentity}"</p>
+                            </div>
+                        )}
+
+                        {/* BELIEFS SECTION */}
+                        {manifesto.beliefs && (manifesto.beliefs.empowering?.length > 0) && (
+                            <div className="bg-violet-500/5 border border-violet-500/20 rounded-2xl p-6 mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="text-xs font-bold text-violet-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Brain size={14} /> Sistema de Creencias
+                                    </div>
+                                    <span className="text-[10px] text-violet-400/40 uppercase font-bold tracking-wider">
+                                        {manifesto.beliefs.empowering.filter(b => b).length} creencias activas
+                                    </span>
+                                </div>
+                                <ul className="space-y-2 mb-4">
+                                    {manifesto.beliefs.empowering.filter(b => b).map((belief, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-violet-100">
+                                            <Sparkles size={12} className="text-violet-400 mt-0.5 shrink-0" />
+                                            <span>
+                                                <span className="text-violet-400/60">Soy el tipo de persona que </span>
+                                                <span className="font-semibold">{belief}</span>
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                {manifesto.beliefs.limiting && (
+                                    <div className="border-t border-violet-500/10 pt-3 mt-3">
+                                        <div className="text-[10px] text-red-400/50 uppercase font-bold flex items-center gap-1 mb-1">
+                                            <AlertTriangle size={10} /> Creencia que elimino
+                                        </div>
+                                        <p className="text-xs text-red-300/70 line-through">{manifesto.beliefs.limiting}</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
