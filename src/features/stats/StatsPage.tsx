@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Activity, Wallet, Target, Brain, Zap, ChevronDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Wallet, Target, Brain, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
-import { format, subDays, eachDayOfInterval, startOfWeek, getDay } from 'date-fns';
+import { format, subDays, eachDayOfInterval, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-    ComposedChart, Line, Bar, XAxis, YAxis, Tooltip,
+    ComposedChart, Bar, XAxis, YAxis, Tooltip,
     ResponsiveContainer, CartesianGrid, Area, Cell
 } from 'recharts';
 import { cn } from '../../utils/cn';
@@ -181,7 +181,7 @@ export default function StatsPage() {
                     </div>
                     <span className="text-3xl font-black text-white">{totalHabits}</span>
                     <span className="text-[10px] text-neutral-600">
-                        {habits.filter(h => h.type === 'boolean').length} simples · {habits.filter(h => h.type === 'quantity').length} medibles
+                        {habits.filter(h => h.type === 'boolean').length} simples · {habits.filter(h => h.type === 'numeric').length} medibles
                     </span>
                 </div>
 
