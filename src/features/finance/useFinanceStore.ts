@@ -63,7 +63,7 @@ export const useFinanceStore = create<FinanceState>()(
                     date: '2026-01-05',
                     type: 'income',
                     amount: 5000,
-                    category: 'Salary',
+                    category: '💰 Salario',
                     isRecurring: true
                 },
                 {
@@ -71,7 +71,7 @@ export const useFinanceStore = create<FinanceState>()(
                     date: '2026-01-08',
                     type: 'expense',
                     amount: 850,
-                    category: 'Rent',
+                    category: '🏠 Alquiler',
                     isRecurring: true
                 }
             ],
@@ -175,7 +175,7 @@ export const useFinanceStore = create<FinanceState>()(
                         date,
                         type,
                         amount,
-                        category: type === 'income' ? 'Income' : 'Expense', // Generic for cell edit
+                        category: type === 'income' ? '🪙 Otros ingresos' : '📦 Otros', // Generic for cell edit
                         isRecurring: false
                     };
                     return { events: [...filtered, newEvent] };
@@ -205,7 +205,7 @@ export const useFinanceStore = create<FinanceState>()(
                                     id: generateId(),
                                     date,
                                     amount,
-                                    category: category || 'Variable'
+                                    category: category || '📦 Otros'
                                 }
                             ]
                         };
@@ -281,7 +281,7 @@ export const useFinanceStore = create<FinanceState>()(
                         id: generateId(),
                         date,
                         amount,
-                        category: 'Variable'
+                        category: '📦 Otros'
                     };
                     return { realExpenses: [...filtered, newExpense] };
                 }),
