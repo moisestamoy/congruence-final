@@ -218,65 +218,85 @@ export default function FinancesPage() {
                         </div>
                     </div>
 
-                    {/* Summary Widgets Grid (Minimalist Desktop Horizontal) */}
-                    <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl py-3 px-6 flex items-center justify-between">
+                    {/* Summary Widgets Grid + Finance Coach — Unified Hero */}
+                    <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
 
-                        {/* Left Flank: Income */}
-                        <div className="relative z-10 flex-1 flex flex-col items-start justify-center pl-8">
-                            <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-start hover:bg-white/[0.04] transition-colors shadow-lg">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <Plus size={14} className="text-emerald-500" />
-                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
+                        {/* Top Row: Stats */}
+                        <div className="relative z-10 py-4 px-6 flex items-center justify-between">
+                            {/* Left Flank: Income */}
+                            <div className="flex-1 flex flex-col items-start justify-center pl-8">
+                                <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-start hover:bg-white/[0.04] transition-colors shadow-lg">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <Plus size={14} className="text-emerald-500" />
+                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
+                                    </div>
+                                    <span className="text-xl lg:text-2xl font-bold font-mono text-emerald-400">
+                                        €{totalIncome.toLocaleString()}
+                                    </span>
                                 </div>
-                                <span className="text-xl lg:text-2xl font-bold font-mono text-emerald-400">
-                                    €{totalIncome.toLocaleString()}
+                            </div>
+
+                            {/* Center Core: Balance & Progress */}
+                            <div className="flex-2 flex flex-col items-center justify-center px-8 min-w-[400px]">
+                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] shadow-sm mb-0.5">
+                                    Saldo Fin de Mes
                                 </span>
+                                <div className={cn(
+                                    "text-5xl lg:text-6xl font-black font-mono tracking-tight drop-shadow-2xl",
+                                    safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
+                                )}>
+                                    €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
+                                </div>
+
+                                {/* Monthly Goal Progress */}
+                                {savingsGoals?.monthly > 0 && (
+                                    <div className="mt-2 w-full flex flex-col items-center">
+                                        <div className="flex justify-between w-[80%] text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5">
+                                            <span className="text-neutral-500">Progreso Meta</span>
+                                            <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
+                                                €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                            </span>
+                                        </div>
+                                        <div className="w-[80%] h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]")}
+                                                style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Flank: Expenses */}
+                            <div className="flex-1 flex flex-col items-end justify-center pr-8">
+                                <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-end hover:bg-white/[0.04] transition-colors shadow-lg">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <Minus size={14} className="text-rose-500" />
+                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
+                                    </div>
+                                    <span className="text-xl lg:text-2xl font-bold font-mono text-rose-400">
+                                        €{Math.abs(totalExpenses).toLocaleString()}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Center Core: Balance & Progress */}
-                        <div className="relative z-10 flex-2 flex flex-col items-center justify-center px-8 min-w-[400px]">
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] shadow-sm mb-0.5">
-                                Saldo Fin de Mes
-                            </span>
-                            <div className={cn(
-                                "text-5xl lg:text-6xl font-black font-mono tracking-tight drop-shadow-2xl",
-                                safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
-                            )}>
-                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
-                            </div>
+                        {/* Divider */}
+                        <div className="relative z-10 mx-6 h-px bg-white/5" />
 
-                            {/* Monthly Goal Progress */}
-                            {savingsGoals?.monthly > 0 && (
-                                <div className="mt-2 w-full flex flex-col items-center">
-                                    <div className="flex justify-between w-[80%] text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5">
-                                        <span className="text-neutral-500">Progreso Meta</span>
-                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
-                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
-                                        </span>
-                                    </div>
-                                    <div className="w-[80%] h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]")}
-                                            style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Right Flank: Expenses */}
-                        <div className="relative z-10 flex-1 flex flex-col items-end justify-center pr-8">
-                            <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-end hover:bg-white/[0.04] transition-colors shadow-lg">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <Minus size={14} className="text-rose-500" />
-                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
-                                </div>
-                                <span className="text-xl lg:text-2xl font-bold font-mono text-rose-400">
-                                    €{Math.abs(totalExpenses).toLocaleString()}
-                                </span>
-                            </div>
+                        {/* Bottom Row: Finance Coach inline */}
+                        <div className="relative z-10 px-8 py-4">
+                            <FinanceCoach
+                                finances={realExpenses}
+                                config={config}
+                                savingsGoals={savingsGoals}
+                                monthIncome={totalIncome}
+                                monthExpenses={totalExpenses}
+                                categoryBreakdown={categoryData}
+                                currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                                inline={true}
+                            />
                         </div>
                     </div>
 
@@ -813,16 +833,6 @@ export default function FinancesPage() {
                             Ver Detalles <Target size={14} className="opacity-50" />
                         </button>
                     </div>
-
-                    <FinanceCoach
-                        finances={realExpenses}
-                        config={config}
-                        savingsGoals={savingsGoals}
-                        monthIncome={totalIncome}
-                        monthExpenses={totalExpenses}
-                        categoryBreakdown={categoryData}
-                        currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
-                    />
 
                 </div>
             </div>

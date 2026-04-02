@@ -12,9 +12,10 @@ interface FinanceCoachProps {
     monthExpenses: number;
     categoryBreakdown: { name: string; value: number; color: string }[];
     currentMonth: string;
+    inline?: boolean;
 }
 
-export function FinanceCoach({ finances, config, savingsGoals, monthIncome, monthExpenses, categoryBreakdown, currentMonth }: FinanceCoachProps) {
+export function FinanceCoach({ finances, config, savingsGoals, monthIncome, monthExpenses, categoryBreakdown, currentMonth, inline }: FinanceCoachProps) {
     const [insight, setInsight] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -40,9 +41,9 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
             const result = await AIService.generateInsight(
                 [],
                 [financeContext],
-                { 
+                {
                     type: 'finance_analysis',
-                    savingsGoals, 
+                    savingsGoals,
                     config,
                     monthSummary: financeContext
                 },
@@ -58,6 +59,88 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
 
     const MoodIcon = insight?.mood === 'positive' ? TrendingUp : insight?.mood === 'warning' ? TrendingDown : Minus;
 
+    // ─── INLINE MODE: una sola fila dentro del hero strip ───
+    if (inline) {
+        return (
+            <div className="flex items-center gap-4 flex-wrap min-h-[36px]">
+                {/* Label */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/10">
+                        <Brain size={13} className="text-emerald-400" />
+                    </div>
+                    <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Coach IA</span>
+                </div>
+
+                {/* Top category pills — solo si no hay insight */}
+                {!insight && top3.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap flex-1">
+                        {top3.map((cat, i) => (
+                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-neutral-500 border border-white/5">
+                                {cat.name} <span className="text-neutral-400 font-mono">€{cat.value.toLocaleString('de-DE')}</span>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Resultado inline */}
+                {insight && (
+                    <div className="flex items-center gap-3 flex-1 flex-wrap">
+                        <div className={cn(
+                            "flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0",
+                            insight.mood === 'positive' ? "bg-emerald-500/10 text-emerald-400" :
+                                insight.mood === 'warning' ? "bg-amber-500/10 text-amber-500" :
+                                    "bg-blue-500/10 text-blue-400"
+                        )}>
+                            <MoodIcon size={10} />
+                            {insight.mood === 'positive' ? 'Óptimo' : insight.mood === 'warning' ? 'Atención' : 'Estable'}
+                        </div>
+                        <p className="text-xs text-neutral-300 leading-relaxed flex-1 min-w-0">
+                            "{insight.summary}"
+                        </p>
+                    </div>
+                )}
+
+                {/* Botón / loading / regenerar */}
+                <div className="shrink-0 ml-auto">
+                    <AnimatePresence mode="wait">
+                        {!insight && !isLoading && (
+                            <motion.button
+                                key="btn"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={generateInsight}
+                                className="py-2 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition-all whitespace-nowrap"
+                            >
+                                <Sparkles size={12} />
+                                Analizar con IA
+                            </motion.button>
+                        )}
+                        {isLoading && (
+                            <motion.div key="loading" className="flex items-center gap-2 py-2 px-3">
+                                <div className="w-3.5 h-3.5 border-t-2 border-emerald-500 rounded-full animate-spin shrink-0" />
+                                <span className="text-xs font-mono text-emerald-400 animate-pulse whitespace-nowrap">Analizando...</span>
+                            </motion.div>
+                        )}
+                        {insight && (
+                            <motion.button
+                                key="regen"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                onClick={generateInsight}
+                                className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-neutral-400 transition-colors py-2 px-2"
+                            >
+                                <RefreshCw size={11} />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        );
+    }
+
+    // ─── STANDALONE MODE (tarjeta completa) ───
     return (
         <div className="rounded-2xl bg-[#0a0a0a] border border-white/5 overflow-hidden">
             {/* Header */}
@@ -79,7 +162,7 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
                 )}
             </div>
 
-            {/* Context Preview - always visible */}
+            {/* Context Preview */}
             <div className="px-5 pt-4 pb-2 grid grid-cols-3 gap-3">
                 <div className="text-center">
                     <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5">Ingresos</p>
@@ -97,7 +180,7 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
                 </div>
             </div>
 
-            {/* Top categories preview */}
+            {/* Top categories */}
             {top3.length > 0 && (
                 <div className="px-5 pb-4">
                     <div className="flex gap-1.5 flex-wrap mt-2">
