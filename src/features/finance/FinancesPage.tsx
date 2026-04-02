@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -209,106 +209,15 @@ export default function FinancesPage() {
             <div className="w-full max-w-[1600px] mx-auto p-4 md:p-8 relative z-10 space-y-8">
 
                 {/* --- DESKTOP VIEW: PRO COMMAND CENTER (Hidden on Mobile) --- */}
-                <div className="hidden md:block space-y-8">
-                    {/* Title & Actions */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="hidden md:block space-y-6">
+                    {/* Title Row with inline date navigation */}
+                    <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">Finanzas</h1>
-                            <p className="text-neutral-400 font-medium">Panel de Control & Proyección</p>
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-1">Finanzas</h1>
+                            <p className="text-neutral-500 text-sm font-medium">Realidad financiera · tú decides qué hacer con ella</p>
                         </div>
-                    </div>
-
-                    {/* Summary Widgets Grid + Finance Coach — Unified Hero */}
-                    <div className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/5 shadow-2xl">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
-
-                        {/* Top Row: Stats */}
-                        <div className="relative z-10 py-4 px-6 flex items-center justify-between">
-                            {/* Left Flank: Income */}
-                            <div className="flex-1 flex flex-col items-start justify-center pl-8">
-                                <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-start hover:bg-white/[0.04] transition-colors shadow-lg">
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                        <Plus size={14} className="text-emerald-500" />
-                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
-                                    </div>
-                                    <span className="text-xl lg:text-2xl font-bold font-mono text-emerald-400">
-                                        €{totalIncome.toLocaleString()}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Center Core: Balance & Progress */}
-                            <div className="flex-2 flex flex-col items-center justify-center px-8 min-w-[400px]">
-                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em] shadow-sm mb-0.5">
-                                    Saldo Fin de Mes
-                                </span>
-                                <div className={cn(
-                                    "text-5xl lg:text-6xl font-black font-mono tracking-tight drop-shadow-2xl",
-                                    safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
-                                )}>
-                                    €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
-                                </div>
-
-                                {/* Monthly Goal Progress */}
-                                {savingsGoals?.monthly > 0 && (
-                                    <div className="mt-2 w-full flex flex-col items-center">
-                                        <div className="flex justify-between w-[80%] text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5">
-                                            <span className="text-neutral-500">Progreso Meta</span>
-                                            <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
-                                                €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
-                                            </span>
-                                        </div>
-                                        <div className="w-[80%] h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                            <div
-                                                className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_10px_#34d399]" : "bg-cyan-500 shadow-[0_0_10px_#06b6d4]")}
-                                                style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Right Flank: Expenses */}
-                            <div className="flex-1 flex flex-col items-end justify-center pr-8">
-                                <div className="bg-white/[0.02] py-2 px-4 rounded-xl border border-white/5 backdrop-blur-sm flex flex-col items-end hover:bg-white/[0.04] transition-colors shadow-lg">
-                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                        <Minus size={14} className="text-rose-500" />
-                                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
-                                    </div>
-                                    <span className="text-xl lg:text-2xl font-bold font-mono text-rose-400">
-                                        €{Math.abs(totalExpenses).toLocaleString()}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="relative z-10 mx-6 h-px bg-white/5" />
-
-                        {/* Bottom Row: Finance Coach inline */}
-                        <div className="relative z-10 px-8 py-4">
-                            <FinanceCoach
-                                finances={realExpenses}
-                                config={config}
-                                savingsGoals={savingsGoals}
-                                monthIncome={totalIncome}
-                                monthExpenses={totalExpenses}
-                                categoryBreakdown={categoryData}
-                                currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
-                                inline={true}
-                            />
-                        </div>
-                    </div>
-
-                    {/* CONTROL BAR (Floating & Unified) */}
-                    <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
-                        {/* LEFT: Date Navigation & Horizon & Reset */}
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                            <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all shrink-0" title="Reiniciar todo">
-                                <RotateCcw size={16} />
-                            </button>
-                            <div className="w-px h-6 bg-white/10 mx-1 shrink-0" />
-                            <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
                                 <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
                                     <ChevronUp className="-rotate-90" size={16} />
                                 </button>
@@ -320,10 +229,7 @@ export default function FinancesPage() {
                                     <ChevronUp className="rotate-90" size={16} />
                                 </button>
                             </div>
-
-                            <div className="w-px h-6 bg-white/10 mx-2" />
-
-                            <div className="flex items-center bg-[#151515] rounded-2xl border border-white/5 p-1 gap-1">
+                            <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1 gap-1">
                                 {[1, 2, 3, 4, 12].map(m => (
                                     <button
                                         key={m}
@@ -333,32 +239,136 @@ export default function FinancesPage() {
                                             horizon === m ? "bg-white text-black shadow-lg scale-105" : "text-neutral-500 hover:text-white hover:bg-white/5"
                                         )}
                                     >
-                                        {m === 1 && '1M'}
-                                        {m === 2 && '2M'}
-                                        {m === 3 && '3M'}
-                                        {m === 4 && '4M'}
-                                        {m === 12 && '1A'}
+                                        {m === 1 && '1M'}{m === 2 && '2M'}{m === 3 && '3M'}{m === 4 && '4M'}{m === 12 && '1A'}
                                     </button>
                                 ))}
                             </div>
                         </div>
+                    </div>
 
-                        {/* RIGHT: Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => setIsAlertsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-blue-400/50 hover:text-blue-400 transition-colors cursor-pointer shrink-0" title="Ver alertas">
+                    {/* Metric Cards Row */}
+                    {(totalIncome === 0 && totalExpenses === 0) ? (
+                        /* Smart empty state */
+                        <div className="w-full rounded-2xl border border-white/5 bg-[#0a0a0a] p-12 flex flex-col items-center justify-center gap-4 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2">
+                                <TrendingUp size={32} className="text-neutral-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-300">Sin datos para este período</h3>
+                            <p className="text-neutral-500 text-sm max-w-md">Registra ingresos y gastos para ver tu realidad financiera. El dashboard te mostrará los números tal como son, sin juicios.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-3 gap-4">
+                            {/* Card 1: Saldo proyectado */}
+                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Saldo proyectado fin de mes</span>
+                                    {safemetric_projectedEnd >= 0
+                                        ? <TrendingUp size={16} className="text-emerald-500" />
+                                        : <TrendingDown size={16} className="text-rose-500" />
+                                    }
+                                </div>
+                                <div className={cn("text-4xl font-black font-mono tracking-tight", safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400")}>
+                                    €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
+                                </div>
+                                {savingsGoals?.monthly > 0 && (
+                                    <div className="flex flex-col gap-1.5 mt-1">
+                                        <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                            <span className="text-neutral-600">Meta mensual</span>
+                                            <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-neutral-400"}>
+                                                €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                            </span>
+                                        </div>
+                                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400" : "bg-cyan-500")}
+                                                style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Card 2: Flujo neto */}
+                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Flujo neto del mes</span>
+                                    {netFlow >= 0
+                                        ? <Plus size={16} className="text-emerald-500" />
+                                        : <MinusIcon size={16} className="text-rose-500" />
+                                    }
+                                </div>
+                                <div className={cn("text-4xl font-black font-mono tracking-tight", netFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                    {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString('de-DE')}
+                                </div>
+                                <div className="flex justify-between text-xs text-neutral-500 mt-1">
+                                    <span className="flex items-center gap-1"><Plus size={10} className="text-emerald-500" /> €{totalIncome.toLocaleString()}</span>
+                                    <span className="flex items-center gap-1"><MinusIcon size={10} className="text-rose-500" /> €{Math.abs(totalExpenses).toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            {/* Card 3: Ritmo de gasto */}
+                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ritmo de gasto vs ingresos</span>
+                                    {totalIncome > 0 && Math.abs(totalExpenses) / totalIncome > 0.9
+                                        ? <AlertCircle size={16} className="text-amber-500" />
+                                        : <TrendingDown size={16} className="text-neutral-500" />
+                                    }
+                                </div>
+                                <div className="text-4xl font-black font-mono tracking-tight text-white">
+                                    {totalIncome > 0 ? Math.round((Math.abs(totalExpenses) / totalIncome) * 100) : 0}%
+                                </div>
+                                <div className="flex flex-col gap-1.5 mt-1">
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className={cn("h-full rounded-full transition-all duration-1000",
+                                                totalIncome > 0 && Math.abs(totalExpenses) / totalIncome > 0.9 ? "bg-amber-500" :
+                                                totalIncome > 0 && Math.abs(totalExpenses) / totalIncome > 0.7 ? "bg-yellow-500" : "bg-emerald-500"
+                                            )}
+                                            style={{ width: `${totalIncome > 0 ? Math.min((Math.abs(totalExpenses) / totalIncome) * 100, 100) : 0}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[9px] text-neutral-600 uppercase tracking-widest">
+                                        {totalIncome > 0 && Math.abs(totalExpenses) / totalIncome > 0.9 ? 'Gasto elevado respecto a ingresos' : 'Dentro del rango habitual'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Coach IA — Full width row */}
+                    <div className="w-full rounded-2xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
+                        <FinanceCoach
+                            finances={realExpenses}
+                            config={config}
+                            savingsGoals={savingsGoals}
+                            monthIncome={totalIncome}
+                            monthExpenses={totalExpenses}
+                            categoryBreakdown={categoryData}
+                            currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                            inline={true}
+                        />
+                    </div>
+
+                    {/* CONTROL BAR — simplified */}
+                    <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all" title="Reiniciar todo">
+                                <RotateCcw size={16} />
+                            </button>
+                            <button onClick={() => setIsAlertsOpen(true)} className="flex items-center gap-2 px-3 py-2 text-blue-400/50 hover:text-blue-400 transition-colors cursor-pointer" title="Ver alertas">
                                 <div className="relative">
                                     <Info size={18} />
                                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                                 </div>
                             </button>
-
-                            <div className="h-6 w-px bg-white/10 mx-1 shrink-0" />
-
-                            <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-2 px-3 lg:px-5 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all whitespace-nowrap">
-                                <Calculator size={14} className="shrink-0" /> <span className="hidden lg:inline">Presupuesto</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsBudgetOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all">
+                                <Calculator size={14} /> Presupuesto
                             </button>
-                            <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-2 px-3 lg:px-5 py-2.5 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] whitespace-nowrap">
-                                <Target size={14} className="shrink-0" /> <span className="hidden lg:inline">Metas</span>
+                            <button onClick={() => setIsGoalsOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                <Target size={14} /> Metas
                             </button>
                         </div>
                     </div>
