@@ -3,24 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw } from 'lucide-react';
 import { useFinanceStore } from '../../features/finance/useFinanceStore';
 import { useHabitStore } from '../../features/habits/useHabitStore';
+import { useHolisticStore } from '../../features/stats/useHolisticStore';
 import { DailyInsight, AIService } from '../../services/ai';
 import { cn } from '../../utils/cn';
 
 export default function CoachPage() {
-    const { habits } = useHabitStore();
+    const { habits, manifesto } = useHabitStore();
     const { realExpenses } = useFinanceStore();
+    const { checkIns } = useHolisticStore();
     const [insight, setInsight] = useState<DailyInsight | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
 
     const generateInsight = async () => {
         setIsLoading(true);
         try {
-            // Get last 7 days of data for context (simplified)
-            const recentHabits = habits; // In a real app we'd filter by date
-            const recentFinances = realExpenses;
-
-            const result = await AIService.generateInsight(recentHabits, recentFinances, "Moisés");
+            const result = await AIService.generateInsight(
+                habits,
+                realExpenses,
+                manifesto,
+                checkIns.slice(-3)
+            );
             setInsight(result);
         } catch (error) {
             console.error("Failed to generate insight", error);
@@ -106,6 +108,17 @@ export default function CoachPage() {
                                             </p>
                                         </div>
 
+                                        {insight.insight && (
+                                            <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
+                                                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                    <Brain className="w-4 h-4" /> Análisis
+                                                </h3>
+                                                <p className="text-neutral-300 text-sm leading-relaxed">
+                                                    {insight.insight}
+                                                </p>
+                                            </div>
+                                        )}
+
                                         <div className="p-4 rounded-xl bg-white/5 border border-white/5">
                                             <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                                                 <TargetIcon className="w-4 h-4" /> Misión de Hoy
@@ -114,6 +127,10 @@ export default function CoachPage() {
                                                 {insight.actionable_tip}
                                             </p>
                                         </div>
+
+                                        {insight.score_context && (
+                                            <p className="text-xs text-neutral-500 italic">{insight.score_context}</p>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col gap-4 border-l border-white/5 pl-8 md:pl-8">
