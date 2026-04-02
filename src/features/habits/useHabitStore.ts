@@ -23,6 +23,9 @@ interface HabitsState {
 
 // --- IDENTITY MANIFESTO TYPES ---
 export interface IdentityManifesto {
+    // New unified identity statement (Step 1 of redesigned wizard)
+    identityStatement?: string;
+    // Kept for backward compat with old wizard data
     identities: {
         personal: string;
         professional: string;
@@ -32,6 +35,8 @@ export interface IdentityManifesto {
         oneYear: string;
         ninetyDays: string;
         antiGoals: string;
+        sacrifice?: string;    // What I'll give up
+        toxicHabit?: string;   // What I won't tolerate
     };
     ignoranceDebt: {
         missingSkill: string;
@@ -51,33 +56,39 @@ export const useHabitStore = create<HabitsState>()(
                 {
                     id: '1',
                     title: 'ENTRENAR',
-                    subtitle: '1 días de racha',
-                    type: 'boolean',
+                    subtitle: 'Ejemplo: hábito físico diario',
+                    type: 'boolean' as const,
                     goal: 1,
-                    color: '#fbbf24', // Amber-400
+                    color: '#fbbf24',
                     icon: '💪',
                     logs: {},
+                    identityAxis: 'physical' as const,
+                    isDemo: true,
                 },
                 {
                     id: '2',
-                    title: 'ALIMENTACION IDEAL',
-                    subtitle: '1 días de racha',
-                    type: 'boolean',
+                    title: 'ALIMENTACIÓN IDEAL',
+                    subtitle: 'Ejemplo: hábito de salud',
+                    type: 'boolean' as const,
                     goal: 1,
-                    color: '#34d399', // Emerald-400
+                    color: '#34d399',
                     icon: '⭐',
                     logs: {},
+                    identityAxis: 'physical' as const,
+                    isDemo: true,
                 },
-                // Adding a numeric one for testing
                 {
                     id: '3',
-                    title: 'Reading',
-                    type: 'numeric',
-                    goal: 30, // mins
+                    title: 'LECTURA',
+                    subtitle: 'Ejemplo: hábito de crecimiento',
+                    type: 'numeric' as const,
+                    goal: 30,
                     unit: 'min',
-                    color: '#60a5fa', // Blue-400
+                    color: '#60a5fa',
                     icon: '📚',
                     logs: {},
+                    identityAxis: 'growth' as const,
+                    isDemo: true,
                 }
             ],
             addHabit: (habitData: Omit<Habit, 'id' | 'logs'>) => {

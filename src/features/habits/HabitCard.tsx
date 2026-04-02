@@ -3,7 +3,16 @@ import { motion } from 'framer-motion';
 import { Check, Edit2 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { cn } from '../../utils/cn';
-import { Habit } from '../../types';
+import { Habit, IdentityAxis } from '../../types';
+
+const AXIS_CONFIG: Record<IdentityAxis, { label: string; color: string }> = {
+    physical:    { label: 'Físico',      color: '#34d399' },
+    emotional:   { label: 'Emocional',   color: '#fb7185' },
+    vision:      { label: 'Visión',      color: '#22d3ee' },
+    standards:   { label: 'Disciplina',  color: '#fbbf24' },
+    growth:      { label: 'Crecimiento', color: '#818cf8' },
+    environment: { label: 'Entorno',     color: '#e879f9' },
+};
 
 interface HabitCardProps {
     habit: Habit;
@@ -108,7 +117,26 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                             )}>
                                 {habit.title}
                             </h3>
+                            {/* EJEMPLO badge for demo habits */}
+                            {habit.isDemo && (
+                                <span className="shrink-0 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/10 text-white/40 border border-white/10">
+                                    EJEMPLO
+                                </span>
+                            )}
                         </div>
+
+                        {/* Axis dot */}
+                        {habit.identityAxis && (
+                            <div className="flex items-center gap-1.5 mt-0.5 pl-8 lg:pl-[2.75rem]">
+                                <div
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: AXIS_CONFIG[habit.identityAxis].color }}
+                                />
+                                <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: AXIS_CONFIG[habit.identityAxis].color + 'aa' }}>
+                                    {AXIS_CONFIG[habit.identityAxis].label}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Subtitle / Input - Better layout for both types */}
                         <div className="mt-0.5 lg:mt-1 pl-8 lg:pl-[2.75rem] min-w-0">

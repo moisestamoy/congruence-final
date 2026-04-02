@@ -1,4 +1,5 @@
 // Habits
+export type IdentityAxis = 'physical' | 'emotional' | 'vision' | 'standards' | 'growth' | 'environment';
 export type HabitType = 'boolean' | 'numeric';
 
 export interface HabitLog {
@@ -19,6 +20,8 @@ export interface Habit {
     icon?: string; // emoji or icon name
     logs: Record<string, HabitLog>; // Map date to log for O(1) access
     archived?: boolean;
+    identityAxis?: IdentityAxis; // Which identity axis this habit serves
+    isDemo?: boolean; // Starter demo habits shown to new users
 }
 
 // Finance

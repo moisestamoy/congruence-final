@@ -818,6 +818,10 @@ export default function FinancesPage() {
                         finances={realExpenses}
                         config={config}
                         savingsGoals={savingsGoals}
+                        monthIncome={totalIncome}
+                        monthExpenses={totalExpenses}
+                        categoryBreakdown={categoryData}
+                        currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
                     />
 
                 </div>

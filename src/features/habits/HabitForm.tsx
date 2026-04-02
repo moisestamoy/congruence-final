@@ -4,7 +4,16 @@ import { motion } from 'framer-motion';
 import { X, Activity, Heart, Briefcase, Smile, Trash2 } from 'lucide-react';
 import { useHabitStore } from './useHabitStore';
 import { cn } from '../../utils/cn';
-import { Habit } from '../../types';
+import { Habit, IdentityAxis } from '../../types';
+
+const AXIS_OPTIONS: { id: IdentityAxis; label: string; color: string; emoji: string }[] = [
+    { id: 'physical',    label: 'Físico',      color: '#34d399', emoji: '💪' },
+    { id: 'emotional',   label: 'Emocional',   color: '#fb7185', emoji: '❤️' },
+    { id: 'vision',      label: 'Visión',      color: '#22d3ee', emoji: '🧭' },
+    { id: 'standards',   label: 'Disciplina',  color: '#fbbf24', emoji: '🎯' },
+    { id: 'growth',      label: 'Crecimiento', color: '#818cf8', emoji: '📈' },
+    { id: 'environment', label: 'Entorno',     color: '#e879f9', emoji: '🌱' },
+];
 
 interface HabitFormProps {
     onClose: () => void;
@@ -29,6 +38,7 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
     const [unit, setUnit] = useState(initialData?.unit || '');
     const [color, setColor] = useState(initialData?.color || '#fbbf24');
     const [icon, setIcon] = useState(initialData?.icon || '🎯');
+    const [identityAxis, setIdentityAxis] = useState<IdentityAxis | undefined>(initialData?.identityAxis);
 
     // Emoji Tab State
     const [activeEmojiTab, setActiveEmojiTab] = useState('Salud');
@@ -46,6 +56,7 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
             unit: type === 'numeric' ? unit : undefined,
             color,
             icon,
+            identityAxis: identityAxis || undefined,
             subtitle: initialData?.subtitle || '0 días de racha'
         };
 
@@ -188,6 +199,41 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Identity Axis Selector */}
+                    <div className="space-y-3">
+                        <label className="text-xs uppercase font-bold text-neutral-500 tracking-wider block">
+                            ¿A qué eje sirve este hábito? <span className="text-neutral-700 normal-case font-normal">(opcional)</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {AXIS_OPTIONS.map(axis => (
+                                <button
+                                    key={axis.id}
+                                    type="button"
+                                    onClick={() => setIdentityAxis(identityAxis === axis.id ? undefined : axis.id)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                                        identityAxis === axis.id
+                                            ? "border-current bg-white/10 shadow-[0_0_10px_rgba(0,0,0,0.3)]"
+                                            : "border-white/10 bg-neutral-900/50 text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+                                    )}
+                                    style={identityAxis === axis.id ? { color: axis.color, borderColor: axis.color + '60' } : {}}
+                                >
+                                    <span>{axis.emoji}</span>
+                                    <span>{axis.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {identityAxis && (
+                            <button
+                                type="button"
+                                onClick={() => setIdentityAxis(undefined)}
+                                className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors"
+                            >
+                                × Quitar eje
+                            </button>
+                        )}
                     </div>
 
                     {/* Color Picker */}
