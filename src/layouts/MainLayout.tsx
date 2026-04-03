@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, BrainCircuit, Brain, LogIn, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
@@ -19,34 +19,31 @@ export default function MainLayout() {
         { path: '/', icon: LayoutDashboard, label: 'Tracker' },
         { path: '/finances', icon: Wallet, label: 'Finanzas' },
         { path: '/stats', icon: PieChart, label: 'Estadísticas' },
-        { path: '/identity', icon: BrainCircuit, label: 'Identidad' },
-        { path: '/coach', icon: Brain, label: 'Coach' },
     ];
 
     return (
         <div className="flex flex-col min-h-screen bg-black text-white font-sans selection:bg-cyan-500/30">
-            {/* Background Effects */}
             <div className="fixed inset-0 bg-[#050505] z-0 pointer-events-none" />
             <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/20 via-black to-black z-0 pointer-events-none" />
-
-            {/* Sync Indicator */}
             <SupabaseSync />
-
-            {/* Auth Modal */}
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
             {/* DESKTOP TOP NAV */}
             <header className="hidden lg:flex items-center justify-between px-8 py-4 sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/5">
-                {/* Logo */}
-                <div className="flex items-center gap-3">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">
+                {/* Logo — click to open Identidad */}
+                <div
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={() => navigate('/identity')}
+                    title="Tu Identidad"
+                >
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] group-hover:drop-shadow-[0_0_14px_rgba(34,211,238,0.9)] transition-all duration-300">
                         <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
                         <circle cx="16" cy="16" r="12.8" stroke="#22d3ee" strokeWidth="0.96" strokeOpacity="0.25"/>
                         <circle cx="16" cy="16" r="9.6" stroke="#22d3ee" strokeWidth="1.12" strokeOpacity="0.60"/>
                         <circle cx="16" cy="16" r="6.4" stroke="#22d3ee" strokeWidth="1.28" strokeOpacity="1"/>
                         <circle cx="16" cy="16" r="1.12" fill="#22d3ee"/>
                     </svg>
-                    <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400">
+                    <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400 group-hover:from-cyan-200 group-hover:to-white transition-all duration-300">
                         CONGRUENCE
                     </span>
                 </div>
@@ -80,7 +77,6 @@ export default function MainLayout() {
                     })}
                 </nav>
 
-                {/* User Actions */}
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => user ? signOut() : setIsAuthModalOpen(true)}
@@ -91,22 +87,12 @@ export default function MainLayout() {
                                 : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
                         )}
                     >
-                        {user ? (
-                            <>
-                                <LogOut size={16} />
-                                <span>Salir</span>
-                            </>
-                        ) : (
-                            <>
-                                <LogIn size={16} />
-                                <span>Entrar</span>
-                            </>
-                        )}
+                        {user ? (<><LogOut size={16} /><span>Salir</span></>) : (<><LogIn size={16} /><span>Entrar</span></>)}
                     </button>
                 </div>
             </header>
 
-            {/* BEVEL MOBILE BOTTOM NAVIGATION */}
+            {/* MOBILE BOTTOM NAV */}
             <div className="lg:hidden fixed bottom-6 inset-x-4 z-50 flex items-center gap-2">
                 <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 flex justify-between items-center shadow-2xl">
                     {navItems.map((item) => {
@@ -121,19 +107,14 @@ export default function MainLayout() {
                                 )}
                             >
                                 <item.icon size={18} className={cn("mb-0.5 transition-colors", isActive ? "text-white" : "")} strokeWidth={isActive ? 2.5 : 2} />
-                                <span className={cn(
-                                    "text-[9px] font-semibold tracking-wide transition-colors",
-                                    isActive ? "text-white" : "text-neutral-500"
-                                )}>
+                                <span className={cn("text-[9px] font-semibold tracking-wide transition-colors", isActive ? "text-white" : "text-neutral-500")}>
                                     {item.label}
                                 </span>
                             </button>
                         );
                     })}
                 </nav>
-
-                {/* DYNAMIC FAB */}
-                {location.pathname !== '/stats' && location.pathname !== '/identity' && location.pathname !== '/coach' && (
+                {location.pathname !== '/stats' && (
                     <button
                         onClick={triggerFab}
                         className="w-14 h-14 rounded-full bg-white text-black shrink-0 flex items-center justify-center shadow-xl active:scale-95 transition-transform"
@@ -143,7 +124,6 @@ export default function MainLayout() {
                 )}
             </div>
 
-            {/* MAIN CONTENT */}
             <main className="flex-1 min-w-0 pb-32 lg:pb-0 relative z-10">
                 <Outlet />
             </main>
