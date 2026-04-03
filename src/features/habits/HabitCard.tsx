@@ -40,19 +40,12 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
         // Calculate streak
         let streakDate = subDays(new Date(), 1);
-        while (true) {
+        for (let i = 0; i < 365; i++) {
             const dStr = format(streakDate, 'yyyy-MM-dd');
             const log = habit.logs[dStr];
-
-            if (log?.completed) {
-                count++;
-                streakDate = subDays(streakDate, 1);
-            } else if (log?.status === 'rest' || log?.status === 'emergency') {
-                // Skip this day in streak calculation
-                streakDate = subDays(streakDate, 1);
-            } else {
-                break;
-            }
+            if (log?.completed) { count++; streakDate = subDays(streakDate, 1); }
+            else if (log?.status === 'rest' || log?.status === 'emergency') { streakDate = subDays(streakDate, 1); }
+            else { break; }
         }
         setStreak(count);
 

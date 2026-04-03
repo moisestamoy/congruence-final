@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Activity, Wallet, Target, Brain, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useHabitStore } from '../habits/useHabitStore';
@@ -27,23 +27,18 @@ export default function StatsPage() {
     const lastWeek = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 6), end: new Date() }), []);
     const prevWeek = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 13), end: subDays(new Date(), 7) }), []);
 
-    const avgCongruence30d = useMemo(() => {
+    const calcAvg = useCallback((days: Date[]) => {
         if (habits.length === 0) return 0;
-        const sum = last30Days.reduce((acc, d) => acc + getCongruence(format(d, 'yyyy-MM-dd')), 0);
-        return Math.round(sum / 30);
-    }, [last30Days, getCongruence, habits.length]);
+        const values = days
+            .map(d => getCongruence(format(d, 'yyyy-MM-dd')))
+            .filter(v => v >= 0);
+        if (values.length === 0) return 0;
+        return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    }, [habits.length, getCongruence]);
 
-    const avgCongruenceThisWeek = useMemo(() => {
-        if (habits.length === 0) return 0;
-        const sum = lastWeek.reduce((acc, d) => acc + getCongruence(format(d, 'yyyy-MM-dd')), 0);
-        return Math.round(sum / 7);
-    }, [lastWeek, getCongruence, habits.length]);
-
-    const avgCongruencePrevWeek = useMemo(() => {
-        if (habits.length === 0) return 0;
-        const sum = prevWeek.reduce((acc, d) => acc + getCongruence(format(d, 'yyyy-MM-dd')), 0);
-        return Math.round(sum / 7);
-    }, [prevWeek, getCongruence, habits.length]);
+    const avgCongruence30d = calcAvg(last30Days);
+    const avgCongruenceThisWeek = calcAvg(lastWeek);
+    const avgCongruencePrevWeek = calcAvg(prevWeek);
 
     const congruenceTrend = avgCongruenceThisWeek - avgCongruencePrevWeek;
 
@@ -336,6 +331,7 @@ export default function StatsPage() {
                                     key={i}
                                     className={cn(
                                         "aspect-square rounded-md transition-all duration-300 relative group cursor-default",
+                                        day.value === -1 ? "bg-white/[0.06] border border-white/10" :
                                         day.value >= 100 ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" :
                                         day.value >= 75  ? "bg-cyan-600" :
                                         day.value >= 50  ? "bg-cyan-800/80" :

@@ -177,21 +177,18 @@ export const useHabitStore = create<HabitsState>()(
             getCongruence: (date) => {
                 const { habits } = get();
                 if (habits.length === 0) return 0;
-
                 let completedCount = 0;
                 let applicableHabitsCount = 0;
-
+                let hasAnyLog = false;
                 habits.forEach(h => {
                     const log = h.logs[date];
-                    if (log?.status === 'rest' || log?.status === 'emergency') {
-                        // Do not count this habit towards the total for the day
-                        return;
-                    }
+                    if (log) hasAnyLog = true;
+                    if (log?.status === 'rest' || log?.status === 'emergency') return;
                     applicableHabitsCount++;
                     if (log?.completed) completedCount++;
                 });
-
-                if (applicableHabitsCount === 0) return 100; // or 0, depending on preference. 100 means a full rest day is "perfect" congruence.
+                if (!hasAnyLog) return 0;
+                if (applicableHabitsCount === 0) return -1;
                 return Math.round((completedCount / applicableHabitsCount) * 100);
             }
         }),

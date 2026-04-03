@@ -11,6 +11,7 @@ export function SupabaseSync() {
     const [isHovered, setIsHovered] = useState(false);
     const lastSavedRef = useRef<number>(Date.now());
     const isSavingRef = useRef(false);
+    const hasPendingChangesRef = useRef(false);
 
     // Store access
     const habitsState = useHabitStore();
@@ -19,6 +20,7 @@ export function SupabaseSync() {
     // ── Pull from Supabase → hydrate stores ──────────────────────────────
     const loadData = useCallback(async () => {
         if (!user) return;
+        if (hasPendingChangesRef.current) return;
         setStatus('saving');
         try {
             const { data, error } = await supabase
@@ -91,6 +93,7 @@ export function SupabaseSync() {
 
         const saveToCloud = async () => {
             isSavingRef.current = true;
+            hasPendingChangesRef.current = true;
             setStatus('saving');
             try {
                 const { habits, manifesto } = useHabitStore.getState();
@@ -113,11 +116,19 @@ export function SupabaseSync() {
                 setStatus('error');
             } finally {
                 isSavingRef.current = false;
+                hasPendingChangesRef.current = false;
             }
         };
 
         const timeout = setTimeout(saveToCloud, 2000);
-        return () => clearTimeout(timeout);
+
+        const handleBeforeUnload = () => { saveToCloud(); };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            clearTimeout(timeout);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
     }, [
         habitsState.habits,
         financeState.config,

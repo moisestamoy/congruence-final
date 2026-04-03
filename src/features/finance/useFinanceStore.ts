@@ -270,13 +270,7 @@ export const useFinanceStore = create<FinanceState>()(
             setRealDailyExpense: (date: string, amount: number) =>
                 set((state) => {
                     const filtered = state.realExpenses.filter(r => r.date !== date);
-                    if (amount <= 0 && amount !== 0) return { realExpenses: filtered }; // Remove if null/undefined? But allow 0?
-                    // actually if user deletes text, amount might be 0.
-                    // If 0, we should save 0 to override the Plan?
-                    // Yes, spending 0 is a valid "Real Expense".
-                    // But if they want to "Clear" it to revert to Plan?
-                    // Usually empty string -> 0 or undefined.
-                    // Let's assume if they type, they mean it.
+                    if (!isFinite(amount) || amount < 0) return { realExpenses: filtered };
 
                     const newExpense: DailyRealExpense = {
                         id: generateId(),
