@@ -13,10 +13,22 @@ export function SupabaseSync() {
     const isSavingRef = useRef(false);
     const hasPendingChangesRef = useRef(false);
     const initialLoadDoneRef = useRef(false);
+    const pendingDeletionsRef = useRef<Set<string>>(new Set());
+    const prevExpenseIdsRef = useRef<Set<string>>(new Set());
 
     // Store access
     const habitsState = useHabitStore();
     const financeState = useFinanceStore();
+
+    // ── Track deleted expense IDs to prevent them from reappearing on load ──
+    useEffect(() => {
+        if (!initialLoadDoneRef.current) return;
+        const currentIds = new Set((financeState.realExpenses as any[]).map((e: any) => e.id));
+        prevExpenseIdsRef.current.forEach(id => {
+            if (!currentIds.has(id)) pendingDeletionsRef.current.add(id);
+        });
+        prevExpenseIdsRef.current = currentIds;
+    }, [financeState.realExpenses]);
 
     // ── Pull from Supabase → hydrate stores ──────────────────────────────
     const loadData = useCallback(async () => {
@@ -41,7 +53,15 @@ export function SupabaseSync() {
                     useHabitStore.setState(data.habits_data);
                 }
                 if (data.finances_data && Object.keys(data.finances_data).length > 0) {
-                    useFinanceStore.setState(data.finances_data);
+                    const pendingDeletes = pendingDeletionsRef.current;
+                    let financesData = data.finances_data;
+                    if (pendingDeletes.size > 0 && Array.isArray(financesData.realExpenses)) {
+                        financesData = {
+                            ...financesData,
+                            realExpenses: financesData.realExpenses.filter((e: any) => !pendingDeletes.has(e.id))
+                        };
+                    }
+                    useFinanceStore.setState(financesData);
                 }
                 initialLoadDoneRef.current = true;
                 setStatus('synced');
@@ -131,6 +151,7 @@ export function SupabaseSync() {
             if (error) throw error;
             setStatus('synced');
             lastSavedRef.current = Date.now();
+            pendingDeletionsRef.current.clear();
         } catch (e) {
             console.error('Save error:', e);
             setStatus('error');
