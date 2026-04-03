@@ -87,9 +87,44 @@ export default function FinancesPage() {
 
     // --- CALCULATION ENGINE ---
     const projections = useMemo(() => {
-        let allProjections: any[] = [];
+        // Step 1: Calculate accumulated balance from cycle start up to currentDate
+        // The cycle start is config.cycleStartDate (day of month) but we need the earliest
+        // month we have data for. Use the earliest event/expense date, or fall back to
+        // 12 months ago as the lookback window.
         let runningBalance = config.initialBalance;
 
+        // Find the earliest month with data (events or realExpenses)
+        const allDates = [
+            ...events.map(e => e.date),
+            ...realExpenses.map(e => e.date)
+        ].sort();
+
+        const earliestDate = allDates.length > 0
+            ? new Date(allDates[0].substring(0, 7) + '-01')
+            : addMonths(currentDate, -12);
+
+        // Walk from earliest month to the month BEFORE currentDate to build up balance
+        let walkDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+        const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+        while (walkDate < currentMonthStart) {
+            const walkProjs = DailyProjectionEngine.generateMonthProjection(
+                walkDate.getFullYear(),
+                walkDate.getMonth(),
+                config,
+                events,
+                overrides,
+                realExpenses,
+                runningBalance
+            );
+            if (walkProjs.length > 0) {
+                runningBalance = walkProjs[walkProjs.length - 1].balance;
+            }
+            walkDate = addMonths(walkDate, 1);
+        }
+
+        // Step 2: Now generate the visible horizon starting from accumulated balance
+        let allProjections: any[] = [];
         for (let i = 0; i < horizon; i++) {
             const targetDate = addMonths(currentDate, i);
             const monthProjs = DailyProjectionEngine.generateMonthProjection(
