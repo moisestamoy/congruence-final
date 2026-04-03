@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
+import { CoachCard } from './CoachCard';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
 import { format, addDays, subDays } from 'date-fns';
@@ -488,6 +489,11 @@ export default function HabitsPage() {
                                             />
                                         </div>
                                     ))}
+                                </div>
+
+                                {/* Coach IA Card */}
+                                <div className="mt-1">
+                                    <CoachCard />
                                 </div>
 
                                 <button
