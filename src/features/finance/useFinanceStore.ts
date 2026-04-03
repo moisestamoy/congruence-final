@@ -311,6 +311,8 @@ export const useFinanceStore = create<FinanceState>()(
         }),
         {
             name: 'lifeos-finance-storage',
+            version: 1,
+            migrate: (state) => state,
         }
     )
 );
