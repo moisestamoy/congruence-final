@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { CoachCard } from './CoachCard';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { cn } from '../../utils/cn';
 
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
@@ -17,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
 
 export default function HabitsPage() {
+    const navigate = useNavigate();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isIdentityBuilderOpen, setIsIdentityBuilderOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -32,22 +34,8 @@ export default function HabitsPage() {
         setCurrentDate(prev => addDays(prev, days));
     };
 
-    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
-
     // --- GAMIFICATION STATE (Dev) ---
-    const userStreak = useMemo(() => {
-        if (habits.length === 0) return 0;
-        const today = new Date();
-        let streak = 0;
-        for (let i = 0; i < 365; i++) {
-            const dateStr = format(subDays(today, i), 'yyyy-MM-dd');
-            const congruenceVal = getCongruence(dateStr);
-            if (congruenceVal === -1) continue; // rest day, skip
-            if (congruenceVal > 0) streak++;
-            else if (i > 0) break; // broke the streak
-        }
-        return streak;
-    }, [habits, getCongruence]);
+    const [userStreak] = useState(0);
 
     // --- GAMIFICATION LOGIC ---
     // Level 1 (Base): 0 - 13 days
@@ -56,6 +44,8 @@ export default function HabitsPage() {
     // Level 4 (Flow): 60 - 199 days
     // Level 5 (Diamond): 200 - 364 days
     // Level 6 (Cosmic): 365+ days
+
+
 
     const calculateLevel = (streak: number) => {
         if (streak >= 365) return 6;
@@ -79,6 +69,8 @@ export default function HabitsPage() {
             default: return '';
         }
     };
+
+    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const selectedDate = format(currentDate, 'yyyy-MM-dd');
     const congruence = getCongruence(selectedDate);
@@ -291,9 +283,7 @@ export default function HabitsPage() {
                                     {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
                                     <div className={cn(
                                         "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" :
-                                    currentLevel >= 2 ? "bg-cyan-500/20 w-[400px] h-[400px] blur-[90px]" :
-                                    "bg-cyan-500/15 w-[350px] h-[350px] blur-[80px]"
+                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                                     )} />
 
                                     <CongruenceLevelIndicator
@@ -305,21 +295,6 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
-                            {habits.length > 0 && (() => {
-                                const completedToday = habits.filter(h => !!h.logs[selectedDate]?.completed).length;
-                                const totalToday = habits.filter(h => {
-                                    const log = h.logs[selectedDate];
-                                    return !log || (log.status !== 'rest' && log.status !== 'emergency');
-                                }).length;
-                                return (
-                                    <div className="flex items-center justify-center gap-2 mb-3 lg:mb-5">
-                                        <span className="text-3xl lg:text-4xl font-black font-mono text-white drop-shadow-lg">{completedToday}</span>
-                                        <span className="text-neutral-600 font-bold text-xl">/</span>
-                                        <span className="text-xl lg:text-2xl font-bold font-mono text-neutral-500">{totalToday}</span>
-                                        <span className="text-[10px] lg:text-xs text-neutral-600 uppercase tracking-widest font-bold ml-1">hábitos hoy</span>
-                                    </div>
-                                );
-                            })()}
                             <p className="mt-4 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
@@ -381,6 +356,9 @@ export default function HabitsPage() {
                                             />
                                         </div>
                                     ))}
+                                    <div className="mt-1">
+                                        <CoachCard />
+                                    </div>
                                 </div>
 
                                 <button
@@ -440,7 +418,11 @@ export default function HabitsPage() {
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[150px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
-                            <div className="scale-[0.45] md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500">
+                            <div
+                                className="scale-[0.45] md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer hover:scale-[0.47] md:hover:scale-[0.77] lg:hover:scale-[1.13]"
+                                onClick={() => navigate('/identity')}
+                                title="Tu Identidad"
+                            >
                                 <CongruenceLevelIndicator percentage={congruence} size={600} strokeWidth={35} level={currentLevel} />
                             </div>
                         </div>
