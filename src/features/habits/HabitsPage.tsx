@@ -290,7 +290,9 @@ export default function HabitsPage() {
                                     {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
                                     <div className={cn(
                                         "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
+                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" :
+                                    currentLevel >= 2 ? "bg-cyan-500/20 w-[400px] h-[400px] blur-[90px]" :
+                                    "bg-cyan-500/15 w-[350px] h-[350px] blur-[80px]"
                                     )} />
 
                                     <CongruenceLevelIndicator
@@ -302,19 +304,18 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
-                            {(() => {
-                                const completedCount = habits.filter(h => !!h.logs[selectedDate]?.completed).length;
-                                const applicableCount = habits.filter(h => {
+                            {habits.length > 0 && (() => {
+                                const completedToday = habits.filter(h => !!h.logs[selectedDate]?.completed).length;
+                                const totalToday = habits.filter(h => {
                                     const log = h.logs[selectedDate];
                                     return !log || (log.status !== 'rest' && log.status !== 'emergency');
                                 }).length;
-                                if (habits.length === 0) return null;
                                 return (
-                                    <div className="flex items-center gap-3 mb-2 lg:mb-4">
-                                        <span className="text-2xl lg:text-3xl font-black font-mono text-white">{completedCount}</span>
-                                        <span className="text-neutral-600 font-bold text-lg">/</span>
-                                        <span className="text-lg lg:text-xl font-bold font-mono text-neutral-500">{applicableCount}</span>
-                                        <span className="text-[10px] lg:text-xs text-neutral-600 uppercase tracking-widest font-bold">hoy</span>
+                                    <div className="flex items-center justify-center gap-2 mb-3 lg:mb-5">
+                                        <span className="text-3xl lg:text-4xl font-black font-mono text-white drop-shadow-lg">{completedToday}</span>
+                                        <span className="text-neutral-600 font-bold text-xl">/</span>
+                                        <span className="text-xl lg:text-2xl font-bold font-mono text-neutral-500">{totalToday}</span>
+                                        <span className="text-[10px] lg:text-xs text-neutral-600 uppercase tracking-widest font-bold ml-1">hábitos hoy</span>
                                     </div>
                                 );
                             })()}

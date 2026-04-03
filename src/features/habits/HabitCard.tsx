@@ -74,7 +74,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         <motion.div
             layout
             className={cn(
-                "group relative flex flex-col items-stretch gap-1.5 lg:gap-3 p-3.5 lg:p-5 rounded-[16px] lg:rounded-[20px] transition-all duration-300 mb-2 overflow-hidden",
+                "group relative flex flex-col items-stretch gap-1.5 lg:gap-3 p-4 lg:p-5 rounded-[16px] lg:rounded-[20px] transition-all duration-300 mb-2 overflow-hidden",
                 "bg-white/[0.04] border border-white/[0.07] backdrop-blur-md",
                 "hover:bg-white/[0.07] hover:border-white/[0.12] hover:shadow-[0_0_24px_rgba(6,182,212,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]",
                 isCompleted && "border-cyan-400/20 shadow-[0_0_20px_rgba(6,182,212,0.08)] opacity-80"
@@ -103,9 +103,9 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     <div className="flex flex-col justify-center min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 lg:gap-3 min-w-0">
                             {/* Icon Display */}
-                            <span className="text-lg lg:text-2xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
+                            <span className="text-2xl lg:text-3xl drop-shadow-md shrink-0">{habit.icon || '🎯'}</span>
                             <h3 className={cn(
-                                "font-bold text-sm lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm max-w-full",
+                                "font-bold text-base lg:text-lg tracking-wide truncate transition-colors drop-shadow-sm max-w-full",
                                 isCompleted ? "text-cyan-300" : "text-neutral-200"
                             )}>
                                 {habit.title}
