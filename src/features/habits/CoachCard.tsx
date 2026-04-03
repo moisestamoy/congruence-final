@@ -51,7 +51,7 @@ export function CoachCard() {
                     )}
                 >
                     {isLoading ? <Loader2 size={11} className="animate-spin" /> : insight ? <RefreshCw size={11} /> : <Sparkles size={11} />}
-                    {isLoading ? 'Analizando...' : insight ? 'Regenerar' : 'Analizar hoy'}
+                    <span>{isLoading ? 'Analizando...' : insight ? 'Regenerar' : 'Analizar hoy'}</span>
                 </button>
             </div>
             {!insight && !isLoading && (
