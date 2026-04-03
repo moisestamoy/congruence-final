@@ -90,39 +90,59 @@ export function SupabaseSync() {
     }, [user, loadData]);
 
     // ── Debounced save (local changes → Supabase) ─────────────────────────
+    const saveToCloud = useCallback(async () => {
+        if (!user) return;
+        isSavingRef.current = true;
+        hasPendingChangesRef.current = false;
+        setStatus('saving');
+        try {
+            const { habits, manifesto } = useHabitStore.getState();
+            const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
+
+            // Fetch current realExpenses from Supabase to merge (shortcut may have added expenses)
+            const { data: remoteData } = await supabase
+                .from('user_data')
+                .select('finances_data')
+                .eq('id', user.id)
+                .single();
+
+            const remoteExpenses: any[] = remoteData?.finances_data?.realExpenses ?? [];
+            const localIds = new Set(realExpenses.map((e: any) => e.id));
+            // Add any remote expenses not present locally (added by shortcut)
+            const mergedExpenses = [
+                ...realExpenses,
+                ...remoteExpenses.filter((e: any) => !localIds.has(e.id))
+            ];
+
+            // If merged has more than local, update the local store too
+            if (mergedExpenses.length > realExpenses.length) {
+                useFinanceStore.setState({ realExpenses: mergedExpenses });
+            }
+
+            const { error } = await supabase
+                .from('user_data')
+                .update({
+                    habits_data: { habits, manifesto },
+                    finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+
+            if (error) throw error;
+            setStatus('synced');
+            lastSavedRef.current = Date.now();
+        } catch (e) {
+            console.error('Save error:', e);
+            setStatus('error');
+        } finally {
+            isSavingRef.current = false;
+        }
+    }, [user]);
+
     useEffect(() => {
         if (!user) return;
         if (!initialLoadDoneRef.current) return;
         if (isSavingRef.current) return;
-
-        const saveToCloud = async () => {
-            isSavingRef.current = true;
-            hasPendingChangesRef.current = true;
-            setStatus('saving');
-            try {
-                const { habits, manifesto } = useHabitStore.getState();
-                const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
-
-                const { error } = await supabase
-                    .from('user_data')
-                    .update({
-                        habits_data: { habits, manifesto },
-                        finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets },
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', user.id);
-
-                if (error) throw error;
-                setStatus('synced');
-                lastSavedRef.current = Date.now();
-            } catch (e) {
-                console.error('Save error:', e);
-                setStatus('error');
-            } finally {
-                isSavingRef.current = false;
-                hasPendingChangesRef.current = false;
-            }
-        };
 
         const timeout = setTimeout(saveToCloud, 2000);
 
@@ -134,6 +154,8 @@ export function SupabaseSync() {
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
     }, [
+        user,
+        saveToCloud,
         habitsState.habits,
         financeState.config,
         financeState.events,
