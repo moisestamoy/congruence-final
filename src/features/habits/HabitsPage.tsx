@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
-import { format, addDays } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import { cn } from '../../utils/cn';
 
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
@@ -31,8 +31,22 @@ export default function HabitsPage() {
         setCurrentDate(prev => addDays(prev, days));
     };
 
+    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
+
     // --- GAMIFICATION STATE (Dev) ---
-    const [userStreak] = useState(0);
+    const userStreak = useMemo(() => {
+        if (habits.length === 0) return 0;
+        const today = new Date();
+        let streak = 0;
+        for (let i = 0; i < 365; i++) {
+            const dateStr = format(subDays(today, i), 'yyyy-MM-dd');
+            const congruenceVal = getCongruence(dateStr);
+            if (congruenceVal === -1) continue; // rest day, skip
+            if (congruenceVal > 0) streak++;
+            else if (i > 0) break; // broke the streak
+        }
+        return streak;
+    }, [habits, getCongruence]);
 
     // --- GAMIFICATION LOGIC ---
     // Level 1 (Base): 0 - 13 days
@@ -41,8 +55,6 @@ export default function HabitsPage() {
     // Level 4 (Flow): 60 - 199 days
     // Level 5 (Diamond): 200 - 364 days
     // Level 6 (Cosmic): 365+ days
-
-
 
     const calculateLevel = (streak: number) => {
         if (streak >= 365) return 6;
@@ -66,8 +78,6 @@ export default function HabitsPage() {
             default: return '';
         }
     };
-
-    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const selectedDate = format(currentDate, 'yyyy-MM-dd');
     const congruence = getCongruence(selectedDate);
@@ -292,6 +302,22 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
+                            {(() => {
+                                const completedCount = habits.filter(h => !!h.logs[selectedDate]?.completed).length;
+                                const applicableCount = habits.filter(h => {
+                                    const log = h.logs[selectedDate];
+                                    return !log || (log.status !== 'rest' && log.status !== 'emergency');
+                                }).length;
+                                if (habits.length === 0) return null;
+                                return (
+                                    <div className="flex items-center gap-3 mb-2 lg:mb-4">
+                                        <span className="text-2xl lg:text-3xl font-black font-mono text-white">{completedCount}</span>
+                                        <span className="text-neutral-600 font-bold text-lg">/</span>
+                                        <span className="text-lg lg:text-xl font-bold font-mono text-neutral-500">{applicableCount}</span>
+                                        <span className="text-[10px] lg:text-xs text-neutral-600 uppercase tracking-widest font-bold">hoy</span>
+                                    </div>
+                                );
+                            })()}
                             <p className="mt-4 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
