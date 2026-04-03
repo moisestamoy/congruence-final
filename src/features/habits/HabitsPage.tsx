@@ -279,7 +279,11 @@ export default function HabitsPage() {
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
                                 isMobileCircleVisible ? "h-[320px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
                             )}>
-                                <div className="transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0">
+                                <div
+                                    className="transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0 cursor-pointer"
+                                    onClick={() => navigate('/identity')}
+                                    title="Tu Identidad"
+                                >
                                     {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
                                     <div className={cn(
                                         "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
