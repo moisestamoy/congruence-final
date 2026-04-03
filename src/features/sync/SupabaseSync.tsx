@@ -94,13 +94,13 @@ export function SupabaseSync() {
             setStatus('saving');
             try {
                 const { habits, manifesto } = useHabitStore.getState();
-                const { config, events, overrides, realExpenses, savingsGoals, savingsEntries } = useFinanceStore.getState();
+                const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
 
                 const { error } = await supabase
                     .from('user_data')
                     .update({
                         habits_data: { habits, manifesto },
-                        finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries },
+                        finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets },
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', user.id);
@@ -120,8 +120,13 @@ export function SupabaseSync() {
         return () => clearTimeout(timeout);
     }, [
         habitsState.habits,
+        financeState.config,
         financeState.events,
+        financeState.overrides,
         financeState.realExpenses,
+        financeState.categoryBudgets,
+        financeState.savingsGoals,
+        financeState.savingsEntries,
     ]);
 
     if (!user) return null;
