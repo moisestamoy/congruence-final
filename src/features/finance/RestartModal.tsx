@@ -21,6 +21,8 @@ export function RestartModal({ onClose }: RestartModalProps) {
     const [selectedMonth, setSelectedMonth] = useState((now.getMonth() + 1).toString());
     const [newBudget, setNewBudget] = useState(config.monthlyFixedBudget.toString());
     const [clearFuture, setClearFuture] = useState(false);
+    const [initialBalance, setInitialBalance] = useState('0');
+    const [hardResetBalance, setHardResetBalance] = useState('0');
 
     const dateLocale = i18n.language === 'es' ? es : i18n.language === 'pt' ? pt : enUS;
 
@@ -28,14 +30,16 @@ export function RestartModal({ onClose }: RestartModalProps) {
         const amount = Number(newBudget);
         if (!isNaN(amount) && amount > 0) {
             const yearMonth = `${selectedYear}-${selectedMonth.padStart(2, '0')}`;
-            setBudgetFromMonth(yearMonth, amount, clearFuture);
+            const balance = Number(initialBalance) || undefined;
+            setBudgetFromMonth(yearMonth, amount, clearFuture, balance);
             onClose();
         }
     };
 
     const handleHardReset = () => {
         if (window.confirm('¿Estás SEGURO de que quieres eliminar todo tu historial financiero? Esta acción no se puede deshacer.')) {
-            resetAll();
+            const balance = Number(hardResetBalance) || 0;
+            resetAll(balance);
             onClose();
         }
     };
@@ -143,6 +147,23 @@ export function RestartModal({ onClose }: RestartModalProps) {
                                 </p>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Balance Inicial</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-mono text-lg">€</span>
+                                    <input
+                                        type="number"
+                                        value={initialBalance}
+                                        onChange={(e) => setInitialBalance(e.target.value)}
+                                        className="w-full bg-[#050505] border border-white/10 rounded-xl py-4 pl-10 pr-4 text-xl font-mono font-bold text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder-neutral-700"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-neutral-500">
+                                    Dinero disponible al inicio del ciclo (ahorros, efectivo, etc.)
+                                </p>
+                            </div>
+
                             <label className="flex items-start gap-3 p-4 rounded-xl border border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer group">
                                 <div className="mt-0.5 relative flex items-center justify-center">
                                     <input 
@@ -171,10 +192,27 @@ export function RestartModal({ onClose }: RestartModalProps) {
                                     <Trash2 size={32} />
                                 </div>
                                 <h3 className="text-lg font-bold text-rose-400 mb-2">Eliminar Todo el Historial</h3>
-                                <p className="text-sm text-neutral-400 mb-6 max-w-sm mx-auto">
+                                <p className="text-sm text-neutral-400 mb-4 max-w-sm mx-auto">
                                     Esta acción eliminará de forma <b>permanente</b> absolutamente todas las transacciones, metas, ingresos y configuraciones registradas hasta ahora. Volverás a cero.
                                 </p>
-                                
+
+                                <div className="w-full max-w-xs mx-auto mb-6 space-y-2">
+                                    <label className="text-xs font-bold text-rose-400 uppercase tracking-widest">Balance Inicial</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-mono text-lg">€</span>
+                                        <input
+                                            type="number"
+                                            value={hardResetBalance}
+                                            onChange={(e) => setHardResetBalance(e.target.value)}
+                                            className="w-full bg-[#050505] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-lg font-mono font-bold text-white focus:outline-none focus:border-rose-500 transition-colors placeholder-neutral-700"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-neutral-500">
+                                        Dinero con el que empezarás de nuevo
+                                    </p>
+                                </div>
+
                                 <button
                                     onClick={handleHardReset}
                                     className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold uppercase tracking-widest text-xs transition-colors shadow-lg shadow-rose-500/20"

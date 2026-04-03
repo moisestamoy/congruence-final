@@ -41,10 +41,10 @@ interface FinanceState {
     deleteTransaction: (id: string, source: 'event' | 'realExpense') => void;
     categoryBudgets: Record<string, number>;
     setCategoryBudget: (category: string, amount: number) => void;
-    resetAll: () => void;
-    
+    resetAll: (initialBalance?: number) => void;
+
     // Selective Restart
-    setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean) => void;
+    setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean, initialBalance?: number) => void;
 }
 
 export const useFinanceStore = create<FinanceState>()(
@@ -85,9 +85,9 @@ export const useFinanceStore = create<FinanceState>()(
             savingsEntries: [],
             categoryBudgets: {},
 
-            resetAll: () => set({
+            resetAll: (initialBalance?: number) => set({
                 config: {
-                    initialBalance: 0,
+                    initialBalance: initialBalance ?? 0,
                     monthlyFixedBudget: 1500,
                     cycleStartDate: 1,
                     monthlyIncomeGoal: 3000,
@@ -104,9 +104,10 @@ export const useFinanceStore = create<FinanceState>()(
                 categoryBudgets: {}
             }),
 
-            setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean) => set((state) => {
-                const newConfig = { 
-                    ...state.config, 
+            setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean, initialBalance?: number) => set((state) => {
+                const newConfig = {
+                    ...state.config,
+                    ...(initialBalance !== undefined ? { initialBalance } : {}),
                     budgetChanges: {
                         ...(state.config.budgetChanges || {}),
                         [yearMonth]: totalAmount
