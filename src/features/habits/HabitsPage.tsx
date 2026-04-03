@@ -356,14 +356,15 @@ export default function HabitsPage() {
                                             />
                                         </div>
                                     ))}
-                                    <div className="mt-1">
-                                        <CoachCard />
-                                    </div>
+                                </div>
+
+                                <div className="mt-3 relative z-10">
+                                    <CoachCard />
                                 </div>
 
                                 <button
                                     onClick={handleCreateHabit}
-                                    className="mt-6 lg:mt-8 w-full py-4 lg:py-5 rounded-xl lg:rounded-2xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] transition-all flex items-center justify-center gap-2 text-neutral-500 hover:text-cyan-200 relative z-10 group"
+                                    className="mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-xl lg:rounded-2xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] transition-all flex items-center justify-center gap-2 text-neutral-500 hover:text-cyan-200 relative z-10 group"
                                 >
                                     <span className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] group-hover:scale-105 transition-transform">+ Nuevo Objetivo</span>
                                 </button>
