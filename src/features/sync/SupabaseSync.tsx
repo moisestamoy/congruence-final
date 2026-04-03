@@ -12,6 +12,7 @@ export function SupabaseSync() {
     const lastSavedRef = useRef<number>(Date.now());
     const isSavingRef = useRef(false);
     const hasPendingChangesRef = useRef(false);
+    const initialLoadDoneRef = useRef(false);
 
     // Store access
     const habitsState = useHabitStore();
@@ -42,9 +43,11 @@ export function SupabaseSync() {
                 if (data.finances_data && Object.keys(data.finances_data).length > 0) {
                     useFinanceStore.setState(data.finances_data);
                 }
+                initialLoadDoneRef.current = true;
                 setStatus('synced');
             } else {
                 await supabase.from('user_data').insert({ id: user.id });
+                initialLoadDoneRef.current = true;
                 setStatus('synced');
             }
         } catch (e) {
@@ -89,6 +92,7 @@ export function SupabaseSync() {
     // ── Debounced save (local changes → Supabase) ─────────────────────────
     useEffect(() => {
         if (!user) return;
+        if (!initialLoadDoneRef.current) return;
         if (isSavingRef.current) return;
 
         const saveToCloud = async () => {
