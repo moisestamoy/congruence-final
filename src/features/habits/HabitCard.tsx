@@ -70,17 +70,6 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         return `🔥 ${count} días de racha`;
     };
 
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const d = format(subDays(new Date(), 6 - i), 'yyyy-MM-dd');
-        const log = habit.logs[d];
-        return {
-            date: d,
-            completed: !!log?.completed,
-            isRest: log?.status === 'rest' || log?.status === 'emergency',
-            hasLog: !!log,
-        };
-    });
-
     return (
         <motion.div
             layout
@@ -145,29 +134,12 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                         {/* Subtitle / Input - Better layout for both types */}
                         <div className="mt-0.5 lg:mt-1 pl-8 lg:pl-[2.75rem] min-w-0">
                             {habit.type === 'boolean' ? (
-                                <>
-                                    <span className={cn(
-                                        "text-[10px] lg:text-xs font-medium tracking-wide max-w-full truncate block",
-                                        streak > 0 ? "text-cyan-400/70" : "text-white/30"
-                                    )}>
-                                        {getStreakText(streak)}
-                                    </span>
-                                    <div className="flex gap-1 mt-2">
-                                        {last7Days.map((day) => (
-                                            <div
-                                                key={day.date}
-                                                className={cn(
-                                                    "w-4 h-4 lg:w-5 lg:h-5 rounded-sm transition-all",
-                                                    day.completed ? "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.6)]" :
-                                                    day.isRest ? "bg-white/10 border border-white/20" :
-                                                    day.hasLog ? "bg-rose-500/60" :
-                                                    "bg-white/[0.06]"
-                                                )}
-                                                title={day.date}
-                                            />
-                                        ))}
-                                    </div>
-                                </>
+                                <span className={cn(
+                                    "text-[10px] lg:text-xs font-medium tracking-wide max-w-full truncate block",
+                                    streak > 0 ? "text-cyan-400/70" : "text-white/30"
+                                )}>
+                                    {getStreakText(streak)}
+                                </span>
                             ) : (
                                 <div className="flex flex-col gap-1 w-full mt-0.5 lg:mt-1">
                                     {/* Progress Bar for numeric/time */}
