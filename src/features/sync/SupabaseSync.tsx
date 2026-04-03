@@ -11,16 +11,14 @@ export function SupabaseSync() {
     const [isHovered, setIsHovered] = useState(false);
     const lastSavedRef = useRef<number>(Date.now());
     const isSavingRef = useRef(false);
-    const hasPendingChangesRef = useRef(false);
     const initialLoadDoneRef = useRef(false);
+    const hasPendingChangesRef = useRef(false);
     const pendingDeletionsRef = useRef<Set<string>>(new Set());
     const prevExpenseIdsRef = useRef<Set<string>>(new Set());
 
-    // Store access
     const habitsState = useHabitStore();
     const financeState = useFinanceStore();
 
-    // ── Track deleted expense IDs to prevent them from reappearing on load ──
     useEffect(() => {
         if (!initialLoadDoneRef.current) return;
         const currentIds = new Set((financeState.realExpenses as any[]).map((e: any) => e.id));
@@ -30,86 +28,6 @@ export function SupabaseSync() {
         prevExpenseIdsRef.current = currentIds;
     }, [financeState.realExpenses]);
 
-    // ── Pull from Supabase → hydrate stores ──────────────────────────────
-    const loadData = useCallback(async () => {
-        if (!user) return;
-        if (hasPendingChangesRef.current) return;
-        setStatus('saving');
-        try {
-            const { data, error } = await supabase
-                .from('user_data')
-                .select('habits_data, finances_data')
-                .eq('id', user.id)
-                .single();
-
-            if (error && error.code !== 'PGRST116') {
-                console.error('Error loading data:', error);
-                setStatus('error');
-                return;
-            }
-
-            if (data) {
-                if (data.habits_data && Object.keys(data.habits_data).length > 0) {
-                    useHabitStore.setState(data.habits_data);
-                }
-                if (data.finances_data && Object.keys(data.finances_data).length > 0) {
-                    const pendingDeletes = pendingDeletionsRef.current;
-                    let financesData = data.finances_data;
-                    if (pendingDeletes.size > 0 && Array.isArray(financesData.realExpenses)) {
-                        financesData = {
-                            ...financesData,
-                            realExpenses: financesData.realExpenses.filter((e: any) => !pendingDeletes.has(e.id))
-                        };
-                    }
-                    useFinanceStore.setState(financesData);
-                }
-                initialLoadDoneRef.current = true;
-                setStatus('synced');
-            } else {
-                await supabase.from('user_data').insert({ id: user.id });
-                initialLoadDoneRef.current = true;
-                setStatus('synced');
-            }
-        } catch (e) {
-            console.error(e);
-            setStatus('error');
-        }
-    }, [user]);
-
-    // Load on mount / login
-    useEffect(() => {
-        if (!user) return;
-        loadData();
-    }, [user, loadData]);
-
-    // ── Sync on window focus / tab visibility change ──────────────────────
-    // This is the key feature: when user comes back from Apple Pay / iPhone Shortcut,
-    // the app automatically pulls the new expense from Supabase.
-    useEffect(() => {
-        if (!user) return;
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && !isSavingRef.current) {
-                loadData();
-            }
-        };
-
-        const handleFocus = () => {
-            if (!isSavingRef.current) {
-                loadData();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, [user, loadData]);
-
-    // ── Debounced save (local changes → Supabase) ─────────────────────────
     const saveToCloud = useCallback(async () => {
         if (!user) return;
         isSavingRef.current = true;
@@ -118,36 +36,14 @@ export function SupabaseSync() {
         try {
             const { habits, manifesto } = useHabitStore.getState();
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
-
-            // Fetch current realExpenses from Supabase to merge (shortcut may have added expenses)
-            const { data: remoteData } = await supabase
-                .from('user_data')
-                .select('finances_data')
-                .eq('id', user.id)
-                .single();
-
-            const remoteExpenses: any[] = remoteData?.finances_data?.realExpenses ?? [];
-            const localIds = new Set(realExpenses.map((e: any) => e.id));
-            // Add any remote expenses not present locally (added by shortcut)
-            const mergedExpenses = [
-                ...realExpenses,
-                ...remoteExpenses.filter((e: any) => !localIds.has(e.id))
-            ];
-
-            // If merged has more than local, update the local store too
-            if (mergedExpenses.length > realExpenses.length) {
-                useFinanceStore.setState({ realExpenses: mergedExpenses });
-            }
-
             const { error } = await supabase
                 .from('user_data')
                 .update({
                     habits_data: { habits, manifesto },
-                    finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
+                    finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets },
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', user.id);
-
             if (error) throw error;
             setStatus('synced');
             lastSavedRef.current = Date.now();
@@ -160,32 +56,94 @@ export function SupabaseSync() {
         }
     }, [user]);
 
+    const loadData = useCallback(async () => {
+        if (!user) return;
+        if (hasPendingChangesRef.current) return;
+        setStatus('saving');
+        try {
+            const { data, error } = await supabase
+                .from('user_data')
+                .select('habits_data, finances_data')
+                .eq('id', user.id)
+                .single();
+            if (error && error.code !== 'PGRST116') {
+                console.error('Error loading data:', error);
+                setStatus('error');
+                return;
+            }
+            if (data) {
+                if (data.habits_data && Object.keys(data.habits_data).length > 0) {
+                    useHabitStore.setState(data.habits_data);
+                }
+                if (data.finances_data && Object.keys(data.finances_data).length > 0) {
+                    const pendingDeletes = pendingDeletionsRef.current;
+                    let financesData = data.finances_data;
+                    if (pendingDeletes.size > 0 && Array.isArray(financesData.realExpenses)) {
+                        financesData = {
+                            ...financesData,
+                            realExpenses: financesData.realExpenses.filter(
+                                (e: any) => !pendingDeletes.has(e.id)
+                            )
+                        };
+                    }
+                    useFinanceStore.setState(financesData);
+                }
+                setStatus('synced');
+            } else {
+                await supabase.from('user_data').insert({ id: user.id });
+                setStatus('synced');
+            }
+            initialLoadDoneRef.current = true;
+        } catch (e) {
+            console.error(e);
+            setStatus('error');
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+        loadData();
+    }, [user, loadData]);
+
+    useEffect(() => {
+        if (!user) return;
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && !isSavingRef.current) loadData();
+        };
+        const handleFocus = () => {
+            if (!isSavingRef.current) loadData();
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
+    }, [user, loadData]);
+
     useEffect(() => {
         if (!user) return;
         if (!initialLoadDoneRef.current) return;
+        hasPendingChangesRef.current = true;
         if (isSavingRef.current) return;
-
         const timeout = setTimeout(saveToCloud, 2000);
-
-        const handleBeforeUnload = () => { saveToCloud(); };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            clearTimeout(timeout);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
+        return () => clearTimeout(timeout);
     }, [
-        user,
-        saveToCloud,
-        habitsState.habits,
-        financeState.config,
-        financeState.events,
-        financeState.overrides,
-        financeState.realExpenses,
-        financeState.categoryBudgets,
-        financeState.savingsGoals,
-        financeState.savingsEntries,
+        user, saveToCloud,
+        habitsState.habits, habitsState.manifesto,
+        financeState.config, financeState.events, financeState.overrides,
+        financeState.realExpenses, financeState.savingsGoals,
+        financeState.savingsEntries, financeState.categoryBudgets,
     ]);
+
+    useEffect(() => {
+        if (!user) return;
+        const handleBeforeUnload = () => {
+            if (hasPendingChangesRef.current) saveToCloud();
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [user, saveToCloud]);
 
     if (!user) return null;
 
@@ -213,8 +171,6 @@ export function SupabaseSync() {
                     <span className="text-red-400">Offline</span>
                 </>
             )}
-
-            {/* Manual sync button — visible on hover */}
             {isHovered && status !== 'saving' && (
                 <button
                     onClick={loadData}
