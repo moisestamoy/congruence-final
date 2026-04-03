@@ -12,7 +12,7 @@ interface RestartModalProps {
 
 export function RestartModal({ onClose }: RestartModalProps) {
     const { i18n } = useTranslation();
-    const { config, resetAll, setBudgetFromMonth } = useFinanceStore();
+    const { config, resetAll, setBudgetFromMonth, updateConfig } = useFinanceStore();
     const [mode, setMode] = useState<'new-cycle' | 'hard-reset'>('new-cycle');
 
     // New Cycle State
@@ -23,6 +23,9 @@ export function RestartModal({ onClose }: RestartModalProps) {
     const [clearFuture, setClearFuture] = useState(false);
     const [initialBalance, setInitialBalance] = useState('0');
     const [hardResetBalance, setHardResetBalance] = useState('0');
+    const [hardResetBudget, setHardResetBudget] = useState(config.monthlyFixedBudget.toString());
+    const [hardResetYear, setHardResetYear] = useState(now.getFullYear().toString());
+    const [hardResetMonth, setHardResetMonth] = useState((now.getMonth() + 1).toString());
 
     const dateLocale = i18n.language === 'es' ? es : i18n.language === 'pt' ? pt : enUS;
 
@@ -38,8 +41,15 @@ export function RestartModal({ onClose }: RestartModalProps) {
 
     const handleHardReset = () => {
         if (window.confirm('¿Estás SEGURO de que quieres eliminar todo tu historial financiero? Esta acción no se puede deshacer.')) {
-            const balance = Number(hardResetBalance) || 0;
-            resetAll(balance);
+            resetAll();
+            const yearMonth = `${hardResetYear}-${hardResetMonth.toString().padStart(2, '0')}`;
+            const balance = Number(hardResetBalance);
+            updateConfig({
+                initialBalance: isNaN(balance) ? 0 : balance,
+                cycleStartYearMonth: yearMonth,
+                monthlyFixedBudget: Number(hardResetBudget) || 1500,
+                budgetChanges: { [yearMonth]: Number(hardResetBudget) || 1500 }
+            });
             onClose();
         }
     };
@@ -195,6 +205,30 @@ export function RestartModal({ onClose }: RestartModalProps) {
                                 <p className="text-sm text-neutral-400 mb-4 max-w-sm mx-auto">
                                     Esta acción eliminará de forma <b>permanente</b> absolutamente todas las transacciones, metas, ingresos y configuraciones registradas hasta ahora. Volverás a cero.
                                 </p>
+
+                                <div className="w-full max-w-xs mb-4 text-left space-y-2">
+                                    <label className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Fecha de inicio del ciclo</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <select value={hardResetMonth} onChange={e => setHardResetMonth(e.target.value)}
+                                            className="bg-[#080808] border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 capitalize">
+                                            {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                        </select>
+                                        <select value={hardResetYear} onChange={e => setHardResetYear(e.target.value)}
+                                            className="bg-[#080808] border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white focus:outline-none focus:border-indigo-500">
+                                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="w-full max-w-xs mb-4 text-left space-y-2">
+                                    <label className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Presupuesto mensual</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-mono text-lg">€</span>
+                                        <input type="number" value={hardResetBudget} onChange={e => setHardResetBudget(e.target.value)}
+                                            className="w-full bg-[#080808] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-xl font-mono font-bold text-white focus:outline-none focus:border-indigo-500"
+                                            placeholder="1500" />
+                                    </div>
+                                </div>
 
                                 <div className="w-full max-w-xs mx-auto mb-6 space-y-2">
                                     <label className="text-xs font-bold text-rose-400 uppercase tracking-widest">Balance Inicial</label>

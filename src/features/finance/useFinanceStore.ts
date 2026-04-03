@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { FinancialConfig, FinancialEvent, DailyOverride, DailyRealExpense } from '../../types';
 import { generateId } from '../../utils/id';
+import { format } from 'date-fns';
 
 interface FinanceState {
     config: FinancialConfig;
@@ -54,7 +55,8 @@ export const useFinanceStore = create<FinanceState>()(
                 initialBalance: 0,
                 monthlyFixedBudget: 1500,
                 cycleStartDate: 1,
-                monthlyIncomeGoal: 3000
+                monthlyIncomeGoal: 3000,
+                cycleStartYearMonth: format(new Date(), 'yyyy-MM')
             },
             events: [
                 // Demo data
@@ -91,7 +93,8 @@ export const useFinanceStore = create<FinanceState>()(
                     monthlyFixedBudget: 1500,
                     cycleStartDate: 1,
                     monthlyIncomeGoal: 3000,
-                    budgetChanges: {}
+                    budgetChanges: {},
+                    cycleStartYearMonth: format(new Date(), 'yyyy-MM')
                 },
                 events: [],
                 overrides: [],

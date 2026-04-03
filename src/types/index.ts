@@ -31,6 +31,7 @@ export interface FinancialConfig {
     cycleStartDate: number; // Day of month, e.g., 1
     monthlyIncomeGoal?: number;
     budgetChanges?: Record<string, number>; // "YYYY-MM": monthlyBudgetAmount
+    cycleStartYearMonth?: string; // "YYYY-MM" format
 }
 
 export interface FinancialEvent {
