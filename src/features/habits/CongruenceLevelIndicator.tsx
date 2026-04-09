@@ -24,13 +24,13 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
 
     const getColors = () => {
         switch (level) {
-            case 1: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' }; // Original Teal
-            case 2: return { primary: '#06b6d4', secondary: '#0891b2', glow: 'rgba(6,182,212,0.5)', text: 'text-cyan-400' }; // Cyan-500
-            case 3: return { primary: '#d946ef', secondary: '#a21caf', glow: 'rgba(217,70,239,0.6)', text: 'text-fuchsia-400' }; // Fuchsia-500
-            case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' }; // Amber-400
-            case 5: return { primary: '#38bdf8', secondary: '#0284c7', glow: 'rgba(56,189,248,0.8)', text: 'text-sky-400' }; // Diamond
-            case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' }; // Cosmic (Base White)
-            default: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' };
+            case 1: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.5)', text: 'text-red-400' }; // TEST RED
+            case 2: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.5)', text: 'text-red-400' };
+            case 3: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.6)', text: 'text-red-400' };
+            case 4: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.8)', text: 'text-red-400' };
+            case 5: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.8)', text: 'text-red-400' };
+            case 6: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.9)', text: 'text-red-400' };
+            default: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.5)', text: 'text-red-400' };
         }
     };
 
