@@ -408,31 +408,46 @@ export default function FinancesPage() {
                 </div>
 
                 {/* --- MOBILE VIEW: COMPACT FINANCIAL MASTER CARD --- */}
-                <div className="block md:hidden space-y-2 relative z-10 w-full mb-4">
-                    <div className="relative w-full rounded-[20px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-lg p-4 shrink-0">
+                <div className="block md:hidden space-y-3 relative z-10 w-full mb-4">
+                    <div className="relative w-full rounded-[20px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-lg p-5 shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent pointer-events-none opacity-50" />
 
-                        <div className="flex justify-between items-start mb-3 relative z-10">
+                        <div className="flex justify-between items-center mb-4 relative z-10">
                             <div>
-                                <h1 className="text-lg font-black tracking-tight text-white mb-0">Finanzas</h1>
-                                <p className="text-[8px] text-neutral-400 font-bold uppercase tracking-widest">Balance General</p>
+                                <h1 className="text-xl font-black tracking-tight text-white mb-0">Finanzas</h1>
+                                <p className="text-xs text-neutral-400 font-medium">Balance General</p>
                             </div>
 
-                            <div className="flex flex-col items-end gap-1.5">
-                                <div className="flex bg-[#111] backdrop-blur-md border border-white/5 rounded-full p-0.5 items-center shadow-md">
-                                    <button onClick={() => navigateMonth(-1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="-rotate-90" size={10} />
+                            <div className="flex flex-col items-end gap-2">
+                                {/* Month nav — bigger touch targets */}
+                                <div className="flex bg-white/[0.06] backdrop-blur-md border border-white/10 rounded-xl items-center shadow-md overflow-hidden">
+                                    <button
+                                        onClick={() => navigateMonth(-1)}
+                                        className="w-10 h-10 flex items-center justify-center text-neutral-400 active:bg-white/10 transition-colors"
+                                    >
+                                        <ChevronUp className="-rotate-90" size={16} />
                                     </button>
-                                    <span className="px-1 text-[9px] font-bold uppercase tracking-wider text-neutral-300 min-w-[50px] text-center">
+                                    <span className="px-2 text-xs font-bold text-neutral-200 min-w-[56px] text-center">
                                         {format(currentDate, 'MMM yy', { locale: dateLocale })}
                                     </span>
-                                    <button onClick={() => navigateMonth(1)} className="w-5 h-5 flex items-center justify-center text-neutral-400 hover:text-white transition-colors">
-                                        <ChevronUp className="rotate-90" size={10} />
+                                    <button
+                                        onClick={() => navigateMonth(1)}
+                                        className="w-10 h-10 flex items-center justify-center text-neutral-400 active:bg-white/10 transition-colors"
+                                    >
+                                        <ChevronUp className="rotate-90" size={16} />
                                     </button>
                                 </div>
-                                <div className="flex bg-[#111] border border-white/5 rounded-full p-0.5 shadow-md">
+                                {/* Horizon buttons — bigger */}
+                                <div className="flex bg-white/[0.06] border border-white/10 rounded-xl overflow-hidden shadow-md">
                                     {[1, 2, 3].map(m => (
-                                        <button key={m} onClick={() => setHorizon(m)} className={cn("min-w-[20px] h-4 rounded-full text-[8px] font-bold transition-all uppercase tracking-widest", horizon === m ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-white")}>
+                                        <button
+                                            key={m}
+                                            onClick={() => setHorizon(m)}
+                                            className={cn(
+                                                "min-w-[40px] h-9 text-xs font-bold transition-all uppercase tracking-wide",
+                                                horizon === m ? "bg-emerald-500/20 text-emerald-300" : "text-neutral-500"
+                                            )}
+                                        >
                                             {m}M
                                         </button>
                                     ))}
@@ -442,7 +457,7 @@ export default function FinancesPage() {
 
                         {/* Current/Projected Balance */}
                         <div className="mb-4 relative z-10 flex flex-col items-center border-b border-white/5 pb-4">
-                            <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest shadow-sm mb-1">
+                            <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">
                                 Saldo Fin de Mes
                             </span>
                             <div className={cn(
@@ -454,14 +469,14 @@ export default function FinancesPage() {
 
                             {/* Monthly Goal Progress */}
                             {savingsGoals?.monthly > 0 && (
-                                <div className="mt-3 w-[90%] flex flex-col items-center">
-                                    <div className="flex justify-between w-full text-[7.5px] font-bold uppercase tracking-[0.2em] mb-1.5">
+                                <div className="mt-3 w-full flex flex-col">
+                                    <div className="flex justify-between w-full text-xs font-bold mb-1.5">
                                         <span className="text-neutral-500">Progreso Meta</span>
-                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
+                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-neutral-400"}>
                                             €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
                                         </span>
                                     </div>
-                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                         <div
                                             className={cn("h-full rounded-full transition-all duration-1000", netFlow >= savingsGoals.monthly ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-cyan-500 shadow-[0_0_8px_#06b6d4]")}
                                             style={{ width: `${Math.max(0, Math.min((netFlow / savingsGoals.monthly) * 100, 100))}%` }}
@@ -472,40 +487,41 @@ export default function FinancesPage() {
                         </div>
 
                         {/* Income / Expenses Split */}
-                        <div className="flex items-center gap-2 relative z-10">
+                        <div className="flex items-stretch gap-3 relative z-10">
                             {/* Income */}
-                            <div className="flex-1 bg-white/[0.02] p-3 rounded-[16px] border border-white/5 backdrop-blur-sm flex flex-col items-center">
-                                <div className="flex flex-col items-center mb-0.5">
-                                    <Plus size={10} className="text-emerald-500 mb-0.5" />
-                                    <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Ingresos</span>
+                            <div className="flex-1 bg-white/[0.04] p-3 rounded-2xl border border-white/[0.07] flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-1">
+                                    <Plus size={12} className="text-emerald-500" />
+                                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Ingresos</span>
                                 </div>
-                                <span className="text-lg font-bold font-mono text-emerald-400">
+                                <span className="text-xl font-black font-mono text-emerald-400">
                                     €{totalIncome.toLocaleString()}
                                 </span>
                             </div>
 
                             {/* Expenses */}
-                            <div className="flex-1 bg-white/[0.02] p-3 rounded-[16px] border border-white/5 backdrop-blur-sm flex flex-col items-center">
-                                <div className="flex flex-col items-center mb-0.5">
-                                    <Minus size={10} className="text-rose-500 mb-0.5" />
-                                    <span className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">Gastos</span>
+                            <div className="flex-1 bg-white/[0.04] p-3 rounded-2xl border border-white/[0.07] flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-1">
+                                    <Minus size={12} className="text-rose-500" />
+                                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Gastos</span>
                                 </div>
-                                <span className="text-lg font-bold font-mono text-rose-400">
+                                <span className="text-xl font-black font-mono text-rose-400">
                                     €{Math.abs(totalExpenses).toLocaleString()}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-[16px] shadow-md sticky top-4 z-40 gap-1.5">
-                        <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-rose-500/10 text-rose-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-all">
-                            <RotateCcw size={12} /> Reiniciar
+                    {/* Action buttons — proper touch targets (min h-12) */}
+                    <div className="grid grid-cols-3 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-md sticky top-4 z-40 gap-2">
+                        <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-rose-500/10 text-rose-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-rose-500/20 transition-all">
+                            <RotateCcw size={14} /> Reiniciar
                         </button>
-                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-emerald-500/10 text-emerald-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-all">
-                            <Calculator size={12} /> Presup.
+                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-emerald-500/20 transition-all">
+                            <Calculator size={14} /> Presup.
                         </button>
-                        <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-emerald-500 text-black border border-emerald-400 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                            <Target size={12} /> Metas
+                        <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-xs font-bold uppercase tracking-wide active:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                            <Target size={14} /> Metas
                         </button>
                     </div>
                 </div>

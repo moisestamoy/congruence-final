@@ -44,21 +44,21 @@ export default function IdentityPage() {
         manifesto?.identities?.personal || null;
 
     return (
-        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] from-[#1a0b2e] via-[#020508] to-black text-white p-8 font-sans overflow-y-auto pb-32">
+        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] from-[#1a0b2e] via-[#020508] to-black text-white p-4 sm:p-6 md:p-8 font-sans overflow-y-auto pb-40 lg:pb-32">
 
-            <header className="mb-12 flex items-center justify-between">
+            <header className="mb-8 md:mb-12 flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white mb-2">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white mb-1 md:mb-2">
                         Centro de Identidad
                     </h1>
-                    <p className="text-purple-400/70 font-medium tracking-widest uppercase text-sm">
+                    <p className="text-purple-400/70 font-medium tracking-widest uppercase text-xs sm:text-sm">
                         Protocolo de Personaje & Perfil Holístico
                     </p>
                 </div>
             </header>
 
             {/* 1. HOLISTIC PROFILE WIDGET */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-purple-500/15 shadow-2xl p-6 md:p-8 shrink-0 mb-12 flex flex-col lg:flex-row items-center gap-8">
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-purple-500/15 shadow-2xl p-5 md:p-8 shrink-0 mb-8 md:mb-12 flex flex-col lg:flex-row items-center gap-6 md:gap-8">
                 <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent pointer-events-none" />
 
@@ -99,7 +99,7 @@ export default function IdentityPage() {
                     </button>
                 </div>
 
-                <div className="w-full lg:w-2/3 h-[300px] sm:h-[400px] relative z-10 flex justify-center items-center">
+                <div className="w-full lg:w-2/3 h-[240px] sm:h-[300px] md:h-[380px] relative z-10 flex justify-center items-center">
                     {isRadarEmpty ? (
                         <div className="text-center flex flex-col items-center gap-4">
                             {/* Faint empty hexagon outline */}
@@ -147,9 +147,9 @@ export default function IdentityPage() {
             </div>
 
             {/* 2. IDENTITY MANIFESTO */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-purple-500/10 shadow-2xl p-6 md:p-8">
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-purple-500/10 shadow-2xl p-5 md:p-8">
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent pointer-events-none" />
-                <div className="flex justify-between items-center mb-10 border-b border-white/[0.06] pb-6">
+                <div className="flex justify-between items-center mb-6 md:mb-10 border-b border-white/[0.06] pb-5 md:pb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                             <BrainCircuit className="text-purple-400" size={24} />

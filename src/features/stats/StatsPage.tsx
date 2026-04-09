@@ -112,29 +112,29 @@ export default function StatsPage() {
     const totalHabits = habits.length;
 
     return (
-        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-950/20 via-[#020508] to-[#020508] text-white p-6 md:p-8 font-sans overflow-y-auto pb-32">
+        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-950/20 via-[#020508] to-[#020508] text-white p-4 md:p-6 lg:p-8 font-sans overflow-y-auto pb-40 lg:pb-32">
 
             {/* Header */}
-            <header className="mb-8">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-1">
+            <header className="mb-6 md:mb-8">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-1">
                     Inteligencia Personal
                 </h1>
-                <p className="text-violet-400/60 text-sm font-medium">
+                <p className="text-violet-400/60 text-xs sm:text-sm font-medium">
                     {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · datos reales, sin interpretación
                 </p>
             </header>
 
             {/* SAY-DO RATIO — Hero metric */}
-            <div className="relative w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 md:p-8 mb-6 overflow-hidden">
+            <div className="relative w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 md:p-8 mb-5 md:mb-6 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-transparent pointer-events-none" />
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                             <Brain size={14} className="text-violet-400" />
-                            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Say-Do Ratio · 30 días</span>
+                            <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Say-Do Ratio · 30 días</span>
                         </div>
                         <div className="flex items-end gap-3 mb-3">
-                            <span className={cn("text-6xl font-black font-mono tracking-tight", sayDoColor)}>
+                            <span className={cn("text-5xl md:text-6xl font-black font-mono tracking-tight", sayDoColor)}>
                                 {sayDoRatio}%
                             </span>
                             <span className="text-neutral-500 text-sm mb-2">{sayDoLabel}</span>
@@ -147,18 +147,18 @@ export default function StatsPage() {
                                 className={cn("h-full rounded-full", sayDoBarColor)}
                             />
                         </div>
-                        <p className="text-[11px] text-neutral-600 mt-2">
+                        <p className="text-xs text-neutral-600 mt-2">
                             Brecha entre lo que declaras ser y lo que haces cada día.
                         </p>
                     </div>
 
                     {/* Week trend */}
                     <div className="flex flex-col items-center justify-center min-w-[140px] border border-white/[0.07] rounded-xl p-4 bg-white/[0.03]">
-                        <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest mb-1">Esta semana</span>
+                        <span className="text-xs font-bold text-neutral-600 uppercase tracking-widest mb-1">Esta semana</span>
                         <span className={cn("text-3xl font-black font-mono", avgCongruenceThisWeek >= avgCongruencePrevWeek ? "text-emerald-400" : "text-rose-400")}>
                             {avgCongruenceThisWeek}%
                         </span>
-                        <div className={cn("flex items-center gap-1 text-[10px] font-bold mt-1", congruenceTrend >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                        <div className={cn("flex items-center gap-1 text-xs font-bold mt-1", congruenceTrend >= 0 ? "text-emerald-500" : "text-rose-500")}>
                             {congruenceTrend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {congruenceTrend >= 0 ? '+' : ''}{congruenceTrend}% vs semana ant.
                         </div>
@@ -167,58 +167,58 @@ export default function StatsPage() {
             </div>
 
             {/* 4 Metric cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-6">
                 {/* Hábitos activos */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Target size={12} className="text-violet-400" />
-                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Hábitos activos</span>
+                        <Target size={13} className="text-violet-400" />
+                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Hábitos activos</span>
                     </div>
                     <span className="text-3xl font-black text-white">{totalHabits}</span>
-                    <span className="text-[10px] text-neutral-600">
+                    <span className="text-xs text-neutral-600">
                         {habits.filter(h => h.type === 'boolean').length} simples · {habits.filter(h => h.type === 'numeric').length} medibles
                     </span>
                 </div>
 
-                {/* Mejor racha */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
+                {/* Días activos */}
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Zap size={12} className="text-yellow-400" />
-                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Días activos (30d)</span>
+                        <Zap size={13} className="text-yellow-400" />
+                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Días activos (30d)</span>
                     </div>
                     <span className="text-3xl font-black text-white">
                         {last30Days.filter(d => getCongruence(format(d, 'yyyy-MM-dd')) > 0).length}
                     </span>
-                    <span className="text-[10px] text-neutral-600">de 30 días con registro</span>
+                    <span className="text-xs text-neutral-600">de 30 días con registro</span>
                 </div>
 
                 {/* Flujo neto */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Wallet size={12} className="text-violet-400" />
-                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Flujo neto ({period})</span>
+                        <Wallet size={13} className="text-violet-400" />
+                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Flujo neto ({period})</span>
                     </div>
-                    <span className={cn("text-3xl font-black font-mono", totalNetFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                    <span className={cn("text-2xl md:text-3xl font-black font-mono", totalNetFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
                         {totalNetFlow >= 0 ? '+' : ''}€{totalNetFlow.toLocaleString('de-DE')}
                     </span>
-                    <div className={cn("flex items-center gap-1 text-[10px] font-bold", netFlowTrend >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                        {netFlowTrend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-                        {netFlowTrend >= 0 ? '+' : ''}€{netFlowTrend.toLocaleString('de-DE')} vs período ant.
+                    <div className={cn("flex items-center gap-1 text-xs font-bold", netFlowTrend >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                        {netFlowTrend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                        {netFlowTrend >= 0 ? '+' : ''}€{netFlowTrend.toLocaleString('de-DE')} vs ant.
                     </div>
                 </div>
 
                 {/* Gastos */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Activity size={12} className="text-rose-400" />
-                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos ({period})</span>
+                        <Activity size={13} className="text-rose-400" />
+                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Gastos ({period})</span>
                     </div>
-                    <span className="text-3xl font-black font-mono text-white">
+                    <span className="text-2xl md:text-3xl font-black font-mono text-white">
                         €{Math.abs(totalExpenses).toLocaleString('de-DE')}
                     </span>
-                    <div className={cn("flex items-center gap-1 text-[10px] font-bold", expensesTrend <= 0 ? "text-emerald-600" : "text-rose-600")}>
-                        {expensesTrend <= 0 ? <TrendingDown size={9} /> : <TrendingUp size={9} />}
-                        {expensesTrend >= 0 ? '+' : ''}€{expensesTrend.toLocaleString('de-DE')} vs período ant.
+                    <div className={cn("flex items-center gap-1 text-xs font-bold", expensesTrend <= 0 ? "text-emerald-600" : "text-rose-600")}>
+                        {expensesTrend <= 0 ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
+                        {expensesTrend >= 0 ? '+' : ''}€{expensesTrend.toLocaleString('de-DE')} vs ant.
                     </div>
                 </div>
             </div>
@@ -258,7 +258,7 @@ export default function StatsPage() {
                         </div>
                     </div>
 
-                    <div className="h-[300px] w-full">
+                    <div className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -10 }}>
                                 <defs>
@@ -317,7 +317,7 @@ export default function StatsPage() {
                     {/* Day labels */}
                     <div className="grid grid-cols-7 gap-1.5 mb-1">
                         {DAY_LABELS.map(d => (
-                            <div key={d} className="text-center text-[8px] font-bold text-neutral-600 uppercase">{d}</div>
+                            <div key={d} className="text-center text-xs font-bold text-neutral-600 uppercase">{d}</div>
                         ))}
                     </div>
 

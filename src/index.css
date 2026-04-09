@@ -104,6 +104,18 @@
   }
 }
 
+/* Safe area utilities for iPhone notch / home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+/* Bottom nav container accounts for home indicator */
+.bottom-nav-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+}
+
 /* Utilities */
 .glass {
   background: rgba(255, 255, 255, 0.03);

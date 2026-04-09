@@ -159,7 +159,7 @@ export default function HabitsPage() {
                                         visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", bounce: 0, duration: 0.3, staggerChildren: 0.05 } },
                                         exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.2 } }
                                     }}
-                                    className="absolute right-0 mt-2 w-64 bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-50 flex flex-col pointer-events-auto"
+                                    className="absolute right-0 mt-2 w-[min(256px,calc(100vw-2rem))] bg-[#0a0a0a]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-50 flex flex-col pointer-events-auto"
                                 >
                                     {/* Stats & Greeting Header */}
                                     <div className="px-5 py-4 border-b border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent">
@@ -305,9 +305,9 @@ export default function HabitsPage() {
                             <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
                                 <button
                                     onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
-                                    className="px-3 py-1.5 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
+                                    className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
                                 >
-                                    <span className="text-[9px] font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
                                     {isMobileCircleVisible ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                 </button>
                             </div>

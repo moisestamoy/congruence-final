@@ -53,7 +53,7 @@ export default function CoachPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-amber-500/30 pb-24 relative overflow-hidden">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-amber-500/30 pb-40 lg:pb-24 relative overflow-hidden">
             {/* BACKGROUND AMBIENCE */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-amber-500/[0.04] rounded-full blur-[150px]" />
@@ -62,14 +62,14 @@ export default function CoachPage() {
 
             <div className="w-full max-w-4xl mx-auto p-4 md:p-8 relative z-10">
                 {/* Header */}
-                <header className="mb-12 text-center">
-                    <div className="inline-flex items-center justify-center p-3 bg-amber-500/10 rounded-2xl mb-6 shadow-2xl border border-amber-500/20">
-                        <Brain className="text-amber-400" size={32} />
+                <header className="mb-8 md:mb-12 text-center">
+                    <div className="inline-flex items-center justify-center p-3 bg-amber-500/10 rounded-2xl mb-4 md:mb-6 shadow-2xl border border-amber-500/20">
+                        <Brain className="text-amber-400" size={28} />
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-amber-100 to-white mb-4">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-amber-100 to-white mb-3 md:mb-4">
                         Tu Coach Personal
                     </h1>
-                    <p className="text-neutral-400 max-w-lg mx-auto">
+                    <p className="text-neutral-400 text-sm max-w-lg mx-auto">
                         Analizo tus hábitos y finanzas para darte claridad estoica y pasos accionables.
                     </p>
                 </header>
@@ -115,7 +115,7 @@ export default function CoachPage() {
                                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="w-full bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+                                className="w-full bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-5 md:p-8 shadow-2xl relative overflow-hidden"
                             >
                                 {/* Glow Effect based on mood */}
                                 <div className={cn(
