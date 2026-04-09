@@ -112,8 +112,36 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Card with subtle gradient — use across all features */
+.card-surface {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .text-gradient {
   background: linear-gradient(to right, #2dd4bf, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Feature accent gradients */
+.text-gradient-cyan {
+  background: linear-gradient(to right, #22d3ee, #67e8f9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-emerald {
+  background: linear-gradient(to right, #34d399, #6ee7b7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-violet {
+  background: linear-gradient(to right, #a78bfa, #c4b5fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.text-gradient-amber {
+  background: linear-gradient(to right, #fbbf24, #fde68a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

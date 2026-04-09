@@ -53,20 +53,20 @@ export default function CoachPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-purple-500/30 pb-24 relative overflow-hidden">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-amber-500/30 pb-24 relative overflow-hidden">
             {/* BACKGROUND AMBIENCE */}
             <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[150px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px]" />
+                <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-amber-500/[0.04] rounded-full blur-[150px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-500/[0.04] rounded-full blur-[120px]" />
             </div>
 
             <div className="w-full max-w-4xl mx-auto p-4 md:p-8 relative z-10">
                 {/* Header */}
                 <header className="mb-12 text-center">
-                    <div className="inline-flex items-center justify-center p-3 bg-white/5 rounded-2xl mb-6 shadow-2xl border border-white/5">
-                        <Brain className="text-purple-400" size={32} />
+                    <div className="inline-flex items-center justify-center p-3 bg-amber-500/10 rounded-2xl mb-6 shadow-2xl border border-amber-500/20">
+                        <Brain className="text-amber-400" size={32} />
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-white mb-4">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-amber-100 to-white mb-4">
                         Tu Coach Personal
                     </h1>
                     <p className="text-neutral-400 max-w-lg mx-auto">
@@ -86,14 +86,13 @@ export default function CoachPage() {
                                 "group relative px-8 py-4 rounded-full font-bold text-lg transition-all overflow-hidden",
                                 cooldown > 0
                                     ? "bg-white/10 text-neutral-400 cursor-not-allowed"
-                                    : "bg-white text-black shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(168,85,247,0.5)]"
+                                    : "bg-amber-500 text-black shadow-[0_0_40px_-10px_rgba(251,191,36,0.5)] hover:shadow-[0_0_60px_-10px_rgba(251,191,36,0.7)] hover:bg-amber-400"
                             )}
                         >
                             <span className="relative z-10 flex items-center gap-2">
-                                <Sparkles size={20} className={cooldown > 0 ? "text-neutral-500" : "text-purple-600"} />
+                                <Sparkles size={20} className={cooldown > 0 ? "text-neutral-500" : "text-black/70"} />
                                 {cooldown > 0 ? `Espera ${cooldown}s...` : 'Generar Análisis Diario'}
                             </span>
-                            {cooldown === 0 && <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </motion.button>
                     )}
 
@@ -101,11 +100,11 @@ export default function CoachPage() {
                     {isLoading && (
                         <div className="flex flex-col items-center gap-4">
                             <div className="relative w-16 h-16">
-                                <div className="absolute inset-0 border-t-2 border-purple-500 rounded-full animate-spin" />
-                                <div className="absolute inset-2 border-t-2 border-blue-500 rounded-full animate-spin reverse" />
+                                <div className="absolute inset-0 border-t-2 border-amber-500 rounded-full animate-spin" />
+                                <div className="absolute inset-2 border-t-2 border-orange-400 rounded-full animate-spin" style={{ animationDirection: 'reverse' }} />
                                 <Brain className="absolute inset-0 m-auto text-white/20 animate-pulse" size={24} />
                             </div>
-                            <p className="text-sm font-mono text-purple-400 animate-pulse">Analizando patrones...</p>
+                            <p className="text-sm font-mono text-amber-400 animate-pulse">Analizando patrones...</p>
                         </div>
                     )}
 
@@ -123,7 +122,7 @@ export default function CoachPage() {
                                     "absolute top-0 left-0 w-full h-1 bg-gradient-to-r",
                                     insight.mood === 'positive' ? "from-emerald-500 via-green-500 to-transparent" :
                                         insight.mood === 'warning' ? "from-amber-500 via-orange-500 to-transparent" :
-                                            "from-blue-500 via-purple-500 to-transparent"
+                                            "from-amber-500 via-yellow-500 to-transparent"
                                 )} />
 
                                 <div className="grid gap-8 md:grid-cols-[2fr_1fr]">
@@ -136,8 +135,8 @@ export default function CoachPage() {
                                         </div>
 
                                         {insight.insight && (
-                                            <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
-                                                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                            <div className="p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
+                                                <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                                                     <Brain className="w-4 h-4" /> Análisis
                                                 </h3>
                                                 <p className="text-neutral-300 text-sm leading-relaxed">
@@ -146,8 +145,8 @@ export default function CoachPage() {
                                             </div>
                                         )}
 
-                                        <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                            <h3 className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        <div className="p-4 rounded-xl bg-white/5 border border-white/[0.06]">
+                                            <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                                                 <TargetIcon className="w-4 h-4" /> Misión de Hoy
                                             </h3>
                                             <p className="text-white font-medium">
@@ -166,8 +165,8 @@ export default function CoachPage() {
                                             <span className={cn(
                                                 "font-bold uppercase text-[10px] px-2 py-1 rounded-full",
                                                 insight.mood === 'positive' ? "bg-emerald-500/10 text-emerald-400" :
-                                                    insight.mood === 'warning' ? "bg-amber-500/10 text-amber-500" :
-                                                        "bg-blue-500/10 text-blue-400"
+                                                    insight.mood === 'warning' ? "bg-amber-500/10 text-amber-400" :
+                                                        "bg-amber-500/10 text-amber-400"
                                             )}>
                                                 {insight.mood === 'positive' ? 'Óptimo' : insight.mood === 'warning' ? 'Atención' : 'Estable'}
                                             </span>

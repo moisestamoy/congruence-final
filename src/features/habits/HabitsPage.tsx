@@ -299,7 +299,7 @@ export default function HabitsPage() {
                                 </div>
                             </div>
 
-                            <p className="mt-4 lg:mt-8 text-cyan-100/60 font-medium italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wide text-[10px] lg:text-base px-4 lg:px-0">
+                            <p className="mt-4 lg:mt-8 text-cyan-200/40 font-light italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wider text-[10px] lg:text-sm px-4 lg:px-0">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                             <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
@@ -315,14 +315,15 @@ export default function HabitsPage() {
 
                         {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
                         <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
-                                {/* Subtle internal sheen/gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-transparent to-transparent pointer-events-none" />
+                            <div className="backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
+                                {/* Subtle internal cyan glow at top */}
+                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent pointer-events-none" />
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-cyan-500/[0.04] rounded-full blur-2xl pointer-events-none" />
 
-                                <div className="flex justify-between items-end mb-4 lg:mb-10 relative z-10 border-b border-white/5 pb-3 lg:pb-6">
+                                <div className="flex justify-between items-end mb-4 lg:mb-10 relative z-10 border-b border-white/[0.06] pb-3 lg:pb-6">
                                     <div>
-                                        <h2 className="text-xl lg:text-3xl font-bold tracking-tight text-white drop-shadow-md mb-0.5 lg:mb-1">Tu Hábito</h2>
-                                        <p className="text-cyan-400 text-[10px] lg:text-sm font-bold uppercase tracking-widest leading-none">Panel de Control</p>
+                                        <h2 className="text-xl lg:text-3xl font-black tracking-tight text-white drop-shadow-md mb-0.5 lg:mb-1">Tu Hábito</h2>
+                                        <p className="text-cyan-400/80 text-[10px] lg:text-xs font-bold uppercase tracking-widest leading-none">Panel de Control</p>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
@@ -368,7 +369,7 @@ export default function HabitsPage() {
 
                                 <button
                                     onClick={handleCreateHabit}
-                                    className="mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-xl lg:rounded-2xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)] transition-all flex items-center justify-center gap-2 text-neutral-500 hover:text-cyan-200 relative z-10 group"
+                                    className="mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-2xl border border-dashed border-white/[0.08] bg-transparent hover:bg-cyan-500/[0.04] hover:border-cyan-500/25 hover:shadow-[inset_0_0_20px_rgba(6,182,212,0.05)] transition-all flex items-center justify-center gap-2 text-neutral-600 hover:text-cyan-300 relative z-10 group"
                                 >
                                     <span className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] group-hover:scale-105 transition-transform">+ Nuevo Objetivo</span>
                                 </button>

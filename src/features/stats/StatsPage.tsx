@@ -112,25 +112,25 @@ export default function StatsPage() {
     const totalHabits = habits.length;
 
     return (
-        <div className="min-h-screen w-full bg-[#020508] text-white p-6 md:p-8 font-sans overflow-y-auto pb-32">
+        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-950/20 via-[#020508] to-[#020508] text-white p-6 md:p-8 font-sans overflow-y-auto pb-32">
 
             {/* Header */}
             <header className="mb-8">
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-1">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-1">
                     Inteligencia Personal
                 </h1>
-                <p className="text-neutral-500 text-sm font-medium">
+                <p className="text-violet-400/60 text-sm font-medium">
                     {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · datos reales, sin interpretación
                 </p>
             </header>
 
             {/* SAY-DO RATIO — Hero metric */}
-            <div className="relative w-full rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 md:p-8 mb-6 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="relative w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 md:p-8 mb-6 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-transparent pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                            <Brain size={14} className="text-cyan-400" />
+                            <Brain size={14} className="text-violet-400" />
                             <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Say-Do Ratio · 30 días</span>
                         </div>
                         <div className="flex items-end gap-3 mb-3">
@@ -153,7 +153,7 @@ export default function StatsPage() {
                     </div>
 
                     {/* Week trend */}
-                    <div className="flex flex-col items-center justify-center min-w-[140px] border border-white/5 rounded-xl p-4 bg-white/[0.02]">
+                    <div className="flex flex-col items-center justify-center min-w-[140px] border border-white/[0.07] rounded-xl p-4 bg-white/[0.03]">
                         <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest mb-1">Esta semana</span>
                         <span className={cn("text-3xl font-black font-mono", avgCongruenceThisWeek >= avgCongruencePrevWeek ? "text-emerald-400" : "text-rose-400")}>
                             {avgCongruenceThisWeek}%
@@ -169,9 +169,9 @@ export default function StatsPage() {
             {/* 4 Metric cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {/* Hábitos activos */}
-                <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-5 flex flex-col gap-2 hover:border-white/10 transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Target size={12} className="text-purple-400" />
+                        <Target size={12} className="text-violet-400" />
                         <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Hábitos activos</span>
                     </div>
                     <span className="text-3xl font-black text-white">{totalHabits}</span>
@@ -181,7 +181,7 @@ export default function StatsPage() {
                 </div>
 
                 {/* Mejor racha */}
-                <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-5 flex flex-col gap-2 hover:border-white/10 transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
                         <Zap size={12} className="text-yellow-400" />
                         <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Días activos (30d)</span>
@@ -193,9 +193,9 @@ export default function StatsPage() {
                 </div>
 
                 {/* Flujo neto */}
-                <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-5 flex flex-col gap-2 hover:border-white/10 transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
-                        <Wallet size={12} className="text-cyan-400" />
+                        <Wallet size={12} className="text-violet-400" />
                         <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Flujo neto ({period})</span>
                     </div>
                     <span className={cn("text-3xl font-black font-mono", totalNetFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
@@ -208,7 +208,7 @@ export default function StatsPage() {
                 </div>
 
                 {/* Gastos */}
-                <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-5 flex flex-col gap-2 hover:border-white/10 transition-colors">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
                     <div className="flex items-center gap-2">
                         <Activity size={12} className="text-rose-400" />
                         <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Gastos ({period})</span>
@@ -230,26 +230,26 @@ export default function StatsPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="lg:col-span-2 rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 relative overflow-hidden"
+                    className="lg:col-span-2 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 relative overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/[0.06] rounded-full blur-3xl pointer-events-none" />
                     <div className="flex items-center justify-between mb-6 relative z-10">
                         <div>
                             <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                <Activity size={16} className="text-cyan-400" />
+                                <Activity size={16} className="text-violet-400" />
                                 Disciplina vs Finanzas
                             </h3>
                             <p className="text-[11px] text-neutral-600 mt-0.5">% hábitos completados · flujo de caja diario</p>
                         </div>
                         {/* Period selector */}
-                        <div className="flex items-center bg-[#111] rounded-xl border border-white/5 p-0.5 gap-0.5">
+                        <div className="flex items-center bg-white/[0.04] rounded-xl border border-white/[0.07] p-0.5 gap-0.5">
                             {(['7d', '14d', '30d'] as Period[]).map(p => (
                                 <button
                                     key={p}
                                     onClick={() => setPeriod(p)}
                                     className={cn(
                                         "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest",
-                                        period === p ? "bg-white text-black" : "text-neutral-500 hover:text-white"
+                                        period === p ? "bg-violet-500/20 text-violet-300 border border-violet-500/30" : "text-neutral-500 hover:text-white"
                                     )}
                                 >
                                     {p}
@@ -307,7 +307,7 @@ export default function StatsPage() {
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="lg:col-span-1 rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col"
+                    className="lg:col-span-1 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col"
                 >
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
@@ -361,7 +361,7 @@ export default function StatsPage() {
 
             {/* Identity anchors (if manifesto exists) */}
             {manifesto?.identityStatement && (
-                <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">
+                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6">
                     <div className="flex items-center gap-2 mb-4">
                         <Brain size={14} className="text-violet-400" />
                         <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Tu ancla de identidad</span>

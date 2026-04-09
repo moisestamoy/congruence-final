@@ -8,6 +8,12 @@ import { useAuth } from '../context/AuthContext';
 import { SupabaseSync } from '../features/sync/SupabaseSync';
 import { useFabStore } from '../hooks/useFabStore';
 
+const featureColors: Record<string, { icon: string; activeBg: string; activeBorder: string; mobileActiveBg: string }> = {
+    '/':         { icon: 'text-cyan-400',   activeBg: 'bg-cyan-500/[0.08]',   activeBorder: 'border-cyan-500/25',   mobileActiveBg: 'bg-cyan-500/15'   },
+    '/finances': { icon: 'text-emerald-400', activeBg: 'bg-emerald-500/[0.08]', activeBorder: 'border-emerald-500/25', mobileActiveBg: 'bg-emerald-500/15' },
+    '/stats':    { icon: 'text-violet-400',  activeBg: 'bg-violet-500/[0.08]',  activeBorder: 'border-violet-500/25',  mobileActiveBg: 'bg-violet-500/15'  },
+};
+
 export default function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -52,6 +58,7 @@ export default function MainLayout() {
                 <nav className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
+                        const colors = featureColors[item.path] ?? featureColors['/'];
                         return (
                             <button
                                 key={item.path}
@@ -59,16 +66,16 @@ export default function MainLayout() {
                                 className={cn(
                                     "relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2",
                                     isActive
-                                        ? "text-white bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+                                        ? cn("text-white", colors.activeBg)
                                         : "text-neutral-500 hover:text-white hover:bg-white/5"
                                 )}
                             >
-                                <item.icon size={18} className={cn("transition-colors", isActive ? "text-cyan-400" : "group-hover:text-cyan-200")} />
+                                <item.icon size={18} className={cn("transition-colors", isActive ? colors.icon : "")} />
                                 <span>{item.label}</span>
                                 {isActive && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute inset-0 bg-white/5 rounded-xl border border-white/10"
+                                        className={cn("absolute inset-0 rounded-xl border", colors.activeBg, colors.activeBorder)}
                                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
                                 )}
@@ -97,16 +104,17 @@ export default function MainLayout() {
                 <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 flex justify-between items-center shadow-2xl">
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
+                        const colors = featureColors[item.path] ?? featureColors['/'];
                         return (
                             <button
                                 key={item.path}
                                 onClick={() => navigate(item.path)}
                                 className={cn(
                                     "relative flex flex-col items-center justify-center w-16 h-14 rounded-[1.5rem] transition-all duration-300",
-                                    isActive ? "bg-white/15 text-white shadow-inner" : "text-neutral-500 active:bg-white/5"
+                                    isActive ? cn(colors.mobileActiveBg, "text-white shadow-inner") : "text-neutral-500 active:bg-white/5"
                                 )}
                             >
-                                <item.icon size={18} className={cn("mb-0.5 transition-colors", isActive ? "text-white" : "")} strokeWidth={isActive ? 2.5 : 2} />
+                                <item.icon size={18} className={cn("mb-0.5 transition-colors", isActive ? colors.icon : "")} strokeWidth={isActive ? 2.5 : 2} />
                                 <span className={cn("text-[9px] font-semibold tracking-wide transition-colors", isActive ? "text-white" : "text-neutral-500")}>
                                     {item.label}
                                 </span>

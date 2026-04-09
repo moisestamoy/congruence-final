@@ -232,11 +232,11 @@ export default function FinancesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 pb-24">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-emerald-500/30 pb-24">
             {/* BACKGROUND AMBIENCE */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/[0.03] rounded-full blur-[120px]" />
             </div>
 
             <div className="w-full max-w-[1600px] mx-auto p-4 md:p-8 relative z-10 space-y-8">
@@ -246,8 +246,8 @@ export default function FinancesPage() {
                     {/* Title Row with inline date navigation */}
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-1">Finanzas</h1>
-                            <p className="text-neutral-500 text-sm font-medium">Realidad financiera · tú decides qué hacer con ella</p>
+                            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-1">Finanzas</h1>
+                            <p className="text-emerald-400/60 text-sm font-medium">Realidad financiera · tú decides qué hacer con ella</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
@@ -262,14 +262,14 @@ export default function FinancesPage() {
                                     <ChevronUp className="rotate-90" size={16} />
                                 </button>
                             </div>
-                            <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1 gap-1">
+                            <div className="flex items-center bg-white/[0.04] rounded-2xl border border-white/[0.07] p-1 gap-1">
                                 {[1, 2, 3, 4, 12].map(m => (
                                     <button
                                         key={m}
                                         onClick={() => setHorizon(m)}
                                         className={cn(
                                             "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest min-w-[32px]",
-                                            horizon === m ? "bg-white text-black shadow-lg scale-105" : "text-neutral-500 hover:text-white hover:bg-white/5"
+                                            horizon === m ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "text-neutral-500 hover:text-white hover:bg-white/5"
                                         )}
                                     >
                                         {m === 1 && '1M'}{m === 2 && '2M'}{m === 3 && '3M'}{m === 4 && '4M'}{m === 12 && '1A'}
@@ -282,7 +282,7 @@ export default function FinancesPage() {
                     {/* Metric Cards Row */}
                     {(totalIncome === 0 && totalExpenses === 0) ? (
                         /* Smart empty state */
-                        <div className="w-full rounded-2xl border border-white/5 bg-[#0a0a0a] p-12 flex flex-col items-center justify-center gap-4 text-center">
+                        <div className="w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-12 flex flex-col items-center justify-center gap-4 text-center">
                             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2">
                                 <TrendingUp size={32} className="text-neutral-600" />
                             </div>
@@ -292,7 +292,7 @@ export default function FinancesPage() {
                     ) : (
                         <div className="grid grid-cols-3 gap-4">
                             {/* Card 1: Saldo proyectado */}
-                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                            <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col gap-3 hover:border-white/[0.12] transition-colors">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Saldo proyectado fin de mes</span>
                                     {safemetric_projectedEnd >= 0
@@ -322,7 +322,7 @@ export default function FinancesPage() {
                             </div>
 
                             {/* Card 2: Flujo neto */}
-                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                            <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col gap-3 hover:border-white/[0.12] transition-colors">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Flujo neto del mes</span>
                                     {netFlow >= 0
@@ -340,7 +340,7 @@ export default function FinancesPage() {
                             </div>
 
                             {/* Card 3: Ritmo de gasto */}
-                            <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col gap-3 hover:border-white/10 transition-colors">
+                            <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col gap-3 hover:border-white/[0.12] transition-colors">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Ritmo de gasto vs ingresos</span>
                                     {totalIncome > 0 && Math.abs(totalExpenses) / totalIncome > 0.9
@@ -370,7 +370,7 @@ export default function FinancesPage() {
                     )}
 
                     {/* Coach IA — Full width row */}
-                    <div className="w-full rounded-2xl border border-white/5 bg-[#0a0a0a] overflow-hidden">
+                    <div className="w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] overflow-hidden">
                         <FinanceCoach
                             finances={realExpenses}
                             config={config}
@@ -397,7 +397,7 @@ export default function FinancesPage() {
                             </button>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setIsBudgetOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all">
+                            <button onClick={() => setIsBudgetOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all">
                                 <Calculator size={14} /> Presupuesto
                             </button>
                             <button onClick={() => setIsGoalsOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
@@ -410,7 +410,7 @@ export default function FinancesPage() {
                 {/* --- MOBILE VIEW: COMPACT FINANCIAL MASTER CARD --- */}
                 <div className="block md:hidden space-y-2 relative z-10 w-full mb-4">
                     <div className="relative w-full rounded-[20px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-lg p-4 shrink-0">
-                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-cyan-500/5 to-transparent pointer-events-none opacity-50" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent pointer-events-none opacity-50" />
 
                         <div className="flex justify-between items-start mb-3 relative z-10">
                             <div>
@@ -501,7 +501,7 @@ export default function FinancesPage() {
                         <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-rose-500/10 text-rose-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-all">
                             <RotateCcw size={12} /> Reiniciar
                         </button>
-                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-cyan-500/10 text-cyan-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-cyan-500/20 transition-all">
+                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-emerald-500/10 text-emerald-400 border border-transparent text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-all">
                             <Calculator size={12} /> Presup.
                         </button>
                         <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1 py-2.5 rounded-[12px] bg-emerald-500 text-black border border-emerald-400 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
@@ -519,7 +519,7 @@ export default function FinancesPage() {
                         {/* Month Header */}
                         <div className="px-6 py-5 border-b border-white/10 bg-[#080808] flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white capitalize tracking-tight flex items-center gap-3">
-                                <span className="w-2 h-6 rounded-full bg-cyan-500 shadow-[0_0_10px_#06b6d4]"></span>
+                                <span className="w-2 h-6 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
                                 {format(month.date, 'MMMM yyyy', { locale: dateLocale })}
                             </h2>
                             <span className="text-xs font-mono text-neutral-500 font-bold opacity-50">PROYECCIÓN MENSUAL</span>

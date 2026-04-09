@@ -48,18 +48,19 @@ export default function IdentityPage() {
 
             <header className="mb-12 flex items-center justify-between">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-white mb-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white mb-2">
                         Centro de Identidad
                     </h1>
-                    <p className="text-purple-400 font-medium tracking-widest uppercase text-sm">
+                    <p className="text-purple-400/70 font-medium tracking-widest uppercase text-sm">
                         Protocolo de Personaje & Perfil Holístico
                     </p>
                 </div>
             </header>
 
             {/* 1. HOLISTIC PROFILE WIDGET */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-[#0a0a0a] to-[#050505] border border-white/10 shadow-2xl p-6 md:p-8 shrink-0 mb-12 flex flex-col lg:flex-row items-center gap-8">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-purple-500/15 shadow-2xl p-6 md:p-8 shrink-0 mb-12 flex flex-col lg:flex-row items-center gap-8">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent pointer-events-none" />
 
                 <div className="w-full lg:w-1/3 flex flex-col justify-center relative z-10 text-center lg:text-left">
                     <div className="inline-flex items-center justify-center lg:justify-start gap-3 mb-4">
@@ -146,8 +147,9 @@ export default function IdentityPage() {
             </div>
 
             {/* 2. IDENTITY MANIFESTO */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-[#050505] border border-white/10 shadow-2xl p-6 md:p-8">
-                <div className="flex justify-between items-center mb-10 border-b border-white/10 pb-6">
+            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-purple-500/10 shadow-2xl p-6 md:p-8">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent pointer-events-none" />
+                <div className="flex justify-between items-center mb-10 border-b border-white/[0.06] pb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                             <BrainCircuit className="text-purple-400" size={24} />

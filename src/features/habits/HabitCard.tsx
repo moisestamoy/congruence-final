@@ -74,10 +74,10 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         <motion.div
             layout
             className={cn(
-                "group relative flex flex-col items-stretch gap-1.5 lg:gap-3 p-4 lg:p-5 rounded-[16px] lg:rounded-[20px] transition-all duration-300 mb-2 overflow-hidden",
-                "bg-white/[0.04] border border-white/[0.07] backdrop-blur-md",
-                "hover:bg-white/[0.07] hover:border-white/[0.12] hover:shadow-[0_0_24px_rgba(6,182,212,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]",
-                isCompleted && "border-cyan-400/20 shadow-[0_0_20px_rgba(6,182,212,0.08)] opacity-80"
+                "group relative flex flex-col items-stretch gap-1.5 lg:gap-3 p-4 lg:p-5 rounded-2xl transition-all duration-300 mb-2 overflow-hidden",
+                "bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] backdrop-blur-md",
+                "hover:from-white/[0.08] hover:to-white/[0.04] hover:border-white/[0.14] hover:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]",
+                isCompleted && "border-cyan-400/25 shadow-[0_0_24px_rgba(6,182,212,0.1)]"
             )}
         >
             <div className="flex items-start justify-between w-full h-full gap-2">
@@ -238,7 +238,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
             {/* Soft background gradient fill when completed */}
             {isCompleted && (
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.08] via-cyan-500/[0.03] to-transparent pointer-events-none" />
             )}
         </motion.div>
     );
