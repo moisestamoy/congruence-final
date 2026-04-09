@@ -232,7 +232,7 @@ export default function FinancesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-emerald-500/30 pb-24">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-emerald-500/30 pb-40 lg:pb-24">
             {/* BACKGROUND AMBIENCE */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px]" />

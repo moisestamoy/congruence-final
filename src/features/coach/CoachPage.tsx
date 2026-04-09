@@ -6,8 +6,10 @@ import { useHabitStore } from '../../features/habits/useHabitStore';
 import { useHolisticStore } from '../../features/stats/useHolisticStore';
 import { DailyInsight, AIService } from '../../services/ai';
 import { cn } from '../../utils/cn';
+import { toast } from '../../hooks/useToastStore';
 
 const COOLDOWN_SECONDS = 60;
+const COOLDOWN_KEY = 'coachLastGeneratedAt';
 
 export default function CoachPage() {
     const { habits, manifesto } = useHabitStore();
@@ -15,14 +17,33 @@ export default function CoachPage() {
     const { checkIns } = useHolisticStore();
     const [insight, setInsight] = useState<DailyInsight | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [cooldown, setCooldown] = useState(0);
+    const [cooldown, setCooldown] = useState(() => {
+        try {
+            const saved = localStorage.getItem(COOLDOWN_KEY);
+            if (!saved) return 0;
+            const elapsed = Math.floor((Date.now() - parseInt(saved)) / 1000);
+            return Math.max(0, COOLDOWN_SECONDS - elapsed);
+        } catch { return 0; }
+    });
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
+        if (cooldown > 0) {
+            intervalRef.current = setInterval(() => {
+                setCooldown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(intervalRef.current!);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const startCooldown = () => {
+        try { localStorage.setItem(COOLDOWN_KEY, String(Date.now())); } catch {}
         setCooldown(COOLDOWN_SECONDS);
         intervalRef.current = setInterval(() => {
             setCooldown(prev => {
@@ -47,6 +68,8 @@ export default function CoachPage() {
             );
             setInsight(result);
             startCooldown();
+        } catch (e) {
+            toast('Error al generar análisis. Revisa tu conexión e intenta de nuevo.', 'error');
         } finally {
             setIsLoading(false);
         }

@@ -4,6 +4,7 @@ import { useHabitStore } from './useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { AIService, DailyInsight } from '../../services/ai';
 import { cn } from '../../utils/cn';
+import { toast } from '../../hooks/useToastStore';
 
 export function CoachCard() {
     const { habits, manifesto } = useHabitStore();
@@ -17,7 +18,7 @@ export function CoachCard() {
             const result = await AIService.generateInsight(habits, realExpenses, manifesto, []);
             setInsight(result);
         } catch (e) {
-            console.error('Coach error:', e);
+            toast('Error al generar análisis. Revisa tu conexión.', 'error');
         } finally {
             setIsLoading(false);
         }

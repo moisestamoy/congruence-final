@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,10 @@ export default function HabitsPage() {
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
+    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(() => {
+        try { return localStorage.getItem('habitCircleVisible') !== 'false'; } catch { return true; }
+    });
+    const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1024);
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
 
@@ -92,6 +95,19 @@ export default function HabitsPage() {
         setEditingHabit(habit);
         setIsFormOpen(true);
     };
+
+    // Persist circle visibility
+    const toggleCircleVisible = useCallback((v: boolean) => {
+        setIsMobileCircleVisible(v);
+        try { localStorage.setItem('habitCircleVisible', String(v)); } catch {}
+    }, []);
+
+    // Resize observer for circle size
+    useEffect(() => {
+        const handler = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
 
     // Global FAB Event Listener using Zustand
     useEffect(() => {
@@ -292,8 +308,8 @@ export default function HabitsPage() {
 
                                     <CongruenceLevelIndicator
                                         percentage={congruence}
-                                        size={typeof window !== 'undefined' ? (window.innerWidth < 1024 ? (isMobileCircleVisible ? 240 : 120) : 500) : 450}
-                                        strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 20 : 35}
+                                        size={windowWidth < 1024 ? (isMobileCircleVisible ? 240 : 120) : 500}
+                                        strokeWidth={windowWidth < 1024 ? 20 : 35}
                                         level={currentLevel}
                                     />
                                 </div>
@@ -304,8 +320,8 @@ export default function HabitsPage() {
                             </p>
                             <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
                                 <button
-                                    onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
-                                    className="px-3 py-1.5 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
+                                    onClick={() => toggleCircleVisible(!isMobileCircleVisible)}
+                                    className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
                                 >
                                     <span className="text-[9px] font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
                                     {isMobileCircleVisible ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -348,7 +364,17 @@ export default function HabitsPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 relative z-10 content-start">
-                                    {sortedHabits.map(habit => (
+                                    {sortedHabits.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                                            <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-2xl">
+                                                🎯
+                                            </div>
+                                            <div>
+                                                <p className="text-white/40 font-medium text-sm">Sin hábitos todavía</p>
+                                                <p className="text-white/20 text-xs mt-1">Añade tu primer hábito para empezar</p>
+                                            </div>
+                                        </div>
+                                    ) : sortedHabits.map(habit => (
                                         <div key={habit.id} className="group relative">
                                             <HabitCard
                                                 habit={habit}

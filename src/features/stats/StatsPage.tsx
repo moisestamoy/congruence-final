@@ -124,6 +124,20 @@ export default function StatsPage() {
                 </p>
             </header>
 
+            {habits.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-3xl">
+                        📊
+                    </div>
+                    <div>
+                        <p className="text-white/50 font-semibold text-base">Sin datos todavía</p>
+                        <p className="text-white/25 text-sm mt-1 max-w-xs">Añade hábitos y empieza a registrarlos para ver tus estadísticas aquí.</p>
+                    </div>
+                </div>
+            )}
+
+            {habits.length > 0 && (
+            <>
             {/* SAY-DO RATIO — Hero metric */}
             <div className="relative w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 md:p-8 mb-6 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-transparent pointer-events-none" />
@@ -377,6 +391,8 @@ export default function StatsPage() {
                         </div>
                     )}
                 </div>
+            )}
+            </>
             )}
         </div>
     );

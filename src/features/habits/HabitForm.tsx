@@ -33,6 +33,7 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
     const { addHabit, updateHabit } = useHabitStore();
 
     const [title, setTitle] = useState(initialData?.title || '');
+    const [titleError, setTitleError] = useState(false);
     const [type, setType] = useState<'boolean' | 'numeric'>(initialData?.type || 'boolean');
     const [goal, setGoal] = useState(initialData?.goal || 1);
     const [unit, setUnit] = useState(initialData?.unit || '');
@@ -47,7 +48,10 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim()) return;
+        if (!title.trim()) {
+            setTitleError(true);
+            return;
+        }
 
         const habitData = {
             title,
@@ -94,11 +98,19 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
                         <input
                             type="text"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(e) => { setTitle(e.target.value); if (titleError) setTitleError(false); }}
                             placeholder="Ej. Leer Deep Work, Entrenar..."
-                            className="w-full bg-neutral-900/50 border border-white/10 rounded-xl p-4 text-lg text-white placeholder-neutral-700 outline-none focus:border-cyan-500/50 focus:bg-neutral-900 transition-all"
+                            className={cn(
+                                "w-full bg-neutral-900/50 border rounded-xl p-4 text-lg text-white placeholder-neutral-700 outline-none focus:bg-neutral-900 transition-all",
+                                titleError
+                                    ? "border-red-500/60 focus:border-red-500/80"
+                                    : "border-white/10 focus:border-cyan-500/50"
+                            )}
                             autoFocus
                         />
+                        {titleError && (
+                            <p className="mt-1.5 text-xs text-red-400">El nombre no puede estar vacío</p>
+                        )}
                     </div>
 
                     {/* Type Selector */}

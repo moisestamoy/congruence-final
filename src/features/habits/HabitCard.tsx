@@ -159,20 +159,20 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                                     <div className="flex gap-1 mt-1 lg:mt-1.5 overflow-x-auto custom-scrollbar pb-1">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onValueChange(Math.max(0, (currentValue || 0) - 5)); }}
-                                            className="px-2 py-1 text-[9px] lg:text-xs rounded-lg bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70 transition-all shrink-0"
+                                            className="px-2 py-2 text-[9px] lg:text-xs rounded-lg bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70 transition-all shrink-0 min-h-[36px]"
                                         >
                                             -5
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); onValueChange((currentValue || 0) + 10); }}
-                                            className="px-2 py-1 text-[9px] lg:text-xs rounded-lg bg-cyan-400/15 border border-cyan-400/25 text-cyan-400/80 hover:bg-cyan-400/25 hover:text-cyan-400 transition-all font-medium shrink-0"
+                                            className="px-2 py-2 text-[9px] lg:text-xs rounded-lg bg-cyan-400/15 border border-cyan-400/25 text-cyan-400/80 hover:bg-cyan-400/25 hover:text-cyan-400 transition-all font-medium shrink-0 min-h-[36px]"
                                         >
                                             +10
                                         </button>
                                         {(currentValue || 0) >= habit.goal && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); if (!isCompleted) onToggle(); }}
-                                                className="px-2 py-1 text-[9px] lg:text-xs rounded-lg bg-cyan-400/20 border border-cyan-400/40 text-cyan-400 hover:bg-cyan-400/30 transition-all font-medium ml-auto shrink-0"
+                                                className="px-2 py-2 text-[9px] lg:text-xs rounded-lg bg-cyan-400/20 border border-cyan-400/40 text-cyan-400 hover:bg-cyan-400/30 transition-all font-medium ml-auto shrink-0 min-h-[36px]"
                                             >
                                                 ✓ Listo
                                             </button>
