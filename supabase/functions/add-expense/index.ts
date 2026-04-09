@@ -1,14 +1,26 @@
 // @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = [
+  Deno.env.get('APP_URL') ?? '',
+  'http://localhost:5173',
+  'http://localhost:4173',
+].filter(Boolean)
+
+function getCorsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -21,22 +33,27 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const body = await req.json()
-    const { amount, category, date, note, token } = body
-
-    // ── 1. Auth: validate webhook secret ──────────────────────────────────
-    const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')
-    const USER_ID = Deno.env.get('USER_ID')
-
-    if (!WEBHOOK_SECRET || !USER_ID) {
-      console.error('Missing environment variables: WEBHOOK_SECRET or USER_ID')
+    // ── 1. Auth: validate JWT from Authorization header ────────────────────
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ error: 'Server misconfiguration' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Unauthorized: missing token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    if (!token || token !== WEBHOOK_SECRET) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    // Verify JWT using the caller's token
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+
+    const { data: { user }, error: authError } = await callerClient.auth.getUser()
+
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized: invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -44,17 +61,18 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── 2. Validate input ─────────────────────────────────────────────────
+    const body = await req.json()
+    const { amount, category, date, note } = body
     const errors: string[] = []
 
-    if (typeof amount !== 'number' || amount <= 0) {
-      errors.push('amount must be a positive number')
+    if (typeof amount !== 'number' || amount <= 0 || amount > 1_000_000) {
+      errors.push('amount must be a positive number less than 1,000,000')
     }
 
     if (!category || typeof category !== 'string' || category.trim() === '') {
       errors.push('category is required')
     }
 
-    // Validate date format YYYY-MM-DD
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
     if (!date || !dateRegex.test(date)) {
       errors.push('date must be in YYYY-MM-DD format')
@@ -81,22 +99,17 @@ Deno.serve(async (req: Request) => {
       ...(note && typeof note === 'string' && note.trim() !== '' ? { note: note.trim() } : {}),
     }
 
-    // ── 4. Connect to Supabase with service role key ──────────────────────
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
+    // ── 4. Connect with service role to write data ────────────────────────
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // ── 5. Read current user data ─────────────────────────────────────────
     const { data: userData, error: readError } = await supabase
       .from('user_data')
       .select('finances_data')
-      .eq('id', USER_ID)
+      .eq('id', user.id)
       .single()
 
     if (readError && readError.code !== 'PGRST116') {
-      // PGRST116 = row not found, ok if first write
-      console.error('DB read error:', readError)
       return new Response(
         JSON.stringify({ error: 'Database read error', details: readError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -117,21 +130,17 @@ Deno.serve(async (req: Request) => {
     const { error: writeError } = await supabase
       .from('user_data')
       .upsert({
-        id: USER_ID,
+        id: user.id,
         finances_data: updatedFinances,
         updated_at: new Date().toISOString(),
       })
 
     if (writeError) {
-      console.error('DB write error:', writeError)
       return new Response(
         JSON.stringify({ error: 'Database write error', details: writeError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    // ── 8. Success ────────────────────────────────────────────────────────
-    console.log(`✅ Expense added: ${newExpense.amount} in ${newExpense.category} on ${newExpense.date}`)
 
     return new Response(
       JSON.stringify({
@@ -149,7 +158,6 @@ Deno.serve(async (req: Request) => {
     )
 
   } catch (err) {
-    console.error('Unexpected error:', err)
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: String(err) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw } from 'lucide-react';
 import { useFinanceStore } from '../../features/finance/useFinanceStore';
@@ -7,14 +7,36 @@ import { useHolisticStore } from '../../features/stats/useHolisticStore';
 import { DailyInsight, AIService } from '../../services/ai';
 import { cn } from '../../utils/cn';
 
+const COOLDOWN_SECONDS = 60;
+
 export default function CoachPage() {
     const { habits, manifesto } = useHabitStore();
     const { realExpenses } = useFinanceStore();
     const { checkIns } = useHolisticStore();
     const [insight, setInsight] = useState<DailyInsight | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [cooldown, setCooldown] = useState(0);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    }, []);
+
+    const startCooldown = () => {
+        setCooldown(COOLDOWN_SECONDS);
+        intervalRef.current = setInterval(() => {
+            setCooldown(prev => {
+                if (prev <= 1) {
+                    clearInterval(intervalRef.current!);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
 
     const generateInsight = async () => {
+        if (cooldown > 0 || isLoading) return;
         setIsLoading(true);
         try {
             const result = await AIService.generateInsight(
@@ -24,8 +46,7 @@ export default function CoachPage() {
                 checkIns.slice(-3)
             );
             setInsight(result);
-        } catch (error) {
-            console.error("Failed to generate insight", error);
+            startCooldown();
         } finally {
             setIsLoading(false);
         }
@@ -57,16 +78,22 @@ export default function CoachPage() {
                 <div className="flex flex-col items-center gap-8">
                     {!insight && !isLoading && (
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={cooldown === 0 ? { scale: 1.05 } : {}}
+                            whileTap={cooldown === 0 ? { scale: 0.95 } : {}}
                             onClick={generateInsight}
-                            className="group relative px-8 py-4 bg-white text-black rounded-full font-bold text-lg shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(168,85,247,0.5)] transition-all overflow-hidden"
+                            disabled={cooldown > 0}
+                            className={cn(
+                                "group relative px-8 py-4 rounded-full font-bold text-lg transition-all overflow-hidden",
+                                cooldown > 0
+                                    ? "bg-white/10 text-neutral-400 cursor-not-allowed"
+                                    : "bg-white text-black shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(168,85,247,0.5)]"
+                            )}
                         >
                             <span className="relative z-10 flex items-center gap-2">
-                                <Sparkles size={20} className="text-purple-600" />
-                                Generar Análisis Diario
+                                <Sparkles size={20} className={cooldown > 0 ? "text-neutral-500" : "text-purple-600"} />
+                                {cooldown > 0 ? `Espera ${cooldown}s...` : 'Generar Análisis Diario'}
                             </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {cooldown === 0 && <div className="absolute inset-0 bg-gradient-to-r from-purple-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity" />}
                         </motion.button>
                     )}
 
@@ -148,9 +175,15 @@ export default function CoachPage() {
 
                                         <button
                                             onClick={generateInsight}
-                                            className="mt-auto flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-xs font-bold uppercase tracking-wider text-neutral-300"
+                                            disabled={cooldown > 0 || isLoading}
+                                            className={cn(
+                                                "mt-auto flex items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors",
+                                                cooldown > 0 || isLoading
+                                                    ? "bg-white/5 text-neutral-600 cursor-not-allowed"
+                                                    : "bg-white/5 hover:bg-white/10 text-neutral-300"
+                                            )}
                                         >
-                                            <RefreshCw size={14} /> Regenerar
+                                            <RefreshCw size={14} /> {cooldown > 0 ? `${cooldown}s` : 'Regenerar'}
                                         </button>
                                     </div>
                                 </div>

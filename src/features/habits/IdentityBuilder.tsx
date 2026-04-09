@@ -29,7 +29,6 @@ export function IdentityBuilder({ isOpen, onClose }: IdentityBuilderProps) {
     };
 
     const handleConfirm = () => {
-        console.log('Identity Confirmed:', formData);
         setIdentity(formData);
         onClose();
         // Reset or keep? Maybe keep for viewing later.

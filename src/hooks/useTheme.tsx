@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-console.log("ThemeProvider: Initializing theme provider")
-
 type Theme = "dark" | "light" | "system"
 
 type ThemeProviderProps = {

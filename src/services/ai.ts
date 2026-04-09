@@ -1,5 +1,4 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const WEBHOOK_SECRET = import.meta.env.VITE_WEBHOOK_SECRET;
+import { supabase } from '../lib/supabase';
 
 export interface DailyInsight {
     date: string;
@@ -18,23 +17,19 @@ export const AIService = {
         holisticCheckIns?: any[]
     ): Promise<DailyInsight> => {
         try {
-            const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-coach`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token: WEBHOOK_SECRET,
+            // Uses supabase.functions.invoke so the JWT is sent automatically
+            // in the Authorization header — no shared secret exposed client-side
+            const { data, error } = await supabase.functions.invoke('ai-coach', {
+                body: {
                     habits,
                     finances,
                     manifesto,
                     holisticCheckIns: holisticCheckIns?.slice(-3) ?? []
-                })
+                }
             });
 
-            if (!response.ok) {
-                throw new Error(`Coach API error: ${response.status}`);
-            }
+            if (error) throw error;
 
-            const data = await response.json();
             const insight = data.insight;
 
             return {
@@ -47,7 +42,6 @@ export const AIService = {
             };
 
         } catch (error: any) {
-            console.error('AI Coach Error:', error);
             return {
                 date: new Date().toISOString(),
                 summary: 'No se pudo conectar con el coach. Revisa tu conexión.',

@@ -84,12 +84,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <div>
                         <input
                             type="password"
-                            placeholder="Contraseña"
+                            placeholder="Contraseña (mín. 8 caracteres)"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                             required
-                            minLength={6}
+                            minLength={8}
                         />
                     </div>
 
