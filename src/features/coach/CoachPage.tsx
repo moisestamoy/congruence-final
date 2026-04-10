@@ -27,34 +27,25 @@ export default function CoachPage() {
     });
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const startInterval = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+            setCooldown(prev => {
+                if (prev <= 1) { clearInterval(intervalRef.current!); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
     useEffect(() => {
-        if (cooldown > 0) {
-            intervalRef.current = setInterval(() => {
-                setCooldown(prev => {
-                    if (prev <= 1) {
-                        clearInterval(intervalRef.current!);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
+        if (cooldown > 0) startInterval();
         return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const startCooldown = () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
         try { localStorage.setItem(COOLDOWN_KEY, String(Date.now())); } catch {}
         setCooldown(COOLDOWN_SECONDS);
-        intervalRef.current = setInterval(() => {
-            setCooldown(prev => {
-                if (prev <= 1) {
-                    clearInterval(intervalRef.current!);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+        startInterval();
     };
 
     const generateInsight = async () => {

@@ -29,7 +29,7 @@ export default function HabitsPage() {
     const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(() => {
         try { return localStorage.getItem('habitCircleVisible') !== 'false'; } catch { return true; }
     });
-    const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1024);
+    const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true);
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
 
@@ -102,11 +102,12 @@ export default function HabitsPage() {
         try { localStorage.setItem('habitCircleVisible', String(v)); } catch {}
     }, []);
 
-    // Resize observer for circle size
+    // Track desktop breakpoint for circle size
     useEffect(() => {
-        const handler = () => setWindowWidth(window.innerWidth);
-        window.addEventListener('resize', handler);
-        return () => window.removeEventListener('resize', handler);
+        const mql = window.matchMedia('(min-width: 1024px)');
+        const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+        mql.addEventListener('change', handler);
+        return () => mql.removeEventListener('change', handler);
     }, []);
 
     // Global FAB Event Listener using Zustand
@@ -308,8 +309,8 @@ export default function HabitsPage() {
 
                                     <CongruenceLevelIndicator
                                         percentage={congruence}
-                                        size={windowWidth < 1024 ? (isMobileCircleVisible ? 240 : 120) : 500}
-                                        strokeWidth={windowWidth < 1024 ? 20 : 35}
+                                        size={isDesktop ? 500 : (isMobileCircleVisible ? 240 : 120)}
+                                        strokeWidth={isDesktop ? 35 : 20}
                                         level={currentLevel}
                                     />
                                 </div>
