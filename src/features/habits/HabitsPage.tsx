@@ -403,55 +403,85 @@ export default function HabitsPage() {
                         </div>
                     </motion.div>
                 ) : (
-                    // --- LAYOUT B: CENTRAL (Glass Panel Updated) ---
+                    // --- LAYOUT B: CENTRAL ---
                     <motion.div
                         key="central"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-8 items-center overflow-y-auto lg:overflow-hidden pb-20 lg:pb-0"
+                        className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-6 items-center overflow-y-auto lg:overflow-hidden pb-20 lg:pb-0"
                     >
-                        {/* Columna Izquierda (Stats) - 3/12 - Orden 1 - GLASS CARDS */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-6 py-4 lg:py-12 order-2 lg:order-1">
+                        {/* Left column — 3/12 */}
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-4 py-4 lg:py-10 order-2 lg:order-1">
                             {/* Card 1: Identity */}
                             <div
                                 onClick={() => setIsIdentityBuilderOpen(true)}
-                                className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-[2rem] p-6 lg:p-8 flex flex-col justify-center relative overflow-hidden group shadow-lg hover:shadow-cyan-900/20 transition-all duration-500 min-h-[160px] lg:h-1/2 cursor-pointer"
+                                className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col relative overflow-hidden group hover:border-cyan-500/20 transition-all duration-300 lg:flex-1 cursor-pointer"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <h3 className="text-cyan-400 text-[10px] lg:text-xs font-bold uppercase tracking-widest mb-2 lg:mb-4 z-10 flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-cyan-500 rounded-full" /> Identidad
+                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                <h3 className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest mb-3 z-10 flex items-center gap-2">
+                                    <div className="w-1 h-3 bg-cyan-500 rounded-full" /> Identidad
                                 </h3>
-                                <p className="text-xl lg:text-2xl font-bold text-white leading-tight z-10 drop-shadow-md">
+                                <p className="text-base font-bold text-white leading-snug z-10 flex-1">
                                     "{manifesto?.identities.personal || "Define tu identidad..."}"
                                 </p>
-                                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-[50px] group-hover:bg-cyan-500/20 transition-all duration-700" />
+                                <div className="mt-4 z-10">
+                                    <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-1.5">
+                                        <span>Congruencia hoy</span>
+                                        <span className="text-cyan-400 font-bold">{congruence}%</span>
+                                    </div>
+                                    <div className="h-1 w-full bg-white/[0.06] rounded-full overflow-hidden">
+                                        <div className="h-full bg-cyan-500/60 rounded-full transition-all duration-700" style={{ width: `${congruence}%` }} />
+                                    </div>
+                                </div>
+                                <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-cyan-500/[0.08] rounded-full blur-[40px] group-hover:bg-cyan-500/15 transition-all duration-500" />
                             </div>
 
-                            {/* Card 2: Streak */}
-                            <div className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-[2rem] p-6 lg:p-8 flex flex-col justify-center relative overflow-hidden group shadow-lg hover:shadow-emerald-900/20 transition-all duration-500 min-h-[160px] lg:h-1/2">
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <h3 className="text-emerald-400 text-[10px] lg:text-xs font-bold uppercase tracking-widest mb-2 lg:mb-4 z-10 flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-emerald-500 rounded-full" /> Racha Global
+                            {/* Card 2: Today stats */}
+                            <div className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col relative overflow-hidden group hover:border-emerald-500/20 transition-all duration-300 lg:flex-1">
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                <h3 className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-3 z-10 flex items-center gap-2">
+                                    <div className="w-1 h-3 bg-emerald-500 rounded-full" /> Hoy
                                 </h3>
-                                <div className="flex items-baseline gap-2 z-10">
-                                    <span className="text-6xl lg:text-7xl font-bold text-white tracking-tighter drop-shadow-xl">{userStreak}</span>
-                                    <span className="text-lg lg:text-xl text-neutral-400 font-medium">días</span>
+                                <div className="flex items-baseline gap-1.5 z-10 mb-1">
+                                    <span className="text-5xl font-black text-white tracking-tighter">
+                                        {sortedHabits.filter(h => !!h.logs[selectedDate]?.completed).length}
+                                    </span>
+                                    <span className="text-base text-neutral-500 font-medium">
+                                        / {sortedHabits.length}
+                                    </span>
                                 </div>
-                                <p className="text-xs lg:text-sm text-neutral-500 mt-2 z-10 font-medium">Mejor racha del mes</p>
-                                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-[50px] group-hover:bg-emerald-500/20 transition-all duration-700" />
+                                <p className="text-xs text-neutral-500 z-10 mb-4">hábitos completados</p>
+                                <div className="flex gap-1 flex-wrap z-10">
+                                    {sortedHabits.slice(0, 8).map(h => (
+                                        <div
+                                            key={h.id}
+                                            className={cn(
+                                                "w-5 h-5 rounded-md transition-all",
+                                                h.logs[selectedDate]?.completed
+                                                    ? "bg-emerald-400/70 shadow-[0_0_6px_rgba(52,211,153,0.4)]"
+                                                    : "bg-white/[0.06]"
+                                            )}
+                                        />
+                                    ))}
+                                    {sortedHabits.length > 8 && (
+                                        <div className="w-5 h-5 rounded-md bg-white/[0.06] flex items-center justify-center text-[8px] text-neutral-600 font-bold">
+                                            +{sortedHabits.length - 8}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-emerald-500/[0.08] rounded-full blur-[40px] group-hover:bg-emerald-500/15 transition-all duration-500" />
                             </div>
                         </div>
 
-                        {/* Columna Central (Núcleo) - 6/12 - Orden 2 - GIANT NEON RING */}
-                        <div className="w-full lg:col-span-6 flex justify-center items-center relative min-h-[150px] lg:min-h-0 order-1 lg:order-2 my-2 lg:my-0">
-                            {/* Ambient Glow */}
+                        {/* Center column — 5/12 */}
+                        <div className="w-full lg:col-span-5 flex justify-center items-center relative min-h-[150px] lg:min-h-0 order-1 lg:order-2 my-2 lg:my-0">
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[150px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
+                                currentLevel >= 3 ? "bg-cyan-500/30 w-[500px] h-[500px] blur-[130px]" : "bg-cyan-500/10 w-[280px] h-[280px] blur-[80px]"
                             )} />
                             <div
-                                className="scale-[0.45] md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer hover:scale-[0.47] md:hover:scale-[0.77] lg:hover:scale-[1.13]"
+                                className="scale-[0.45] md:scale-75 lg:scale-95 relative z-10 transition-transform duration-500 cursor-pointer hover:scale-[0.47] md:hover:scale-[0.77] lg:hover:scale-[0.98]"
                                 onClick={() => navigate('/identity')}
                                 title="Tu Identidad"
                             >
@@ -459,60 +489,55 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Derecha (Hábitos Lista) - 3/12 - Orden 3 - GLASS LIST */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center py-4 lg:py-12 order-3">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] rounded-t-[2.5rem] lg:rounded-[2.5rem] h-full p-4 lg:p-6 flex flex-col relative overflow-hidden shadow-2xl min-h-[400px]">
+                        {/* Right column — 4/12 */}
+                        <div className="w-full lg:col-span-4 lg:h-full flex flex-col justify-center py-4 lg:py-10 order-3">
+                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] rounded-t-3xl lg:rounded-3xl h-full p-4 lg:p-5 flex flex-col relative overflow-hidden shadow-2xl min-h-[400px]">
                                 {/* Header */}
-                                <div className="mb-4 lg:mb-6 pb-4 border-b border-white/5 flex items-center justify-between">
-                                    <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_#06b6d4]" />
+                                <div className="mb-4 pb-3 border-b border-white/[0.06] flex items-center justify-between">
+                                    <h2 className="text-sm font-bold tracking-wide text-white flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_#06b6d4]" />
                                         HÁBITOS
                                     </h2>
-                                    <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
-                                        <button
-                                            onClick={() => navigateDate(-1)}
-                                            className="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-                                        >
-                                            <ChevronLeft size={14} />
+                                    <div className="flex items-center gap-1 bg-white/5 rounded-full px-2 py-1 border border-white/10">
+                                        <button onClick={() => navigateDate(-1)} className="p-0.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors">
+                                            <ChevronLeft size={12} />
                                         </button>
-                                        <span className="text-[10px] text-neutral-200 font-mono tracking-wider px-1.5 font-bold min-w-[60px] text-center">
+                                        <span className="text-[10px] text-neutral-300 font-mono font-bold min-w-[48px] text-center">
                                             {format(currentDate, 'dd MMM')}
                                         </span>
                                         <button
                                             onClick={() => navigateDate(1)}
-                                            className="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+                                            className="p-0.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
                                             disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
                                         >
-                                            <ChevronRight size={14} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
+                                            <ChevronRight size={12} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* List */}
-                                <div className="space-y-3 overflow-y-auto flex-1 pr-2 custom-scrollbar relative z-10">
+                                <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar relative z-10">
                                     {sortedHabits.map(habit => (
-                                        <div key={habit.id} className="transform hover:scale-[1.02] transition-transform duration-300">
-                                            <HabitCard
-                                                habit={habit}
-                                                isCompleted={!!habit.logs[selectedDate]?.completed}
-                                                currentValue={habit.logs[selectedDate]?.value || 0}
-                                                onToggle={() => handleToggleHabit(habit.id)}
-                                                onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
-                                                onEdit={() => handleEditHabit(habit)}
-                                                onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
-                                            />
-                                        </div>
+                                        <HabitCard
+                                            key={habit.id}
+                                            habit={habit}
+                                            isCompleted={!!habit.logs[selectedDate]?.completed}
+                                            currentValue={habit.logs[selectedDate]?.value || 0}
+                                            onToggle={() => handleToggleHabit(habit.id)}
+                                            onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
+                                            onEdit={() => handleEditHabit(habit)}
+                                            onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
+                                        />
                                     ))}
                                 </div>
 
-                                {/* Coach IA Card */}
-                                <div className="mt-1">
+                                <div className="mt-2">
                                     <CoachCard />
                                 </div>
 
                                 <button
                                     onClick={handleCreateHabit}
-                                    className="mt-4 w-full py-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all flex items-center justify-center gap-2 text-neutral-500 hover:text-cyan-200 relative z-10"
+                                    className="mt-3 w-full py-3 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all flex items-center justify-center text-neutral-500 hover:text-cyan-200 relative z-10"
                                 >
                                     <span className="text-xs font-bold uppercase tracking-widest">+ Añadir</span>
                                 </button>
