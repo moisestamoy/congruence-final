@@ -43,6 +43,7 @@ export default function CoachPage() {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const startCooldown = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
         try { localStorage.setItem(COOLDOWN_KEY, String(Date.now())); } catch {}
         setCooldown(COOLDOWN_SECONDS);
         intervalRef.current = setInterval(() => {
