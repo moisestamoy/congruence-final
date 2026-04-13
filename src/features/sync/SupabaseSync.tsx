@@ -51,7 +51,6 @@ export function SupabaseSync() {
             pendingDeletionsRef.current.clear();
         } catch (e) {
             console.error('Save error:', e);
-            // Mark as pending again so loadData won't overwrite unsaved local changes
             hasPendingChangesRef.current = true;
             setStatus('error');
         } finally {
@@ -89,11 +88,34 @@ export function SupabaseSync() {
                             )
                         };
                     }
-                    useFinanceStore.setState(financesData);
+
+                    // Merge: preserve local additions made while the fetch was in flight.
+                    // Any local expense/event whose ID isn't in the cloud response was added
+                    // locally after loadData started — never overwrite those.
+                    const localState = useFinanceStore.getState();
+                    const cloudExpenseIds = new Set((financesData.realExpenses || []).map((e: any) => e.id));
+                    const localOnlyExpenses = localState.realExpenses.filter((e: any) => !cloudExpenseIds.has(e.id));
+                    const cloudEventIds = new Set((financesData.events || []).map((e: any) => e.id));
+                    const localOnlyEvents = localState.events.filter((e: any) => !cloudEventIds.has(e.id));
+
+                    useFinanceStore.setState({
+                        ...financesData,
+                        realExpenses: [...(financesData.realExpenses || []), ...localOnlyExpenses],
+                        events: [...(financesData.events || []), ...localOnlyEvents],
+                    });
+
+                    // If local-only records were preserved, schedule an upload so they reach Supabase
+                    if (localOnlyExpenses.length > 0 || localOnlyEvents.length > 0) {
+                        hasPendingChangesRef.current = true;
+                        setTimeout(() => saveToCloud(), 500);
+                    }
+
                     // Repair any transactions incorrectly saved as income due to a previous bug
                     const repaired = useFinanceStore.getState().repairMisclassifiedExpenses();
                     if (repaired > 0) {
+                        hasPendingChangesRef.current = true;
                         toast(`${repaired} gasto${repaired > 1 ? 's' : ''} recuperado${repaired > 1 ? 's' : ''} correctamente`, 'success');
+                        setTimeout(() => saveToCloud(), 500);
                     }
                 }
                 setStatus('synced');
@@ -106,7 +128,7 @@ export function SupabaseSync() {
             console.error(e);
             setStatus('error');
         }
-    }, [user]);
+    }, [user, saveToCloud]);
 
     useEffect(() => {
         if (!user) return;
