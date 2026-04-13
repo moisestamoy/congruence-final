@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format, addMonths, parseISO, isSameMonth, startOfToday } from 'date-fns';
 import { es, enUS, pt } from 'date-fns/locale';
@@ -16,6 +16,7 @@ import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
 import { RestartModal } from './RestartModal';
 import { useFabStore } from '../../hooks/useFabStore';
+import { toast } from '../../hooks/useToastStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
@@ -60,7 +61,7 @@ export default function FinancesPage() {
         }
     }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleAddTransaction = (amount: number, category: string, description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
+    const handleAddTransaction = useCallback((amount: number, category: string, description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
         const targetDate = globalDate || txModal.date;
         const targetType = globalType || txModal.type;
         if (!targetDate) return;
@@ -68,10 +69,14 @@ export default function FinancesPage() {
         if (txModal.editingId && txModal.editingSource) {
             updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
         } else {
-            // Use addTransaction for distinct entries (additive)
             addTransaction(targetDate, targetType, amount, category);
+            toast(
+                `${targetType === 'expense' ? 'Gasto' : 'Ingreso'} de €${amount.toLocaleString()} registrado`,
+                targetType === 'expense' ? 'success' : 'info'
+            );
         }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [txModal.date, txModal.type, txModal.editingId, txModal.editingSource, addTransaction, updateTransaction]);
 
     const handleDeleteTransaction = () => {
         if (txModal.editingId && txModal.editingSource) {

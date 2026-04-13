@@ -50,6 +50,8 @@ export function SupabaseSync() {
             pendingDeletionsRef.current.clear();
         } catch (e) {
             console.error('Save error:', e);
+            // Mark as pending again so loadData won't overwrite unsaved local changes
+            hasPendingChangesRef.current = true;
             setStatus('error');
         } finally {
             isSavingRef.current = false;
