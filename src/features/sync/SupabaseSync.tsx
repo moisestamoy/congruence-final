@@ -37,11 +37,34 @@ export function SupabaseSync() {
         try {
             const { habits, manifesto } = useHabitStore.getState();
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
+
+            // Read current cloud state so we don't overwrite expenses added externally
+            // (e.g. from the iPhone Shortcut via the Edge Function)
+            const { data: cloudRow } = await supabase
+                .from('user_data')
+                .select('finances_data')
+                .eq('id', user.id)
+                .single();
+
+            const cloudExpenses: any[] = cloudRow?.finances_data?.realExpenses ?? [];
+            const localIds = new Set(realExpenses.map((e: any) => e.id));
+            const cloudOnlyExpenses = cloudExpenses.filter((e: any) => !localIds.has(e.id));
+
+            // Merge: keep all local expenses + any cloud-only ones (from Shortcut)
+            const mergedExpenses = [...realExpenses, ...cloudOnlyExpenses];
+
+            // If the Shortcut added expenses we didn't have, absorb them into local store
+            if (cloudOnlyExpenses.length > 0) {
+                useFinanceStore.setState((s: any) => ({
+                    realExpenses: [...s.realExpenses, ...cloudOnlyExpenses]
+                }));
+            }
+
             const { error } = await supabase
                 .from('user_data')
                 .update({
                     habits_data: { habits, manifesto },
-                    finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets },
+                    finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', user.id);
