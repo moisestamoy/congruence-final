@@ -52,8 +52,8 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
     const [description, setDescription] = useState<string>(initialData?.description || '');
 
     // Global toggle states
-    const [globalType, setGlobalType] = useState<'income' | 'expense'>('income');
-    const [globalDate, setGlobalDate] = useState<string>('');
+    const [globalType, setGlobalType] = useState<'income' | 'expense'>(type);
+    const [globalDate, setGlobalDate] = useState<string>(date || format(new Date(), 'yyyy-MM-dd'));
 
     // Sync form state when modal opens
     useEffect(() => {
