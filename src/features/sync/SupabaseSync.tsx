@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
+import { toast } from '../../hooks/useToastStore';
 import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 
 export function SupabaseSync() {
@@ -89,6 +90,11 @@ export function SupabaseSync() {
                         };
                     }
                     useFinanceStore.setState(financesData);
+                    // Repair any transactions incorrectly saved as income due to a previous bug
+                    const repaired = useFinanceStore.getState().repairMisclassifiedExpenses();
+                    if (repaired > 0) {
+                        toast(`${repaired} gasto${repaired > 1 ? 's' : ''} recuperado${repaired > 1 ? 's' : ''} correctamente`, 'success');
+                    }
                 }
                 setStatus('synced');
             } else {

@@ -46,11 +46,14 @@ interface FinanceState {
 
     // Selective Restart
     setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean, initialBalance?: number) => void;
+
+    // Data repair: move income events that have expense categories into realExpenses
+    repairMisclassifiedExpenses: () => number;
 }
 
 export const useFinanceStore = create<FinanceState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             config: {
                 initialBalance: 0,
                 monthlyFixedBudget: 1500,
@@ -304,7 +307,31 @@ export const useFinanceStore = create<FinanceState>()(
                     } else {
                         return { realExpenses: state.realExpenses.filter(e => e.id !== id) };
                     }
-                })
+                }),
+
+            repairMisclassifiedExpenses: (): number => {
+                const EXPENSE_CATEGORIES = new Set([
+                    '🍔 Comida', '🚕 Transporte', '🎬 Entretenimiento', '💊 Salud', '📚 Educación',
+                    '📦 Otros', '🏠 Alquiler', '💳 Tarjeta de crédito', '🛒 Supermercado',
+                    '💡 Servicios', '🔄 Suscripciones', '🐾 Mascotas', '✈️ Viajes',
+                    '💻 Tecnología', '🛠️ Herramienta de trabajo', '📉 Inversiones',
+                    '🧠 Inversión en mentoría'
+                ]);
+                const { events, realExpenses } = get();
+                const bad = events.filter(
+                    (e: FinancialEvent) => e.type === 'income' && e.id !== '1' && e.id !== '2' && EXPENSE_CATEGORIES.has(e.category)
+                );
+                if (bad.length === 0) return 0;
+                const badIds = new Set(bad.map((e: FinancialEvent) => e.id));
+                set({
+                    events: events.filter((e: FinancialEvent) => !badIds.has(e.id)),
+                    realExpenses: [
+                        ...realExpenses,
+                        ...bad.map((e: FinancialEvent) => ({ id: e.id!, date: e.date, amount: e.amount, category: e.category }))
+                    ]
+                });
+                return bad.length;
+            }
         }),
         {
             name: 'lifeos-finance-storage',
