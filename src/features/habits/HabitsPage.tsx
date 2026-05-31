@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { HabitCard } from './HabitCard';
 import { CoachCard } from './CoachCard';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
-import { format, addDays } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import { cn } from '../../utils/cn';
 
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
@@ -29,13 +29,27 @@ export default function HabitsPage() {
     const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
+    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const navigateDate = (days: number) => {
         setCurrentDate(prev => addDays(prev, days));
     };
 
-    // --- GAMIFICATION STATE (Dev) ---
-    const [userStreak] = useState(0);
+    // --- GAMIFICATION: Real streak calculation ---
+    const userStreak = useMemo(() => {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        let count = 0;
+        const todayC = getCongruence(todayStr);
+        if (todayC > 0 || todayC === -1) count++;
+        for (let i = 1; i <= 365; i++) {
+            const d = subDays(new Date(), i);
+            const dStr = format(d, 'yyyy-MM-dd');
+            const c = getCongruence(dStr);
+            if (c > 0 || c === -1) count++;
+            else break;
+        }
+        return count;
+    }, [habits, getCongruence]);
 
     // --- GAMIFICATION LOGIC ---
     // Level 1 (Base): 0 - 13 days
@@ -69,8 +83,6 @@ export default function HabitsPage() {
             default: return '';
         }
     };
-
-    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const selectedDate = format(currentDate, 'yyyy-MM-dd');
     const congruence = getCongruence(selectedDate);
@@ -172,7 +184,7 @@ export default function HabitsPage() {
                                             <div className="flex items-center gap-1.5 text-xs text-neutral-400">
                                                 <CheckCircle2 size={14} className="text-cyan-400" />
                                                 <span className="font-medium text-white">
-                                                    {habits.filter(h => h.logs[format(selectedDate, 'yyyy-MM-dd')]?.completed).length}
+                                                    {habits.filter(h => h.logs[selectedDate]?.completed).length}
                                                 </span> hoy
                                             </div>
                                             <div className="flex items-center gap-1.5 text-xs text-neutral-400">

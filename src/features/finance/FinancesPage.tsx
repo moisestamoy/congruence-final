@@ -15,6 +15,7 @@ import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
 import { RestartModal } from './RestartModal';
+import { SafeToSpendWidget } from './SafeToSpendWidget';
 import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
@@ -231,6 +232,19 @@ export default function FinancesPage() {
         safemetric_projectedEnd = currentMonthData.days[currentMonthData.days.length - 1].balance;
     }
 
+    // Currency formatting helper
+    const cs = config.currency === 'USD' ? '$' : config.currency === 'GBP' ? '£' : config.currency === 'BRL' ? 'R$' : config.currency === 'MXN' ? '$' : config.currency === 'COP' ? '$' : '€';
+    const currencyLocale = config.currencyLocale || 'de-DE';
+    const fmtCur = (n: number) => `${cs}${Math.round(Math.abs(n)).toLocaleString(currencyLocale)}`;
+
+    // Days remaining in current month (for SafeToSpendWidget)
+    const daysRemainingInMonth = (() => {
+        const t = new Date();
+        const endOfMonth = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+        return Math.max(0, endOfMonth.getDate() - t.getDate() + 1);
+    })();
+    const dailyBaseBudget = Math.round((config.budgetChanges?.[format(today, 'yyyy-MM')] ?? config.monthlyFixedBudget) / 30);
+
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-emerald-500/30 pb-24">
             {/* BACKGROUND AMBIENCE */}
@@ -290,7 +304,7 @@ export default function FinancesPage() {
                             <p className="text-neutral-500 text-sm max-w-md">Registra ingresos y gastos para ver tu realidad financiera. El dashboard te mostrará los números tal como son, sin juicios.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                             {/* Card 1: Saldo proyectado */}
                             <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col gap-3 hover:border-white/[0.12] transition-colors">
                                 <div className="flex items-center justify-between">
@@ -301,14 +315,14 @@ export default function FinancesPage() {
                                     }
                                 </div>
                                 <div className={cn("text-4xl font-black font-mono tracking-tight", safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400")}>
-                                    €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
+                                    {fmtCur(safemetric_projectedEnd)}
                                 </div>
                                 {savingsGoals?.monthly > 0 && (
                                     <div className="flex flex-col gap-1.5 mt-1">
                                         <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
                                             <span className="text-neutral-600">Meta mensual</span>
                                             <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-neutral-400"}>
-                                                €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                                {fmtCur(Math.max(0, netFlow))} / {fmtCur(savingsGoals.monthly)}
                                             </span>
                                         </div>
                                         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -331,11 +345,11 @@ export default function FinancesPage() {
                                     }
                                 </div>
                                 <div className={cn("text-4xl font-black font-mono tracking-tight", netFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                                    {netFlow >= 0 ? '+' : ''}€{netFlow.toLocaleString('de-DE')}
+                                    {netFlow >= 0 ? '+' : '-'}{fmtCur(netFlow)}
                                 </div>
                                 <div className="flex justify-between text-xs text-neutral-500 mt-1">
-                                    <span className="flex items-center gap-1"><Plus size={10} className="text-emerald-500" /> €{totalIncome.toLocaleString()}</span>
-                                    <span className="flex items-center gap-1"><MinusIcon size={10} className="text-rose-500" /> €{Math.abs(totalExpenses).toLocaleString()}</span>
+                                    <span className="flex items-center gap-1"><Plus size={10} className="text-emerald-500" /> {fmtCur(totalIncome)}</span>
+                                    <span className="flex items-center gap-1"><MinusIcon size={10} className="text-rose-500" /> {fmtCur(totalExpenses)}</span>
                                 </div>
                             </div>
 
@@ -366,6 +380,14 @@ export default function FinancesPage() {
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Card 4: Safe to Spend */}
+                            <SafeToSpendWidget
+                                dailyBaseBudget={dailyBaseBudget}
+                                projectedEndBalance={safemetric_projectedEnd}
+                                savingsGoal={savingsGoals?.monthly || 0}
+                                daysRemaining={daysRemainingInMonth}
+                            />
                         </div>
                     )}
 
@@ -464,7 +486,7 @@ export default function FinancesPage() {
                                 "text-4xl font-black font-mono tracking-tighter drop-shadow-xl",
                                 safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400"
                             )}>
-                                €{Math.floor(safemetric_projectedEnd).toLocaleString('de-DE')}
+                                {fmtCur(safemetric_projectedEnd)}
                             </div>
 
                             {/* Monthly Goal Progress */}
@@ -472,8 +494,8 @@ export default function FinancesPage() {
                                 <div className="mt-3 w-full flex flex-col">
                                     <div className="flex justify-between w-full text-xs font-bold mb-1.5">
                                         <span className="text-neutral-500">Progreso Meta</span>
-                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-neutral-400"}>
-                                            €{Math.max(0, netFlow).toLocaleString('de-DE')} / €{savingsGoals.monthly.toLocaleString('de-DE')}
+                                        <span className={netFlow >= savingsGoals.monthly ? "text-emerald-400" : "text-cyan-400"}>
+                                            {fmtCur(Math.max(0, netFlow))} / {fmtCur(savingsGoals.monthly)}
                                         </span>
                                     </div>
                                     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -494,8 +516,8 @@ export default function FinancesPage() {
                                     <Plus size={12} className="text-emerald-500" />
                                     <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Ingresos</span>
                                 </div>
-                                <span className="text-xl font-black font-mono text-emerald-400">
-                                    €{totalIncome.toLocaleString()}
+                                <span className="text-lg font-bold font-mono text-emerald-400">
+                                    {fmtCur(totalIncome)}
                                 </span>
                             </div>
 
@@ -505,8 +527,8 @@ export default function FinancesPage() {
                                     <Minus size={12} className="text-rose-500" />
                                     <span className="text-xs font-bold text-neutral-400 uppercase tracking-wide">Gastos</span>
                                 </div>
-                                <span className="text-xl font-black font-mono text-rose-400">
-                                    €{Math.abs(totalExpenses).toLocaleString()}
+                                <span className="text-lg font-bold font-mono text-rose-400">
+                                    {fmtCur(totalExpenses)}
                                 </span>
                             </div>
                         </div>
@@ -607,7 +629,7 @@ export default function FinancesPage() {
                                                 "font-mono font-bold text-sm tracking-tight",
                                                 day.balance >= 0 ? "text-emerald-500" : "text-rose-500"
                                             )}>
-                                                €{Math.floor(day.balance).toLocaleString('de-DE')}
+                                                {fmtCur(day.balance)}
                                             </span>
                                         </div>
 
@@ -710,7 +732,7 @@ export default function FinancesPage() {
                                                 {!isExpanded && (
                                                     <>
                                                         <span className={cn("text-lg font-bold font-mono tracking-tight drop-shadow-sm", day.status === 'solid' ? "text-white" : "text-white")}>
-                                                            €{Math.floor(day.balance).toLocaleString('de-DE')}
+                                                            {fmtCur(day.balance)}
                                                         </span>
                                                         <div className="flex items-center gap-1">
                                                             {dailyNet !== 0 ? (
@@ -718,7 +740,7 @@ export default function FinancesPage() {
                                                                     "text-[10px] font-bold",
                                                                     dailyNet > 0 ? "text-emerald-400" : "text-red-400"
                                                                 )}>
-                                                                    {dailyNet > 0 ? '+' : ''}{Math.round(dailyNet)}€
+                                                                    {dailyNet > 0 ? '+' : '-'}{fmtCur(dailyNet)}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-[10px] font-medium text-neutral-600">-</span>
@@ -738,13 +760,13 @@ export default function FinancesPage() {
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Saldo Final</span>
                                                         <span className={cn("text-3xl font-bold font-mono tracking-tighter", accentColor)}>
-                                                            €{Math.floor(day.balance).toLocaleString('de-DE')}
+                                                            {fmtCur(day.balance)}
                                                         </span>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 px-4 py-2 bg-white/[0.03] rounded-xl border border-white/5">
                                                         <span className="text-[10px] text-neutral-400 font-medium uppercase tracking-wider">Flujo Neto</span>
                                                         <span className={cn("text-lg font-bold font-mono", dailyNet >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                                                            {dailyNet > 0 ? '+' : ''}{Math.round(dailyNet)}€
+                                                            {dailyNet > 0 ? '+' : '-'}{fmtCur(dailyNet)}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -780,7 +802,7 @@ export default function FinancesPage() {
                                                                 </div>
                                                             </div>
                                                             <span className={cn("font-mono font-bold text-sm", event.type === 'income' ? "text-emerald-400" : "text-red-400")}>
-                                                                {event.type === 'income' ? '+' : ''}{event.amount}€
+                                                                {event.type === 'income' ? '+' : '-'}{fmtCur(event.amount)}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -871,10 +893,10 @@ export default function FinancesPage() {
 
                             <div className="text-center">
                                 <p className="text-3xl font-bold text-white tracking-tight mb-1">
-                                    €{currentSaved.toLocaleString()}
+                                    {fmtCur(currentSaved)}
                                 </p>
                                 <p className="text-sm text-neutral-500 font-medium">
-                                    de <span className="text-neutral-300">€{annualGoal.toLocaleString()}</span> objetivo
+                                    de <span className="text-neutral-300">{fmtCur(annualGoal)}</span> objetivo
                                 </p>
                             </div>
                         </div>                        <button

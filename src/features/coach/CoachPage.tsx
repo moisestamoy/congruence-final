@@ -13,7 +13,12 @@ export default function CoachPage() {
     const { habits, manifesto } = useHabitStore();
     const { realExpenses } = useFinanceStore();
     const { checkIns } = useHolisticStore();
-    const [insight, setInsight] = useState<DailyInsight | null>(null);
+    const [insight, setInsight] = useState<DailyInsight | null>(() => {
+        try {
+            const saved = localStorage.getItem('coach-insight');
+            return saved ? JSON.parse(saved) : null;
+        } catch { return null; }
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -46,6 +51,7 @@ export default function CoachPage() {
                 checkIns.slice(-3)
             );
             setInsight(result);
+            try { localStorage.setItem('coach-insight', JSON.stringify(result)); } catch {}
             startCooldown();
         } finally {
             setIsLoading(false);
@@ -172,6 +178,11 @@ export default function CoachPage() {
                                             </span>
                                         </div>
 
+                                        {insight.date && (
+                                            <p className="text-[10px] text-neutral-600 text-center">
+                                                {new Date(insight.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        )}
                                         <button
                                             onClick={generateInsight}
                                             disabled={cooldown > 0 || isLoading}

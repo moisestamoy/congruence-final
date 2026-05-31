@@ -32,6 +32,8 @@ export interface FinancialConfig {
     monthlyIncomeGoal?: number;
     budgetChanges?: Record<string, number>; // "YYYY-MM": monthlyBudgetAmount
     cycleStartYearMonth?: string; // "YYYY-MM" format
+    currency?: string; // ISO 4217, e.g. "EUR", "MXN", "USD"
+    currencyLocale?: string; // BCP 47, e.g. "es-MX", "de-DE"
 }
 
 export interface FinancialEvent {

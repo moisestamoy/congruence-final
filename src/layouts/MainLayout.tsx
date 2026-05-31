@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, User, Brain } from 'lucide-react';
+import { LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, User, Brain, CheckSquare } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
@@ -13,12 +13,14 @@ const featureColors: Record<string, { icon: string; activeBg: string; mobileActi
     '/stats':    { icon: 'text-violet-400',  activeBg: 'bg-violet-500/[0.10]',  mobileActiveBg: 'bg-violet-500/15',  dot: 'bg-violet-400'  },
     '/identity': { icon: 'text-purple-400',  activeBg: 'bg-purple-500/[0.10]',  mobileActiveBg: 'bg-purple-500/15',  dot: 'bg-purple-400'  },
     '/coach':    { icon: 'text-amber-400',   activeBg: 'bg-amber-500/[0.10]',   mobileActiveBg: 'bg-amber-500/15',   dot: 'bg-amber-400'   },
+    '/tasks':    { icon: 'text-indigo-400',  activeBg: 'bg-indigo-500/[0.10]',  mobileActiveBg: 'bg-indigo-500/15',  dot: 'bg-indigo-400'  },
 };
 
 const sidebarItems = [
     { path: '/',         icon: LayoutDashboard, label: 'Tracker'      },
     { path: '/finances', icon: Wallet,          label: 'Finanzas'     },
     { path: '/stats',    icon: PieChart,        label: 'Estadísticas' },
+    { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'       },
     { path: '/identity', icon: User,            label: 'Identidad'    },
     { path: '/coach',    icon: Brain,           label: 'Coach IA'     },
 ];
@@ -27,7 +29,7 @@ const mobileNavItems = [
     { path: '/',         icon: LayoutDashboard, label: 'Tracker'  },
     { path: '/finances', icon: Wallet,          label: 'Finanzas' },
     { path: '/stats',    icon: PieChart,        label: 'Stats'    },
-    { path: '/identity', icon: User,            label: 'Yo'       },
+    { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'   },
 ];
 
 export default function MainLayout() {
@@ -38,7 +40,7 @@ export default function MainLayout() {
     const { triggerFab } = useFabStore();
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
-    const showFab = ['/', '/finances'].includes(location.pathname);
+    const showFab = ['/', '/finances', '/tasks'].includes(location.pathname);
 
     return (
         <div className="flex min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30">

@@ -56,7 +56,9 @@ export const useFinanceStore = create<FinanceState>()(
                 monthlyFixedBudget: 1500,
                 cycleStartDate: 1,
                 monthlyIncomeGoal: 3000,
-                cycleStartYearMonth: format(new Date(), 'yyyy-MM')
+                cycleStartYearMonth: format(new Date(), 'yyyy-MM'),
+                currency: 'EUR',
+                currencyLocale: 'de-DE',
             },
             events: [
                 // Demo data
@@ -87,14 +89,16 @@ export const useFinanceStore = create<FinanceState>()(
             savingsEntries: [],
             categoryBudgets: {},
 
-            resetAll: (initialBalance?: number) => set({
+            resetAll: (initialBalance?: number) => set((state) => ({
                 config: {
                     initialBalance: initialBalance ?? 0,
                     monthlyFixedBudget: 1500,
                     cycleStartDate: 1,
                     monthlyIncomeGoal: 3000,
                     budgetChanges: {},
-                    cycleStartYearMonth: format(new Date(), 'yyyy-MM')
+                    cycleStartYearMonth: format(new Date(), 'yyyy-MM'),
+                    currency: state.config.currency || 'EUR',
+                    currencyLocale: state.config.currencyLocale || 'de-DE',
                 },
                 events: [],
                 overrides: [],
@@ -105,7 +109,7 @@ export const useFinanceStore = create<FinanceState>()(
                 },
                 savingsEntries: [],
                 categoryBudgets: {}
-            }),
+            })),
 
             setBudgetFromMonth: (yearMonth: string, totalAmount: number, clearFutureData?: boolean, initialBalance?: number) => set((state) => {
                 const newConfig = {

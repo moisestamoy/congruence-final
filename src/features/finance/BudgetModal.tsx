@@ -11,9 +11,18 @@ const PREDEFINED_CATEGORIES = [
     'Supermercado', 'Comida', 'Transporte', 'Ocio', 'Salud', 'Alquiler', 'Educación', 'Servicios', 'Otros'
 ];
 
+const CURRENCIES = [
+    { code: 'EUR', symbol: '€', locale: 'de-DE', label: 'Euro (€)' },
+    { code: 'USD', symbol: '$', locale: 'en-US', label: 'Dólar USD ($)' },
+    { code: 'MXN', symbol: '$', locale: 'es-MX', label: 'Peso MXN ($)' },
+    { code: 'COP', symbol: '$', locale: 'es-CO', label: 'Peso COP ($)' },
+    { code: 'GBP', symbol: '£', locale: 'en-GB', label: 'Libra (£)' },
+    { code: 'BRL', symbol: 'R$', locale: 'pt-BR', label: 'Real BRL (R$)' },
+];
+
 export function BudgetModal({ onClose }: BudgetModalProps) {
-    const { config, setMonthlyDailyBudget, categoryBudgets, setCategoryBudget } = useFinanceStore();
-    const [activeTab, setActiveTab] = useState<'daily' | 'categories'>('daily');
+    const { config, setMonthlyDailyBudget, categoryBudgets, setCategoryBudget, updateConfig } = useFinanceStore();
+    const [activeTab, setActiveTab] = useState<'daily' | 'categories' | 'moneda'>('daily');
 
     // Daily Budget State
     const [monthlyBudget, setMonthlyBudget] = useState(config.monthlyFixedBudget.toString());
@@ -73,8 +82,18 @@ export function BudgetModal({ onClose }: BudgetModalProps) {
                             activeTab === 'categories' ? "text-indigo-400 bg-indigo-500/5" : "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.02]"
                         )}
                     >
-                        Por Categorías
+                        Categorías
                         {activeTab === 'categories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_#6366f1]" />}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('moneda')}
+                        className={cn(
+                            "flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all relative",
+                            activeTab === 'moneda' ? "text-emerald-400 bg-emerald-500/5" : "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.02]"
+                        )}
+                    >
+                        Moneda
+                        {activeTab === 'moneda' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_#10b981]" />}
                     </button>
                 </div>
 
@@ -114,7 +133,7 @@ export function BudgetModal({ onClose }: BudgetModalProps) {
                                 </div>
                             </div>
                         </div>
-                    ) : (
+                    ) : activeTab === 'categories' ? (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-center gap-3 mb-4 p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm">
                                 <AlertCircle size={18} />
@@ -142,7 +161,32 @@ export function BudgetModal({ onClose }: BudgetModalProps) {
                                 ))}
                             </div>
                         </div>
-                    )}
+                    ) : activeTab === 'moneda' ? (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <p className="text-sm text-neutral-400 mb-2">Selecciona la moneda que usarás en todas las pantallas de Finanzas.</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {CURRENCIES.map(cur => (
+                                    <button
+                                        key={cur.code}
+                                        onClick={() => updateConfig({ currency: cur.code, currencyLocale: cur.locale })}
+                                        className={cn(
+                                            "flex items-center gap-3 p-4 rounded-xl border text-left transition-all",
+                                            (config.currency || 'EUR') === cur.code
+                                                ? "border-emerald-500/50 bg-emerald-500/10 text-white"
+                                                : "border-white/5 bg-[#050505] text-neutral-400 hover:border-white/10"
+                                        )}
+                                    >
+                                        <span className="text-2xl font-mono font-bold w-8 text-center">{cur.symbol}</span>
+                                        <div>
+                                            <div className="font-bold text-sm">{cur.code}</div>
+                                            <div className="text-[11px] text-neutral-500">{cur.label.split(' ').slice(0, 2).join(' ')}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-neutral-600 mt-4">El cambio se aplica inmediatamente a todos los números.</p>
+                        </div>
+                    ) : null}
                 </div>
 
                 {/* Footer */}
@@ -153,6 +197,7 @@ export function BudgetModal({ onClose }: BudgetModalProps) {
                     >
                         Cancelar
                     </button>
+                    {activeTab !== 'moneda' && (
                     <button
                         onClick={activeTab === 'daily' ? handleSaveDaily : handleSaveCategories}
                         className={cn(
@@ -165,6 +210,15 @@ export function BudgetModal({ onClose }: BudgetModalProps) {
                         <Save size={16} />
                         Guardar {activeTab === 'daily' ? 'Presupuesto' : 'Límites'}
                     </button>
+                    )}
+                    {activeTab === 'moneda' && (
+                    <button
+                        onClick={onClose}
+                        className="px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-black bg-emerald-500 hover:bg-emerald-400 transition-all"
+                    >
+                        Listo
+                    </button>
+                    )}
                 </div>
             </div>
         </div>
