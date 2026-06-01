@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
@@ -411,11 +411,21 @@ export default function HabitsPage() {
                                     "flex justify-between items-end mb-3 lg:mb-4 relative z-10 pb-3 lg:pb-4",
                                     isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
                                 )}>
-                                    <div>
-                                        <div>
-                                            <h2 className="text-base lg:text-3xl font-black tracking-tight text-white drop-shadow-md leading-none">Tu Hábito</h2>
-                                            <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none mt-0.5">Panel de Control</p>
-                                        </div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-base lg:text-3xl font-black tracking-tight text-white drop-shadow-md leading-none uppercase">Hábitos</h2>
+                                        {/* Coach IA icon — navigates to /coach */}
+                                        <button
+                                            onClick={() => navigate('/coach')}
+                                            title="Coach IA"
+                                            className={cn(
+                                                "w-7 h-7 rounded-lg flex items-center justify-center transition-all border shrink-0",
+                                                isAccion
+                                                    ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                                                    : "bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20"
+                                            )}
+                                        >
+                                            <Brain size={13} />
+                                        </button>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5 lg:p-1 border border-white/10">
@@ -455,9 +465,7 @@ export default function HabitsPage() {
                                     ))}
                                 </div>
 
-                                <div className="mt-2 shrink-0 relative z-10">
-                                    <CoachCard />
-                                </div>
+
 
                                 <button
                                     onClick={handleCreateHabit}
