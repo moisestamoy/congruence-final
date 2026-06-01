@@ -62,10 +62,15 @@ Deno.serve(async (req: Request) => {
 
     // ── 2. Validate input ─────────────────────────────────────────────────
     const body = await req.json()
-    const { amount, category, date, note } = body
+    const { category, date, note } = body
+    // Coerce amount: accept both number (1.5) and string ("1.5" / "1,5") from iOS Shortcuts
+    const rawAmount = body.amount
+    const amount = typeof rawAmount === 'string'
+      ? parseFloat(rawAmount.replace(',', '.'))  // handle comma decimal separator
+      : Number(rawAmount)
     const errors: string[] = []
 
-    if (typeof amount !== 'number' || amount <= 0 || amount > 1_000_000) {
+    if (isNaN(amount) || amount <= 0 || amount > 1_000_000) {
       errors.push('amount must be a positive number less than 1,000,000')
     }
 
@@ -94,7 +99,7 @@ Deno.serve(async (req: Request) => {
     const newExpense = {
       id: crypto.randomUUID(),
       date: date.trim(),
-      amount: Number(amount),
+      amount: Math.round(amount * 100) / 100,  // preserve up to 2 decimal places
       category: category.trim(),
       ...(note && typeof note === 'string' && note.trim() !== '' ? { note: note.trim() } : {}),
     }

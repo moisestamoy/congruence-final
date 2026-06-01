@@ -85,7 +85,8 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
 
     const handleSave = () => {
         if (!amount || isNaN(Number(amount))) return;
-        const finalAmount = Math.round(Number(amount));
+        // Keep up to 2 decimal places — allows cents like 1.50
+        const finalAmount = Math.round(Number(amount) * 100) / 100;
 
         if (isGlobal) {
             onSave(finalAmount, category || 'Otros', description, globalDate, globalType);
@@ -161,7 +162,9 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                         <input
                             type="number"
                             autoFocus
-                            placeholder="0"
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             className={cn(
@@ -169,7 +172,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                                 borderColor
                             )}
                         />
-                        <p className="text-[10px] text-neutral-600 font-medium">Se redondeará al número entero más cercano.</p>
+                        <p className="text-[10px] text-neutral-600 font-medium">Acepta céntimos: 1.50, 0.99, etc.</p>
                     </div>
 
                     {/* Category */}

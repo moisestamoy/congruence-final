@@ -235,7 +235,15 @@ export default function FinancesPage() {
     // Currency formatting helper
     const cs = config.currency === 'USD' ? '$' : config.currency === 'GBP' ? '£' : config.currency === 'BRL' ? 'R$' : config.currency === 'MXN' ? '$' : config.currency === 'COP' ? '$' : '€';
     const currencyLocale = config.currencyLocale || 'de-DE';
-    const fmtCur = (n: number) => `${cs}${Math.round(Math.abs(n)).toLocaleString(currencyLocale)}`;
+    // Show cents only when the amount actually has them (1.50 → "€1.50", 10 → "€10")
+    const fmtCur = (n: number) => {
+        const abs = Math.abs(n);
+        const hasCents = abs % 1 !== 0;
+        return `${cs}${abs.toLocaleString(currencyLocale, {
+            minimumFractionDigits: hasCents ? 2 : 0,
+            maximumFractionDigits: 2,
+        })}`;
+    };
 
     // Days remaining in current month (for SafeToSpendWidget)
     const daysRemainingInMonth = (() => {
