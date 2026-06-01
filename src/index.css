@@ -61,6 +61,17 @@
 /* ACCION — selection accent */
 .accion ::selection { background: rgb(239 68 68 / 0.30); }
 
+/* ACCION — right panel / habit list panel darker + slight red tint */
+.accion .bg-white\/\[0\.04\] { background-color: rgb(255 255 255 / 0.02) !important; }
+.accion .bg-white\/\[0\.05\] { background-color: rgb(255 255 255 / 0.02) !important; }
+.accion .border-white\/\[0\.07\] { border-color: rgb(239 68 68 / 0.08) !important; }
+.accion .border-white\/\[0\.08\] { border-color: rgb(239 68 68 / 0.07) !important; }
+.accion .border-white\/\[0\.10\] { border-color: rgb(239 68 68 / 0.08) !important; }
+
+/* ACCION — scrollbar red */
+.accion ::-webkit-scrollbar-thumb { background: #3a0000; }
+.accion ::-webkit-scrollbar-thumb:hover { background: #5a0000; }
+
 @layer base {
   :root {
     /* Base HSL values */

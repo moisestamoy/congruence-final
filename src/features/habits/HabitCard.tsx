@@ -4,11 +4,20 @@ import { Check, Edit2 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { cn } from '../../utils/cn';
 import { Habit, IdentityAxis } from '../../types';
+import { useTheme } from '../../hooks/useTheme';
 
-const AXIS_CONFIG: Record<IdentityAxis, { label: string; color: string }> = {
+const AXIS_CONFIG_CLASSIC: Record<IdentityAxis, { label: string; color: string }> = {
     physical:    { label: 'Físico',      color: '#34d399' },
     emotional:   { label: 'Emocional',   color: '#fb7185' },
     vision:      { label: 'Visión',      color: '#22d3ee' },
+    standards:   { label: 'Disciplina',  color: '#fbbf24' },
+    growth:      { label: 'Crecimiento', color: '#818cf8' },
+    environment: { label: 'Entorno',     color: '#e879f9' },
+};
+const AXIS_CONFIG_ACCION: Record<IdentityAxis, { label: string; color: string }> = {
+    physical:    { label: 'Físico',      color: '#34d399' },
+    emotional:   { label: 'Emocional',   color: '#fb7185' },
+    vision:      { label: 'Visión',      color: '#f87171' },  // red instead of cyan
     standards:   { label: 'Disciplina',  color: '#fbbf24' },
     growth:      { label: 'Crecimiento', color: '#818cf8' },
     environment: { label: 'Entorno',     color: '#e879f9' },
@@ -25,6 +34,9 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit, onSkip }: HabitCardProps) {
+    const { theme } = useTheme();
+    const isAccion = theme === 'accion';
+    const AXIS_CONFIG = isAccion ? AXIS_CONFIG_ACCION : AXIS_CONFIG_CLASSIC;
     const [streak, setStreak] = useState(0);
     const [historyDays, setHistoryDays] = useState<{ date: string; completed: boolean; status?: 'completed' | 'rest' | 'emergency' }[]>([]);
 
@@ -75,9 +87,17 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
             layout
             className={cn(
                 "group relative flex flex-col items-stretch gap-1.5 lg:gap-3 p-4 lg:p-5 rounded-2xl transition-all duration-300 mb-2 overflow-hidden",
-                "bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] backdrop-blur-md",
-                "hover:from-white/[0.08] hover:to-white/[0.04] hover:border-white/[0.14] hover:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]",
-                isCompleted && "border-cyan-400/25 shadow-[0_0_24px_rgba(6,182,212,0.1)]"
+                isAccion
+                    ? cn(
+                        "bg-[#0a0000]/80 border border-red-950/40 backdrop-blur-md",
+                        "hover:bg-[#110000]/90 hover:border-red-900/50 hover:shadow-[0_4px_24px_-4px_rgba(239,68,68,0.15)]",
+                        isCompleted && "border-red-500/30 bg-[#150000]/80 shadow-[0_0_20px_rgba(239,68,68,0.12)]"
+                    )
+                    : cn(
+                        "bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] backdrop-blur-md",
+                        "hover:from-white/[0.08] hover:to-white/[0.04] hover:border-white/[0.14] hover:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]",
+                        isCompleted && "border-cyan-400/25 shadow-[0_0_24px_rgba(6,182,212,0.1)]"
+                    )
             )}
         >
             <div className="flex items-start justify-between w-full h-full gap-2">
@@ -238,7 +258,12 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
             {/* Soft background gradient fill when completed */}
             {isCompleted && (
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.08] via-cyan-500/[0.03] to-transparent pointer-events-none" />
+                <div className={cn(
+                    "absolute inset-0 pointer-events-none",
+                    isAccion
+                        ? "bg-gradient-to-br from-red-500/[0.12] via-red-500/[0.04] to-transparent"
+                        : "bg-gradient-to-br from-cyan-500/[0.08] via-cyan-500/[0.03] to-transparent"
+                )} />
             )}
         </motion.div>
     );

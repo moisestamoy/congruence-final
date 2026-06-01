@@ -77,12 +77,22 @@ export default function HabitsPage() {
 
     // Dynamic Glow based on Level (Ambient Background)
     const getAmbientGlow = () => {
+        if (isAccion) {
+            switch (currentLevel) {
+                case 6: return 'drop-shadow-[0_0_60px_rgba(239,68,68,0.5)]';
+                case 5: return 'drop-shadow-[0_0_50px_rgba(239,68,68,0.45)]';
+                case 4: return 'drop-shadow-[0_0_40px_rgba(239,68,68,0.4)]';
+                case 3: return 'drop-shadow-[0_0_35px_rgba(239,68,68,0.35)]';
+                case 2: return 'drop-shadow-[0_0_25px_rgba(239,68,68,0.25)]';
+                default: return 'drop-shadow-[0_0_15px_rgba(239,68,68,0.15)]'; // L1 still has subtle glow
+            }
+        }
         switch (currentLevel) {
             case 6: return 'drop-shadow-[0_0_50px_rgba(255,255,255,0.3)]';
             case 5: return 'drop-shadow-[0_0_40px_rgba(14,165,233,0.3)]';
             case 4: return 'drop-shadow-[0_0_30px_rgba(251,191,36,0.2)]';
-            case 3: return isAccion ? 'drop-shadow-[0_0_25px_rgba(239,68,68,0.3)]' : 'drop-shadow-[0_0_25px_rgba(217,70,239,0.2)]';
-            case 2: return isAccion ? 'drop-shadow-[0_0_20px_rgba(248,113,113,0.2)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.15)]';
+            case 3: return 'drop-shadow-[0_0_25px_rgba(217,70,239,0.2)]';
+            case 2: return 'drop-shadow-[0_0_15px_rgba(6,182,212,0.15)]';
             default: return '';
         }
     };
@@ -132,10 +142,19 @@ export default function HabitsPage() {
     };
 
     return (
-        <div className="min-h-screen lg:h-screen w-full bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202] text-white overflow-y-auto lg:overflow-hidden relative p-4 lg:p-8 font-sans">
+        <div className={cn(
+            "min-h-screen lg:h-screen w-full text-white overflow-y-auto lg:overflow-hidden relative p-4 lg:p-8 font-sans",
+            isAccion
+                ? "bg-[#000000] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-red-950/40 via-[#000000] to-[#000000]"
+                : "bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202]"
+        )}>
 
             {/* Ambient Background Glow */}
             <div className={cn("absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 pointer-events-none transition-all duration-1000", getAmbientGlow())} />
+            {/* ACCIÓN extra deep-red floor glow */}
+            {isAccion && (
+                <div className="absolute bottom-0 left-0 w-full h-1/3 pointer-events-none bg-gradient-to-t from-red-950/20 to-transparent" />
+            )}
 
 
 
@@ -326,10 +345,16 @@ export default function HabitsPage() {
                                     onClick={() => navigate('/identity')}
                                     title="Tu Identidad"
                                 >
-                                    {/* GLOW EFFECT MOVED INSIDE THE SCALED CONTAINER TO SCALE WITH IT */}
+                                    {/* GLOW EFFECT — scales with level, responds to ACCIÓN theme */}
                                     <div className={cn(
                                         "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                        currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
+                                        isAccion
+                                            ? currentLevel >= 3
+                                                ? "bg-cyan-500/50 w-[700px] h-[700px] blur-[120px]"
+                                                : "bg-cyan-500/25 w-[400px] h-[400px] blur-[100px]"
+                                            : currentLevel >= 3
+                                                ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]"
+                                                : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                                     )} />
 
                                     <CongruenceLevelIndicator

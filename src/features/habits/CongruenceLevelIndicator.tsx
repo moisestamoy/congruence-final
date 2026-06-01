@@ -43,18 +43,25 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
 
     const colors = getColors();
 
+    // In ACCIÓN mode make all rings brighter/more visible
     const rings = [
-        { radius: baseRadius, stroke: strokeWidth, opacity: level === 1 ? 0.2 : 0.3 },
-        { radius: baseRadius - step, stroke: strokeWidth, opacity: level === 1 ? 0.5 : 0.6 },
-        { radius: baseRadius - (step * 2), stroke: strokeWidth, opacity: level === 1 ? 1.0 : 1.0 },
+        { radius: baseRadius,           stroke: strokeWidth, opacity: isAccion ? 0.35 : (level === 1 ? 0.2 : 0.3) },
+        { radius: baseRadius - step,    stroke: strokeWidth, opacity: isAccion ? 0.65 : (level === 1 ? 0.5 : 0.6) },
+        { radius: baseRadius - step*2,  stroke: strokeWidth, opacity: 1.0 },
     ];
 
-    // Filter Logic
-    const containerFilter = level >= 3
-        ? `drop-shadow(0 0 10px ${colors.glow}) drop-shadow(0 0 20px ${colors.glow})`
-        : level === 2
-            ? `drop-shadow(0 0 5px ${colors.glow})`
-            : 'none';
+    // Filter Logic — ACCIÓN always glows, even at level 1
+    const containerFilter = (() => {
+        if (isAccion) {
+            const g = colors.glow;
+            if (level >= 3) return `drop-shadow(0 0 14px ${g}) drop-shadow(0 0 30px ${g}) drop-shadow(0 0 50px ${g})`;
+            if (level === 2) return `drop-shadow(0 0 10px ${g}) drop-shadow(0 0 24px ${g})`;
+            return `drop-shadow(0 0 8px ${g}) drop-shadow(0 0 20px ${g})`;  // L1 still glows in ACCIÓN
+        }
+        if (level >= 3) return `drop-shadow(0 0 10px ${colors.glow}) drop-shadow(0 0 20px ${colors.glow})`;
+        if (level === 2) return `drop-shadow(0 0 5px ${colors.glow})`;
+        return 'none';
+    })();
 
     return (
         <div className="flex flex-col items-center justify-center relative">
@@ -150,9 +157,9 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                                     cy={center}
                                     r={ring.radius}
                                     fill="transparent"
-                                    stroke={level === 1 ? "#1a1a1a" : "#0f0f12"} // Original #1a1a1a for L1
+                                    stroke={isAccion ? "#1a0000" : (level === 1 ? "#1a1a1a" : "#0f0f12")}
                                     strokeWidth={ring.stroke}
-                                    strokeOpacity={level === 1 ? 1 : 0.8} // Solid background for L1
+                                    strokeOpacity={level === 1 ? 1 : 0.8}
                                 />
 
                                 {/* Progress Ring */}
