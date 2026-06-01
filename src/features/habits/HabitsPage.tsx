@@ -16,6 +16,7 @@ import { useGameStore } from '../gamification/useGameStore'; // Import GameStore
 import { useFabStore } from '../../hooks/useFabStore';
 import { useAuth } from '../../context/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function HabitsPage() {
     const navigate = useNavigate();
@@ -29,6 +30,8 @@ export default function HabitsPage() {
     const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
+    const { theme, setTheme } = useTheme();
+    const isAccion = theme === 'accion';
     const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const navigateDate = (days: number) => {
@@ -75,11 +78,11 @@ export default function HabitsPage() {
     // Dynamic Glow based on Level (Ambient Background)
     const getAmbientGlow = () => {
         switch (currentLevel) {
-            case 6: return 'drop-shadow-[0_0_50px_rgba(255,255,255,0.3)]'; // Cosmic White/Rainbow
-            case 5: return 'drop-shadow-[0_0_40px_rgba(14,165,233,0.3)]'; // Diamond Blue
-            case 4: return 'drop-shadow-[0_0_30px_rgba(251,191,36,0.2)]'; // Gold
-            case 3: return 'drop-shadow-[0_0_25px_rgba(217,70,239,0.2)]'; // Violet
-            case 2: return 'drop-shadow-[0_0_15px_rgba(6,182,212,0.15)]'; // Cyan
+            case 6: return 'drop-shadow-[0_0_50px_rgba(255,255,255,0.3)]';
+            case 5: return 'drop-shadow-[0_0_40px_rgba(14,165,233,0.3)]';
+            case 4: return 'drop-shadow-[0_0_30px_rgba(251,191,36,0.2)]';
+            case 3: return isAccion ? 'drop-shadow-[0_0_25px_rgba(239,68,68,0.3)]' : 'drop-shadow-[0_0_25px_rgba(217,70,239,0.2)]';
+            case 2: return isAccion ? 'drop-shadow-[0_0_20px_rgba(248,113,113,0.2)]' : 'drop-shadow-[0_0_15px_rgba(6,182,212,0.15)]';
             default: return '';
         }
     };
@@ -212,6 +215,33 @@ export default function HabitsPage() {
                                         <div className="flex flex-col">
                                             <span className="font-bold text-white tracking-wide">Protocolo de Persona</span>
                                             <span className="text-[10px] text-neutral-500 mt-0.5 leading-tight">Tu brújula de 90 días</span>
+                                        </div>
+                                    </motion.button>
+
+                                    <div className="h-px bg-white/5 mx-4" />
+
+                                    {/* Theme Switcher */}
+                                    <motion.button
+                                        variants={{ hidden: { opacity: 0, x: -10 }, visible: { opacity: 1, x: 0 } }}
+                                        onClick={() => {
+                                            setTheme(isAccion ? 'dark' : 'accion');
+                                            setIsProfileMenuOpen(false);
+                                        }}
+                                        className="flex items-center gap-3 px-5 py-4 text-sm font-medium transition-colors text-left group w-full"
+                                    >
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                                            isAccion ? "bg-red-400/10 group-hover:bg-red-400/20" : "bg-white/5 group-hover:bg-white/10"
+                                        )}>
+                                            <span className={cn("w-3 h-3 rounded-full transition-colors", isAccion ? "bg-red-500" : "bg-cyan-400")} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className={cn("font-bold tracking-wide", isAccion ? "text-red-400" : "text-white")}>
+                                                {isAccion ? 'ACCIÓN (activo)' : 'Tema ACCIÓN'}
+                                            </span>
+                                            <span className="text-[10px] text-neutral-500 mt-0.5 leading-tight">
+                                                {isAccion ? 'Toca para volver a Classic' : 'Negro puro + Rojo'}
+                                            </span>
                                         </div>
                                     </motion.button>
 

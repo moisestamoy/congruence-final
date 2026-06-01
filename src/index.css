@@ -4,6 +4,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── ACCENT COLOR SYSTEM (theme-switchable via CSS variables) ──────────────
+   Classic (dark/default) → cyan palette
+   ACCION                 → red palette
+   All Tailwind cyan-* classes pick up these values automatically.
+   ──────────────────────────────────────────────────────────────────────── */
+:root, .dark {
+  --accent-300: 103 232 249;   /* cyan-300  #67e8f9 */
+  --accent-400: 34 211 238;    /* cyan-400  #22d3ee */
+  --accent-500: 6 182 212;     /* cyan-500  #06b6d4 */
+  --accent-900: 8 51 68;       /* cyan-900  #083444 */
+  --logo-color: #22d3ee;
+  --logo-glow-sm: rgba(34, 211, 238, 0.35);
+  --logo-glow-lg: rgba(34, 211, 238, 0.70);
+  --glow-1: rgba(6, 182, 212, 0.10);
+  --glow-2: rgba(6, 182, 212, 0.30);
+  --glow-3: rgba(6, 182, 212, 0.40);
+  --glow-4: rgba(6, 182, 212, 0.50);
+}
+
+.accion {
+  --accent-300: 252 165 165;   /* red-300   #fca5a5 */
+  --accent-400: 248 113 113;   /* red-400   #f87171 */
+  --accent-500: 239 68 68;     /* red-500   #ef4444 */
+  --accent-900: 69 10 10;      /* red-900   #450a0a */
+  --logo-color: #ef4444;
+  --logo-glow-sm: rgba(239, 68, 68, 0.40);
+  --logo-glow-lg: rgba(239, 68, 68, 0.75);
+  --glow-1: rgba(239, 68, 68, 0.10);
+  --glow-2: rgba(239, 68, 68, 0.30);
+  --glow-3: rgba(239, 68, 68, 0.40);
+  --glow-4: rgba(239, 68, 68, 0.50);
+}
+
+/* ACCION — pure black background override */
+.accion body,
+.accion .bg-\[\#050505\],
+.accion .bg-\[\#020202\],
+.accion .bg-\[\#0a0a0a\] { background-color: #000 !important; }
+
+/* ACCION — shadow/glow overrides for hardcoded cyan rgba values */
+.accion [class*="shadow-\[0_0_"][class*="rgba\(6,182,212"] {
+  --tw-shadow-color: rgb(239 68 68) !important;
+}
+.accion [class*="shadow-\[0_0_"][class*="rgba\(34,211,238"] {
+  --tw-shadow-color: rgb(239 68 68) !important;
+}
+
+/* ACCION — text-gradient-cyan → red */
+.accion .text-gradient-cyan {
+  background: linear-gradient(to right, #f87171, #fca5a5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ACCION — selection accent */
+.accion ::selection { background: rgb(239 68 68 / 0.30); }
+
 @layer base {
   :root {
     /* Base HSL values */

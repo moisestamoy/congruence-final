@@ -6,6 +6,7 @@ import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
 import { SupabaseSync } from '../features/sync/SupabaseSync';
 import { useFabStore } from '../hooks/useFabStore';
+import { useTheme } from '../hooks/useTheme';
 
 const featureColors: Record<string, { icon: string; activeBg: string; mobileActiveBg: string; dot: string }> = {
     '/':         { icon: 'text-cyan-400',    activeBg: 'bg-cyan-500/[0.10]',    mobileActiveBg: 'bg-cyan-500/15',    dot: 'bg-cyan-400'    },
@@ -38,9 +39,13 @@ export default function MainLayout() {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { user, signOut } = useAuth();
     const { triggerFab } = useFabStore();
+    const { theme, setTheme } = useTheme();
+    const isAccion = theme === 'accion';
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
     const showFab = ['/', '/finances', '/tasks'].includes(location.pathname);
+
+    const toggleTheme = () => setTheme(isAccion ? 'dark' : 'accion');
 
     return (
         <div className="flex min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30">
@@ -60,13 +65,16 @@ export default function MainLayout() {
                         <svg
                             width="34" height="34" viewBox="0 0 32 32" fill="none"
                             xmlns="http://www.w3.org/2000/svg"
-                            className="drop-shadow-[0_0_8px_rgba(34,211,238,0.35)] group-hover:drop-shadow-[0_0_18px_rgba(34,211,238,0.7)] transition-all duration-300"
+                            style={{
+                                filter: `drop-shadow(0 0 8px var(--logo-glow-sm))`,
+                            }}
+                            className="group-hover:[filter:drop-shadow(0_0_18px_var(--logo-glow-lg))] transition-all duration-300"
                         >
                             <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
-                            <circle cx="16" cy="16" r="12.8" stroke="#22d3ee" strokeWidth="0.9"  strokeOpacity="0.2"/>
-                            <circle cx="16" cy="16" r="9.6"  stroke="#22d3ee" strokeWidth="1.1"  strokeOpacity="0.55"/>
-                            <circle cx="16" cy="16" r="6.4"  stroke="#22d3ee" strokeWidth="1.3"  strokeOpacity="1"/>
-                            <circle cx="16" cy="16" r="1.1"  fill="#22d3ee"/>
+                            <circle cx="16" cy="16" r="12.8" stroke="var(--logo-color)" strokeWidth="0.9"  strokeOpacity="0.2"/>
+                            <circle cx="16" cy="16" r="9.6"  stroke="var(--logo-color)" strokeWidth="1.1"  strokeOpacity="0.55"/>
+                            <circle cx="16" cy="16" r="6.4"  stroke="var(--logo-color)" strokeWidth="1.3"  strokeOpacity="1"/>
+                            <circle cx="16" cy="16" r="1.1"  fill="var(--logo-color)"/>
                         </svg>
                     </button>
                 </div>
@@ -110,7 +118,7 @@ export default function MainLayout() {
                 <div className="w-9 h-px bg-white/[0.06] mt-3 mb-4" />
 
                 {/* Auth / profile */}
-                <div className="pb-5 flex justify-center">
+                <div className="pb-3 flex flex-col items-center gap-2 px-3">
                     <button
                         onClick={() => user ? signOut() : setIsAuthModalOpen(true)}
                         title={user ? `${user.email} — Cerrar sesión` : 'Iniciar sesión'}
@@ -125,6 +133,21 @@ export default function MainLayout() {
                             ? (user.email ? user.email.charAt(0).toUpperCase() : <LogOut size={14} />)
                             : <LogIn size={14} />
                         }
+                    </button>
+
+                    {/* Theme Switcher */}
+                    <button
+                        onClick={toggleTheme}
+                        title={isAccion ? 'Cambiar a tema Classic' : 'Cambiar a tema ACCIÓN'}
+                        className={cn(
+                            "w-full h-7 rounded-lg flex items-center justify-center gap-1 text-[9px] font-black uppercase tracking-widest transition-all border",
+                            isAccion
+                                ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                                : "bg-white/[0.03] border-white/[0.06] text-neutral-600 hover:bg-white/[0.07] hover:text-neutral-400"
+                        )}
+                    >
+                        <span className={cn("w-1.5 h-1.5 rounded-full transition-colors duration-300", isAccion ? "bg-red-500" : "bg-cyan-400")} />
+                        {isAccion ? 'ACCIÓN' : 'CLASSIC'}
                     </button>
                 </div>
             </aside>

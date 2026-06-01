@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { useTheme } from '../../hooks/useTheme';
 
 interface CongruenceLevelIndicatorProps {
     percentage: number;
@@ -9,27 +10,33 @@ interface CongruenceLevelIndicatorProps {
 }
 
 export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth = 10, level = 1 }: CongruenceLevelIndicatorProps) {
+    const { theme } = useTheme();
+    const isAccion = theme === 'accion';
     const center = size / 2;
-    // Calculate relative radius based on size to scale proportionately
     const baseRadius = size * 0.4;
     const step = size * 0.09;
 
     // --- DOPAMINE COLOR SYSTEM ---
-    // L1 (Base/Original): Teal (The Classic Look)
-    // L2 (Active): Cyan (Brighter, Electric)
-    // L3 (Radiant): Violet/Fuchsia (Epic Tier)
-    // L4 (Legendary): Gold/Amber (Mastery)
-    // L5 (Diamond): Sky/Ice (200+ days)
-    // L6 (Cosmic): Iridescent/White (365+ days)
-
+    // ACCION theme: L1/L2 use red; higher levels keep their epic colors
     const getColors = () => {
+        if (isAccion) {
+            switch (level) {
+                case 1: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.4)', text: 'text-red-400' };
+                case 2: return { primary: '#f87171', secondary: '#dc2626', glow: 'rgba(248,113,113,0.5)', text: 'text-red-400' };
+                case 3: return { primary: '#ff3333', secondary: '#cc0000', glow: 'rgba(255,51,51,0.7)', text: 'text-red-400' };
+                case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' };
+                case 5: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.8)', text: 'text-slate-200' };
+                case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
+                default: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.4)', text: 'text-red-400' };
+            }
+        }
         switch (level) {
-            case 1: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' }; // Original Teal
-            case 2: return { primary: '#06b6d4', secondary: '#0891b2', glow: 'rgba(6,182,212,0.5)', text: 'text-cyan-400' }; // Cyan-500
-            case 3: return { primary: '#d946ef', secondary: '#a21caf', glow: 'rgba(217,70,239,0.6)', text: 'text-fuchsia-400' }; // Fuchsia-500
-            case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' }; // Amber-400
-            case 5: return { primary: '#38bdf8', secondary: '#0284c7', glow: 'rgba(56,189,248,0.8)', text: 'text-sky-400' }; // Diamond
-            case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' }; // Cosmic (Base White)
+            case 1: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' };
+            case 2: return { primary: '#06b6d4', secondary: '#0891b2', glow: 'rgba(6,182,212,0.5)', text: 'text-cyan-400' };
+            case 3: return { primary: '#d946ef', secondary: '#a21caf', glow: 'rgba(217,70,239,0.6)', text: 'text-fuchsia-400' };
+            case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' };
+            case 5: return { primary: '#38bdf8', secondary: '#0284c7', glow: 'rgba(56,189,248,0.8)', text: 'text-sky-400' };
+            case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
             default: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' };
         }
     };
