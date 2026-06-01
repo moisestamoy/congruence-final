@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
@@ -27,7 +27,6 @@ export default function HabitsPage() {
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(false); // collapsed by default on mobile
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
@@ -156,7 +155,7 @@ export default function HabitsPage() {
 
     return (
         <div className={cn(
-            "h-screen overflow-hidden w-full text-white relative p-3 lg:p-8 font-sans",
+            "h-screen overflow-hidden flex flex-col w-full text-white relative p-3 lg:p-8 font-sans",
             isAccion
                 ? "bg-[#000000] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-red-950/40 via-[#000000] to-[#000000]"
                 : "bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202]"
@@ -345,53 +344,35 @@ export default function HabitsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
+                        className="flex flex-col lg:grid lg:grid-cols-2 flex-1 min-h-0 gap-2 lg:gap-12"
                     >
-                        {/* Ring column — HIDDEN on mobile, shown on desktop (left col) */}
-                        <div className="hidden lg:flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full lg:order-1 transition-all duration-500">
+                        {/* Ring column — compact on mobile (top), full on desktop (left) */}
+                        <div className="lg:order-1 h-[200px] shrink-0 lg:h-full lg:shrink-1 flex flex-col items-center justify-center relative transition-all duration-500">
 
+                            {/* Glow */}
                             <div className={cn(
-                                "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
-                                isMobileCircleVisible ? "h-[260px] lg:h-[600px]" : "h-0 lg:h-[600px]"
-                            )}>
-                                <div
-                                    className="transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0 cursor-pointer"
-                                    onClick={() => navigate('/identity')}
-                                    title="Tu Identidad"
-                                >
-                                    {/* GLOW EFFECT — scales with level, responds to ACCIÓN theme */}
-                                    <div className={cn(
-                                        "absolute top-[225px] left-[225px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
-                                        isAccion
-                                            ? currentLevel >= 3
-                                                ? "bg-cyan-500/50 w-[700px] h-[700px] blur-[120px]"
-                                                : "bg-cyan-500/25 w-[400px] h-[400px] blur-[100px]"
-                                            : currentLevel >= 3
-                                                ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[100px]"
-                                                : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
-                                    )} />
+                                "absolute inset-0 flex items-center justify-center rounded-full pointer-events-none mix-blend-screen",
+                                isAccion ? "bg-cyan-500/20 blur-[60px]" : "bg-cyan-500/10 blur-[50px]"
+                            )} />
 
-                                    <CongruenceLevelIndicator
-                                        percentage={congruence}
-                                        size={typeof window !== 'undefined' ? (window.innerWidth < 1024 ? (isMobileCircleVisible ? 240 : 120) : 500) : 450}
-                                        strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 20 : 35}
-                                        level={currentLevel}
-                                    />
-                                </div>
+                            {/* Ring — compact on mobile, large on desktop */}
+                            <div
+                                className="relative z-10 cursor-pointer"
+                                onClick={() => navigate('/identity')}
+                                title="Tu Identidad"
+                            >
+                                <CongruenceLevelIndicator
+                                    percentage={congruence}
+                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 130 : 500}
+                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 12 : 35}
+                                    level={currentLevel}
+                                />
                             </div>
 
-                            <p className="mt-4 lg:mt-8 text-cyan-200/40 font-light italic text-center max-w-xs lg:max-w-sm drop-shadow-md tracking-wider text-[10px] lg:text-sm px-4 lg:px-0">
+                            {/* Quote — desktop only */}
+                            <p className="hidden lg:block mt-8 text-cyan-200/40 font-light italic text-center max-w-sm drop-shadow-md tracking-wider text-sm">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
-                            <div className="flex justify-center mt-2 mb-1 lg:hidden w-full relative z-20">
-                                <button
-                                    onClick={() => setIsMobileCircleVisible(!isMobileCircleVisible)}
-                                    className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg flex items-center justify-center gap-1.5 group"
-                                >
-                                    <span className="text-xs font-bold uppercase tracking-widest">{isMobileCircleVisible ? "Ocultar" : "Mostrar"}</span>
-                                    {isMobileCircleVisible ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                </button>
-                            </div>
                         </div>
 
                         {/* Habits column — fills full height on mobile, right col on desktop */}
@@ -418,20 +399,9 @@ export default function HabitsPage() {
                                     isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
                                 )}>
                                     <div>
-                                        <div className="flex items-center gap-2">
-                                            {/* Mobile-only: congruence % ring indicator */}
-                                            <div className={cn(
-                                                "lg:hidden w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0",
-                                                isAccion ? "border-red-500/50" : "border-cyan-400/50"
-                                            )}>
-                                                <span className={cn("text-[9px] font-black", isAccion ? "text-red-400" : "text-cyan-400")}>
-                                                    {congruence}%
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <h2 className="text-base lg:text-3xl font-black tracking-tight text-white drop-shadow-md leading-none">Tu Hábito</h2>
-                                                <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none mt-0.5">Panel de Control</p>
-                                            </div>
+                                        <div>
+                                            <h2 className="text-base lg:text-3xl font-black tracking-tight text-white drop-shadow-md leading-none">Tu Hábito</h2>
+                                            <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none mt-0.5">Panel de Control</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
