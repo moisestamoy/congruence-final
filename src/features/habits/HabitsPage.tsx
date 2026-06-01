@@ -27,7 +27,7 @@ export default function HabitsPage() {
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(true);
+    const [isMobileCircleVisible, setIsMobileCircleVisible] = useState(false); // collapsed by default on mobile
     const { fabActionTick } = useFabStore();
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
@@ -347,11 +347,12 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
                     >
-                        <div className="flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-2 lg:mt-0 transition-all duration-500">
+                        {/* Ring column — order-2 on mobile (below habits), order-1 on desktop (left) */}
+                        <div className="order-2 lg:order-1 flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-0 lg:mt-0 transition-all duration-500">
 
                             <div className={cn(
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
-                                isMobileCircleVisible ? "h-[320px] lg:h-[600px]" : "h-[120px] lg:h-[600px]" // Reduced heights for mobile
+                                isMobileCircleVisible ? "h-[260px] lg:h-[600px]" : "h-0 lg:h-[600px]"
                             )}>
                                 <div
                                     className="transition-transform duration-500 origin-top lg:origin-center relative pt-2 lg:pt-0 cursor-pointer"
@@ -393,10 +394,10 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Derecha (Hábitos) */}
-                        <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
+                        {/* Habits column — order-1 on mobile (TOP), order-2 on desktop (right) */}
+                        <div className="order-1 lg:order-2 flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
                             <div className={cn(
-                                "rounded-t-[2rem] lg:rounded-[2rem] p-4 pt-4 pb-20 lg:p-6 lg:pb-6 h-full flex flex-col relative overflow-hidden transition-all duration-500",
+                                "rounded-[1.5rem] lg:rounded-[2rem] p-3 pt-3 pb-24 lg:p-6 lg:pb-6 h-full flex flex-col relative overflow-hidden transition-all duration-500",
                                 isAccion
                                     ? "bg-transparent border border-red-950/25"
                                     : "backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
@@ -417,26 +418,24 @@ export default function HabitsPage() {
                                     isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
                                 )}>
                                     <div>
-                                        <h2 className="text-xl lg:text-3xl font-black tracking-tight text-white drop-shadow-md mb-0.5 lg:mb-1">Tu Hábito</h2>
-                                        <p className="text-cyan-400/80 text-[10px] lg:text-xs font-bold uppercase tracking-widest leading-none">Panel de Control</p>
+                                        <h2 className="text-lg lg:text-3xl font-black tracking-tight text-white drop-shadow-md mb-0 lg:mb-1">Tu Hábito</h2>
+                                        <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none">Panel de Control</p>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2 bg-white/5 rounded-full p-1 border border-white/10">
-                                            <button
-                                                onClick={() => navigateDate(-1)}
-                                                className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-                                            >
-                                                <ChevronLeft size={16} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5 lg:p-1 border border-white/10">
+                                            <button onClick={() => navigateDate(-1)} className="p-1 lg:p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors">
+                                                <ChevronLeft size={14} />
                                             </button>
-                                            <span className="text-xs lg:text-sm text-neutral-200 font-mono tracking-wider px-2 font-bold min-w-[100px] text-center">
-                                                {format(currentDate, 'dd MMM yyyy')}
+                                            <span className="text-[10px] lg:text-sm text-neutral-200 font-mono tracking-wider px-1 lg:px-2 font-bold min-w-[56px] lg:min-w-[100px] text-center">
+                                                {format(currentDate, 'dd MMM')}
+                                                <span className="hidden lg:inline"> {format(currentDate, 'yyyy')}</span>
                                             </span>
                                             <button
                                                 onClick={() => navigateDate(1)}
-                                                className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
                                                 disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
+                                                className="p-1 lg:p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors disabled:opacity-30"
                                             >
-                                                <ChevronRight size={16} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
+                                                <ChevronRight size={14} />
                                             </button>
                                         </div>
                                     </div>
@@ -483,16 +482,16 @@ export default function HabitsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-8 items-center overflow-y-auto lg:overflow-hidden pb-20 lg:pb-0"
+                        className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-4 lg:gap-8 items-start lg:items-center overflow-y-auto lg:overflow-hidden pb-24 lg:pb-0"
                     >
                         {/* ── Columna Izquierda: Identidad + Progreso ── */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-4 py-2 lg:py-8 order-2 lg:order-1">
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-3 lg:gap-4 order-3 lg:order-1 lg:py-8">
 
                             {/* Card 1: Tu Identidad */}
                             <div
                                 onClick={() => setIsIdentityBuilderOpen(true)}
                                 className={cn(
-                                    "rounded-[2rem] p-6 lg:p-8 flex flex-col justify-between relative overflow-hidden group transition-all duration-500 min-h-[180px] lg:h-[55%] cursor-pointer",
+                                    "rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-8 flex flex-col justify-between relative overflow-hidden group transition-all duration-500 min-h-[130px] lg:h-[55%] cursor-pointer",
                                     isAccion
                                         ? "bg-[#0a0000]/60 border border-red-950/30 hover:border-red-900/50 hover:shadow-[0_8px_32px_rgba(239,68,68,0.08)]"
                                         : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] hover:shadow-cyan-900/20 shadow-lg"
@@ -545,7 +544,7 @@ export default function HabitsPage() {
 
                             {/* Card 2: Progreso 90 Días */}
                             <div className={cn(
-                                "rounded-[2rem] p-6 lg:p-8 flex flex-col relative overflow-hidden group transition-all duration-500 min-h-[180px] lg:h-[45%]",
+                                "rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-8 flex flex-col relative overflow-hidden group transition-all duration-500 min-h-[120px] lg:h-[45%]",
                                 isAccion
                                     ? "bg-[#0a0000]/60 border border-red-950/30 hover:border-red-900/50"
                                     : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] shadow-lg"
@@ -614,15 +613,15 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Central (Núcleo) - 6/12 - Orden 2 - GIANT NEON RING */}
-                        <div className="w-full lg:col-span-6 flex justify-center items-center relative min-h-[150px] lg:min-h-0 order-1 lg:order-2 my-2 lg:my-0">
+                        {/* Columna Central (Núcleo) — order-2 on mobile, order-2 on desktop */}
+                        <div className="w-full lg:col-span-6 flex justify-center items-center relative order-2 lg:order-2 h-[200px] lg:h-auto">
                             {/* Ambient Glow */}
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[150px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
                             <div
-                                className="scale-[0.45] md:scale-75 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer hover:scale-[0.47] md:hover:scale-[0.77] lg:hover:scale-[1.13]"
+                                className="scale-[0.3] md:scale-60 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer"
                                 onClick={() => navigate('/identity')}
                                 title="Tu Identidad"
                             >
@@ -630,10 +629,10 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Derecha (Hábitos Lista) - 3/12 */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center py-2 lg:py-8 order-3">
+                        {/* Columna Derecha (Hábitos Lista) — order-1 on mobile (TOP), order-3 on desktop */}
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center order-1 lg:order-3 lg:py-8">
                             <div className={cn(
-                                "rounded-t-[1.5rem] lg:rounded-[1.5rem] h-full p-3 lg:p-4 flex flex-col relative overflow-hidden min-h-[400px]",
+                                "rounded-[1.5rem] p-3 lg:p-4 flex flex-col relative overflow-hidden min-h-[300px] lg:h-full",
                                 isAccion
                                     ? "bg-transparent border border-red-950/25"
                                     : "backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl"
