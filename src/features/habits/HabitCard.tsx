@@ -105,7 +105,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                 <button
                     onClick={onToggle}
                     className={cn(
-                        "w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200 active:scale-90",
+                        "w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200 active:scale-90 touch-manipulation",
                         isCompleted ? checkActive : checkIdle
                     )}
                 >
@@ -235,7 +235,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     <button
                         onClick={onToggle}
                         className={cn(
-                            "flex h-8 w-8 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full transition-all duration-300 border-2 relative overflow-hidden active:scale-95",
+                            "flex h-8 w-8 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-full transition-all duration-300 border-2 relative overflow-hidden active:scale-95 touch-manipulation",
                             isCompleted
                                 ? "bg-cyan-400/20 border-cyan-400/80 shadow-[0_0_16px_rgba(6,182,212,0.4)]"
                                 : "bg-black/60 border-white/20 hover:border-cyan-400/60 hover:bg-cyan-400/10 hover:shadow-[0_0_12px_rgba(6,182,212,0.3)]"

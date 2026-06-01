@@ -355,7 +355,7 @@ export default function HabitsPage() {
                         <div className={cn(
                             "lg:order-1 shrink-0 lg:shrink-1 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
                             "lg:h-full lg:justify-center lg:pt-0 lg:overflow-visible",
-                            isScrolled ? "h-[110px] overflow-hidden" : "h-[295px] overflow-visible"
+                            isScrolled ? "h-[115px] overflow-hidden" : "h-[320px] overflow-visible"
                         )}>
                             {/* Ambient glow */}
                             <div className={cn(
@@ -377,7 +377,7 @@ export default function HabitsPage() {
                             >
                                 <CongruenceLevelIndicator
                                     percentage={congruence}
-                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 210 : 500}
+                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 230 : 500}
                                     strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 11 : 35}
                                     level={currentLevel}
                                 />
