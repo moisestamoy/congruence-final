@@ -112,13 +112,13 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                     {isCompleted && <Check className="w-3.5 h-3.5 text-cyan-400 stroke-[3]" />}
                 </div>
 
-                {/* Icon */}
-                <span className="text-xl shrink-0 leading-none">{habit.icon || '🎯'}</span>
+                {/* Icon — slightly smaller so it doesn't overpower the title */}
+                <span className="text-base shrink-0 leading-none">{habit.icon || '🎯'}</span>
 
                 {/* Name + sub-info */}
                 <div className="flex-1 min-w-0">
                     <p className={cn(
-                        "text-sm font-bold tracking-wide truncate leading-tight transition-colors",
+                        "text-xs font-bold tracking-[0.12em] uppercase truncate leading-tight transition-colors",
                         isCompleted ? 'text-neutral-600 line-through decoration-neutral-600' : 'text-neutral-200'
                     )}>
                         {habit.title}
