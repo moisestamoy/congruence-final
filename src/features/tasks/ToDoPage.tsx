@@ -289,7 +289,7 @@ function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, on
             {task.deadline && (
                 <span className={cn(
                     "text-[11px] font-courier italic shrink-0",
-                    isOverdue ? "text-red-400" : "text-white/25"
+                    isOverdue ? "text-red-400" : "text-white/40"
                 )}>
                     {formatDeadline(task.deadline)}
                 </span>
@@ -300,7 +300,7 @@ function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, on
                 <button onClick={() => { setEditing(true); setEditText(task.text); setEditPriority(task.priority); setEditDeadline(task.deadline || ''); setEditGroupId(task.groupId); }}
                     className="text-[11px] text-white/30 hover:text-white/60 font-courier transition-colors">✎</button>
                 <button onClick={() => { playPop(soundEnabled); onDelete(); }}
-                    className="text-[11px] text-white/20 hover:text-red-400 font-courier transition-colors">×</button>
+                    className="text-[11px] text-white/35 hover:text-red-400 font-courier transition-colors">×</button>
             </div>
         </motion.div>
     );
@@ -355,7 +355,7 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="título..."
-                    className="w-full bg-transparent font-courier text-base font-bold text-white/80 placeholder-white/15 outline-none border-b border-white/8 pb-2"
+                    className="w-full bg-transparent font-courier text-base font-bold text-white/80 placeholder-white/30 outline-none border-b border-white/8 pb-2"
                 />
                 <div className="border-b border-white/5 my-0" />
                 <textarea
@@ -364,7 +364,7 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                     onChange={e => { setContent(e.target.value); autoGrow(); }}
                     placeholder="escribe algo..."
                     rows={3}
-                    className="w-full bg-transparent font-courier text-sm text-white/70 placeholder-white/15 outline-none resize-none leading-relaxed"
+                    className="w-full bg-transparent font-courier text-sm text-white/70 placeholder-white/30 outline-none resize-none leading-relaxed"
                     style={{ minHeight: '72px' }}
                 />
                 <div className="flex items-center justify-between">
@@ -410,14 +410,14 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                                             <button onClick={() => { onUpdate(note.id, { title: editTitle, content: editContent }); setEditingId(null); }}
                                                 className="text-[11px] font-courier italic text-white/40 hover:text-white transition-colors">guardar cambios →</button>
                                             <button onClick={() => setEditingId(null)}
-                                                className="text-[11px] font-courier italic text-white/20 hover:text-white/40 transition-colors">cancelar</button>
+                                                className="text-[11px] font-courier italic text-white/40 hover:text-white/70 transition-colors">cancelar</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 cursor-pointer" onClick={() => setExpandedId(expandedId === note.id ? null : note.id)}>
-                                                <p className="text-[10px] font-courier text-white/20 mb-1">{formatNoteDate(note.createdAt)}</p>
+                                                <p className="text-[10px] font-courier text-white/40 mb-1">{formatNoteDate(note.createdAt)}</p>
                                                 {note.title && note.title !== 'Sin título' && (
                                                     <p className="font-courier text-sm font-bold text-white/70 mb-1">{note.title}</p>
                                                 )}
@@ -427,7 +427,7 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                                                 {expandedId === note.id && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setEditingId(note.id); setEditTitle(note.title); setEditContent(note.content); }}
-                                                        className="text-[10px] font-courier italic text-white/25 hover:text-white/50 mt-2 block transition-colors"
+                                                        className="text-[10px] font-courier italic text-white/45 hover:text-white/70 mt-2 block transition-colors"
                                                     >
                                                         editar
                                                     </button>
@@ -574,7 +574,7 @@ export default function ToDoPage() {
 
                 {/* ── Date / Time ── */}
                 <div className="flex items-start justify-between mb-6 lg:mb-8">
-                    <p className="font-cormorant italic text-white/30 text-xl lg:text-2xl leading-none capitalize select-none">
+                    <p className="font-cormorant italic text-white/50 text-xl lg:text-2xl leading-none select-none">
                         {formattedDate}
                     </p>
                     <button
@@ -594,12 +594,12 @@ export default function ToDoPage() {
                                 onClick={() => setView(v)}
                                 className={cn(
                                     "text-[13px] font-courier pb-1 transition-all",
-                                    view === v ? activeTabStyle : "text-white/25 hover:text-white/50"
+                                    view === v ? activeTabStyle : "text-white/45 hover:text-white/75"
                                 )}
                             >
                                 {v}
                             </button>
-                            {i < 2 && <span className="text-white/10 font-courier">·</span>}
+                            {i < 2 && <span className="text-white/25 font-courier">·</span>}
                         </span>
                     ))}
                 </nav>
@@ -617,9 +617,9 @@ export default function ToDoPage() {
                         >
                             {/* Task Input */}
                             <div className="mb-6">
-                                <div className="relative border-b border-white/10 focus-within:border-white/30 transition-colors pb-1">
+                                <div className="relative border-b border-white/20 focus-within:border-white/50 transition-colors pb-1">
                                     {!inputFocused && !inputText && (
-                                        <span className="blink absolute left-0 top-1 font-courier text-sm text-white/20 pointer-events-none select-none">_</span>
+                                        <span className="blink absolute left-0 top-1 font-courier text-sm text-white/35 pointer-events-none select-none">_</span>
                                     )}
                                     <input
                                         ref={inputRef}
@@ -629,7 +629,7 @@ export default function ToDoPage() {
                                         onBlur={() => setInputFocused(false)}
                                         onKeyDown={e => { if (e.key === 'Enter') submitTask(); }}
                                         placeholder={inputFocused ? '' : ''}
-                                        className="w-full bg-transparent font-courier text-sm text-white/80 outline-none py-1"
+                                        className="w-full bg-transparent font-courier text-sm text-white/90 outline-none py-1"
                                     />
                                 </div>
 
@@ -639,7 +639,7 @@ export default function ToDoPage() {
                                         onClick={() => { dateRef.current?.showPicker?.() || dateRef.current?.click(); }}
                                         className={cn(
                                             "text-[11px] font-courier italic transition-colors",
-                                            inputDeadline ? accentColor : "text-white/20 hover:text-white/40"
+                                            inputDeadline ? accentColor : "text-white/40 hover:text-white/70"
                                         )}
                                     >
                                         {inputDeadline ? format(parseISO(inputDeadline), "d MMM", { locale: es }) : '+ fecha'}
@@ -658,7 +658,7 @@ export default function ToDoPage() {
                                             "text-[11px] font-courier italic transition-colors",
                                             inputPriority
                                                 ? isAccion ? "text-red-400 font-bold not-italic" : "text-amber-400 font-bold not-italic"
-                                                : "text-white/20 hover:text-white/40"
+                                                : "text-white/40 hover:text-white/70"
                                         )}
                                     >
                                         {inputPriority || '! prioridad'}
@@ -671,7 +671,7 @@ export default function ToDoPage() {
                                             if (r) { setGpAnchor({ top: r.bottom, left: r.left }); setGroupPickerOpen(true); }
                                         }}
                                         className={cn("text-[11px] font-courier italic transition-colors")}
-                                        style={inputGroupId ? { color: groups.find(g => g.id === inputGroupId)?.color } : { color: 'rgba(255,255,255,0.2)' }}
+                                        style={inputGroupId ? { color: groups.find(g => g.id === inputGroupId)?.color } : { color: 'rgba(255,255,255,0.4)' }}
                                     >
                                         # {groups.find(g => g.id === inputGroupId)?.name || 'grupo'}
                                     </button>
@@ -697,7 +697,7 @@ export default function ToDoPage() {
                                             "text-[10px] font-courier px-2.5 py-1 rounded-full border transition-all",
                                             filterPriority
                                                 ? isAccion ? "border-red-500/50 text-red-400 bg-red-500/10" : "border-amber-500/50 text-amber-400 bg-amber-500/10"
-                                                : "border-white/8 text-white/25 hover:text-white/40"
+                                                : "border-white/8 text-white/45 hover:text-white/70"
                                         )}
                                     >
                                         ! prioridad
@@ -708,7 +708,7 @@ export default function ToDoPage() {
                                             onClick={() => setFilterGroupId(filterGroupId === g.id ? null : g.id)}
                                             className={cn(
                                                 "flex items-center gap-1.5 text-[10px] font-courier px-2.5 py-1 rounded-full border transition-all",
-                                                filterGroupId === g.id ? "border-white/20 bg-white/5 text-white" : "border-white/5 text-white/25 hover:text-white/40"
+                                                filterGroupId === g.id ? "border-white/20 bg-white/5 text-white" : "border-white/5 text-white/45 hover:text-white/70"
                                             )}
                                         >
                                             <span className="w-1.5 h-1.5 rounded-full" style={{ background: g.color }} />

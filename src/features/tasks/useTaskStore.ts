@@ -9,11 +9,20 @@ export const GROUP_PALETTE = [
 ];
 
 export const DEFAULT_GROUPS: TaskGroup[] = [
-    { id: 'personal',  name: 'Personal',    color: '#5b8dd9' },
-    { id: 'work',      name: 'Trabajo',     color: '#4caf7d' },
-    { id: 'finance',   name: 'Finanzas',    color: '#c8920a' },
-    { id: 'habits',    name: 'Hábitos',     color: '#8fbb5a' },
-    { id: 'longterm',  name: 'Largo Plazo', color: '#7c6fcd' },
+    { id: 'antoecom', name: 'AntoEcom',  color: '#5b8dd9' },
+    { id: 'casa',     name: 'Casa',      color: '#c8920a' },
+    { id: 'personal', name: 'Personal',  color: '#3aada8' },
+    { id: 'otras',    name: 'Otras',     color: '#7a8fa6' },
+];
+
+// Seed tasks — user's real data, seeded as defaults
+const DEFAULT_TASKS: Task[] = [
+    { id: 'seed-t1', text: 'reporte de ventas(saber de donde vinieron y por que)', priority: '!',  deadline: '2026-05-30', groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600001 },
+    { id: 'seed-t2', text: 'laboratorio de contenido',                             priority: null, deadline: null,         groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600002 },
+    { id: 'seed-t3', text: 'comprobantes excel pagos',                             priority: null, deadline: null,         groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600003 },
+    { id: 'seed-t4', text: 'reporte de llamdas viernes',                           priority: null, deadline: '2026-06-06', groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600004 },
+    { id: 'seed-t5', text: 'decoraciones casa',                                    priority: null, deadline: null,         groupId: 'casa',     completed: false, completedAt: null, createdAt: 1748649600005 },
+    { id: 'seed-t6', text: 'script nuevo antoecom ENFOCADO EN RESOLVER DINERO LOGISTICO', priority: null, deadline: null, groupId: 'otras',    completed: false, completedAt: null, createdAt: 1748649600006 },
 ];
 
 interface TaskState {
@@ -45,7 +54,7 @@ interface TaskState {
 export const useTaskStore = create<TaskState>()(
     persist(
         (set) => ({
-            tasks: [],
+            tasks: DEFAULT_TASKS,
             groups: DEFAULT_GROUPS,
             notes: [],
             soundEnabled: true,
@@ -115,9 +124,9 @@ export const useTaskStore = create<TaskState>()(
         }),
         {
             name: 'congruence-tasks-v2',
-            version: 1,
+            version: 2,
             migrate: () => ({
-                tasks: [],
+                tasks: DEFAULT_TASKS,
                 groups: DEFAULT_GROUPS,
                 notes: [],
                 soundEnabled: true,
