@@ -157,7 +157,7 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                                     cy={center}
                                     r={ring.radius}
                                     fill="transparent"
-                                    stroke={isAccion ? "#250000" : (level === 1 ? "#2e2e2e" : "#1a1a1a")}
+                                    stroke={isAccion ? "#3d0000" : (level === 1 ? "#333333" : "#1a1a1a")}
                                     strokeWidth={ring.stroke}
                                     strokeOpacity={level === 1 ? 1 : 0.8}
                                 />

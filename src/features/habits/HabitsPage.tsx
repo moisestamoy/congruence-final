@@ -177,7 +177,7 @@ export default function HabitsPage() {
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                        className="w-12 h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group relative overflow-hidden"
+                        className="w-8 h-8 lg:w-12 lg:h-12 p-0 rounded-full backdrop-blur-lg bg-white/5 border border-white/10 text-neutral-400 hover:text-cyan-400 hover:bg-white/10 transition-all shadow-lg hover:shadow-cyan-500/20 flex items-center justify-center group relative overflow-hidden"
                         title="Opciones de Perfil"
                     >
                         {user && user.email ? (
@@ -352,7 +352,7 @@ export default function HabitsPage() {
                         <div className={cn(
                             "lg:order-1 shrink-0 lg:shrink-1 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
                             "lg:h-full lg:justify-center lg:pt-0 lg:overflow-visible",
-                            isScrolled ? "h-[100px] overflow-hidden" : "h-[240px] overflow-visible"
+                            isScrolled ? "h-[110px] overflow-hidden" : "h-[295px] overflow-visible"
                         )}>
                             {/* Ambient glow */}
                             <div className={cn(
@@ -374,8 +374,8 @@ export default function HabitsPage() {
                             >
                                 <CongruenceLevelIndicator
                                     percentage={congruence}
-                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 155 : 500}
-                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 9 : 35}
+                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 210 : 500}
+                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 11 : 35}
                                     level={currentLevel}
                                 />
                             </div>
