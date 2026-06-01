@@ -503,8 +503,10 @@ export default function ToDoPage() {
         setInputText(''); setInputPriority(null); setInputDeadline(''); setInputGroupId(null);
     };
 
+    // Only pending tasks — completed tasks disappear from the list entirely
     const sortedTasks = [...tasks]
         .filter(t => {
+            if (t.completed) return false;                                    // hide completed
             if (filterGroupId && t.groupId !== filterGroupId) return false;
             if (filterPriority && !t.priority) return false;
             return true;
@@ -517,38 +519,31 @@ export default function ToDoPage() {
             return a.createdAt - b.createdAt;
         });
 
-    const pendingTasks = sortedTasks.filter(t => !t.completed);
+    const pendingTasks = sortedTasks; // all sortedTasks are pending now
     const doneToday = tasks.filter(t => t.completed && t.completedAt && format(new Date(t.completedAt), 'yyyy-MM-dd') === today).length;
 
-    // Today view
+    // Today view — only incomplete tasks due today/overdue
     const todayTasks = tasks
-        .filter(t => t.deadline && (isToday(parseISO(t.deadline)) || (isPast(parseISO(t.deadline)) && !isToday(parseISO(t.deadline)) && !t.completed)))
+        .filter(t => !t.completed && t.deadline && (isToday(parseISO(t.deadline)) || (isPast(parseISO(t.deadline)) && !isToday(parseISO(t.deadline)))))
         .sort((a, b) => (a.deadline || '').localeCompare(b.deadline || ''));
 
-    // Group tasks by groupId — pending and completed each go to their own group
+    // Group pending tasks by groupId
     const groupedTasks = (() => {
-        type GroupEntry = { groupId: string | null; tasks: typeof tasks; completedTasks: typeof tasks };
-        const pendingMap = new Map<string | null, typeof tasks>();
-        const completedMap = new Map<string | null, typeof tasks>();
+        type GroupEntry = { groupId: string | null; tasks: typeof tasks };
+        const groupMap = new Map<string | null, typeof tasks>();
 
-        sortedTasks.filter(t => !t.completed).forEach(t => {
-            if (!pendingMap.has(t.groupId)) pendingMap.set(t.groupId, []);
-            pendingMap.get(t.groupId)!.push(t);
-        });
-        sortedTasks.filter(t => t.completed).forEach(t => {
-            if (!completedMap.has(t.groupId)) completedMap.set(t.groupId, []);
-            completedMap.get(t.groupId)!.push(t);
+        sortedTasks.forEach(t => {
+            if (!groupMap.has(t.groupId)) groupMap.set(t.groupId, []);
+            groupMap.get(t.groupId)!.push(t);
         });
 
-        const allGroupIds = new Set<string | null>([...pendingMap.keys(), ...completedMap.keys()]);
-        if (allGroupIds.size === 0) return [] as GroupEntry[];
+        if (groupMap.size === 0) return [] as GroupEntry[];
 
         const result: GroupEntry[] = [];
-        allGroupIds.forEach(gid => {
+        groupMap.forEach((_, gid) => {
             result.push({
                 groupId: gid,
-                tasks: pendingMap.get(gid) || [],
-                completedTasks: completedMap.get(gid) || [],
+                tasks: groupMap.get(gid) || [],
             });
         });
 
