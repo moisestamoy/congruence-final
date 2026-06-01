@@ -156,7 +156,7 @@ export default function HabitsPage() {
 
     return (
         <div className={cn(
-            "min-h-screen lg:h-screen w-full text-white overflow-y-auto lg:overflow-hidden relative p-4 lg:p-8 font-sans",
+            "h-screen overflow-hidden w-full text-white relative p-3 lg:p-8 font-sans",
             isAccion
                 ? "bg-[#000000] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-red-950/40 via-[#000000] to-[#000000]"
                 : "bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202]"
@@ -171,8 +171,8 @@ export default function HabitsPage() {
 
 
 
-            {/* HEADER ACTIONS */}
-            <div className="absolute top-4 right-4 lg:top-8 lg:right-8 z-40 flex gap-4">
+            {/* HEADER ACTIONS — fixed on mobile so it never overlaps the habit panel */}
+            <div className="fixed top-3 right-3 z-50 lg:absolute lg:top-8 lg:right-8 flex gap-3 lg:gap-4">
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -347,8 +347,8 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-2 h-full gap-2 lg:gap-12"
                     >
-                        {/* Ring column — order-2 on mobile (below habits), order-1 on desktop (left) */}
-                        <div className="order-2 lg:order-1 flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full mt-0 lg:mt-0 transition-all duration-500">
+                        {/* Ring column — HIDDEN on mobile, shown on desktop (left col) */}
+                        <div className="hidden lg:flex flex-col justify-start items-center relative lg:justify-center lg:min-h-0 lg:h-full lg:order-1 transition-all duration-500">
 
                             <div className={cn(
                                 "relative z-10 flex items-start justify-center transition-all duration-500 overflow-visible",
@@ -394,10 +394,10 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Habits column — order-1 on mobile (TOP), order-2 on desktop (right) */}
-                        <div className="order-1 lg:order-2 flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
+                        {/* Habits column — fills full height on mobile, right col on desktop */}
+                        <div className="lg:order-2 flex-1 flex flex-col min-h-0 lg:max-h-[90vh] transition-all duration-500">
                             <div className={cn(
-                                "rounded-[1.5rem] lg:rounded-[2rem] p-3 pt-3 pb-24 lg:p-6 lg:pb-6 h-full flex flex-col relative overflow-hidden transition-all duration-500",
+                                "rounded-[1.5rem] lg:rounded-[2rem] p-3 lg:p-6 flex-1 flex flex-col overflow-hidden relative transition-all duration-500",
                                 isAccion
                                     ? "bg-transparent border border-red-950/25"
                                     : "backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
@@ -418,8 +418,21 @@ export default function HabitsPage() {
                                     isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
                                 )}>
                                     <div>
-                                        <h2 className="text-lg lg:text-3xl font-black tracking-tight text-white drop-shadow-md mb-0 lg:mb-1">Tu Hábito</h2>
-                                        <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none">Panel de Control</p>
+                                        <div className="flex items-center gap-2">
+                                            {/* Mobile-only: congruence % ring indicator */}
+                                            <div className={cn(
+                                                "lg:hidden w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0",
+                                                isAccion ? "border-red-500/50" : "border-cyan-400/50"
+                                            )}>
+                                                <span className={cn("text-[9px] font-black", isAccion ? "text-red-400" : "text-cyan-400")}>
+                                                    {congruence}%
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base lg:text-3xl font-black tracking-tight text-white drop-shadow-md leading-none">Tu Hábito</h2>
+                                                <p className="text-cyan-400/80 text-[9px] lg:text-xs font-bold uppercase tracking-widest leading-none mt-0.5">Panel de Control</p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5 lg:p-1 border border-white/10">
@@ -441,7 +454,7 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 relative z-10">
+                                <div className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
                                     {sortedHabits.map(habit => (
                                         <HabitCard
                                             key={habit.id}
@@ -457,20 +470,20 @@ export default function HabitsPage() {
                                     ))}
                                 </div>
 
-                                <div className="mt-3 relative z-10">
+                                <div className="mt-2 shrink-0 relative z-10">
                                     <CoachCard />
                                 </div>
 
                                 <button
                                     onClick={handleCreateHabit}
                                     className={cn(
-                                        "mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-2xl border border-dashed bg-transparent transition-all flex items-center justify-center gap-2 relative z-10 group",
+                                        "mt-2 mb-1 shrink-0 w-full py-3 lg:py-4 rounded-xl border border-dashed bg-transparent transition-all flex items-center justify-center gap-2 relative z-10 group",
                                         isAccion
                                             ? "border-red-950/40 text-neutral-700 hover:border-red-500/25 hover:text-red-400 hover:bg-red-500/[0.04]"
                                             : "border-white/[0.08] text-neutral-600 hover:bg-cyan-500/[0.04] hover:border-cyan-500/25 hover:text-cyan-300"
                                     )}
                                 >
-                                    <span className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] group-hover:scale-105 transition-transform">+ Nuevo Objetivo</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">+ Nuevo Objetivo</span>
                                 </button>
                             </div>
                         </div>
