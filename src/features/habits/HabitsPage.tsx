@@ -174,8 +174,8 @@ export default function HabitsPage() {
 
 
 
-            {/* HEADER ACTIONS — fixed on mobile so it never overlaps the habit panel */}
-            <div className="fixed top-3 right-3 z-50 lg:absolute lg:top-8 lg:right-8 flex gap-3 lg:gap-4">
+            {/* HEADER ACTIONS — below notch on mobile */}
+            <div className="fixed top-14 right-3 z-50 lg:absolute lg:top-8 lg:right-8 flex gap-3 lg:gap-4">
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
