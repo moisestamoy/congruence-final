@@ -724,7 +724,7 @@ export default function ToDoPage() {
                             ) : (
                                 <div className="space-y-0">
                                     <AnimatePresence>
-                                        {groupedTasks.map(({ groupId, tasks: groupTasks, completedTasks }) => {
+                                        {groupedTasks.map(({ groupId, tasks: groupTasks }) => {
                                             const grp = groups.find(g => g.id === groupId);
                                             return (
                                                 <div key={groupId || '_null'} className="mb-4">
@@ -749,24 +749,6 @@ export default function ToDoPage() {
                                                             onCreateGroup={addGroup}
                                                         />
                                                     ))}
-                                                    {completedTasks.length > 0 && (
-                                                        <>
-                                                            <div className="border-t border-white/5 my-4" />
-                                                            {completedTasks.map(task => (
-                                                                <TaskItem
-                                                                    key={task.id}
-                                                                    task={task}
-                                                                    groups={groups}
-                                                                    soundEnabled={soundEnabled}
-                                                                    isAccion={isAccion}
-                                                                    onToggle={() => toggleTask(task.id)}
-                                                                    onUpdate={upd => updateTask(task.id, upd)}
-                                                                    onDelete={() => removeTask(task.id)}
-                                                                    onCreateGroup={addGroup}
-                                                                />
-                                                            ))}
-                                                        </>
-                                                    )}
                                                 </div>
                                             );
                                         })}
