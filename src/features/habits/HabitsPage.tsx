@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2 } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
@@ -52,6 +52,19 @@ export default function HabitsPage() {
             else break;
         }
         return count;
+    }, [habits, getCongruence]);
+
+    // --- 90-DAY IDENTITY PROGRESS ---
+    const ninetyDayStats = useMemo(() => {
+        let congruentDays = 0;
+        const weekDots: boolean[] = [];
+        for (let i = 0; i < 90; i++) {
+            const d = subDays(new Date(), i);
+            const c = getCongruence(format(d, 'yyyy-MM-dd'));
+            if (c > 0 || c === -1) congruentDays++;
+            if (i < 7) weekDots.unshift(c > 0);  // last 7 days, oldest first
+        }
+        return { congruentDays, weekDots };
     }, [habits, getCongruence]);
 
     // --- GAMIFICATION LOGIC ---
@@ -472,35 +485,132 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-8 items-center overflow-y-auto lg:overflow-hidden pb-20 lg:pb-0"
                     >
-                        {/* Columna Izquierda (Stats) - 3/12 - Orden 1 - GLASS CARDS */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-6 py-4 lg:py-12 order-2 lg:order-1">
-                            {/* Card 1: Identity */}
+                        {/* ── Columna Izquierda: Identidad + Progreso ── */}
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-4 py-4 lg:py-12 order-2 lg:order-1">
+
+                            {/* Card 1: Tu Identidad */}
                             <div
                                 onClick={() => setIsIdentityBuilderOpen(true)}
-                                className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-[2rem] p-6 lg:p-8 flex flex-col justify-center relative overflow-hidden group shadow-lg hover:shadow-cyan-900/20 transition-all duration-500 min-h-[160px] lg:h-1/2 cursor-pointer"
+                                className={cn(
+                                    "rounded-[2rem] p-6 lg:p-8 flex flex-col justify-between relative overflow-hidden group transition-all duration-500 min-h-[180px] lg:h-[55%] cursor-pointer",
+                                    isAccion
+                                        ? "bg-[#0a0000]/60 border border-red-950/30 hover:border-red-900/50 hover:shadow-[0_8px_32px_rgba(239,68,68,0.08)]"
+                                        : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] hover:shadow-cyan-900/20 shadow-lg"
+                                )}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <h3 className="text-cyan-400 text-[10px] lg:text-xs font-bold uppercase tracking-widest mb-2 lg:mb-4 z-10 flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-cyan-500 rounded-full" /> Identidad
+                                {/* Header */}
+                                <h3 className={cn(
+                                    "text-[10px] lg:text-xs font-bold uppercase tracking-widest z-10 flex items-center gap-2",
+                                    isAccion ? "text-red-400" : "text-cyan-400"
+                                )}>
+                                    <div className={cn("w-1 h-3.5 rounded-full", isAccion ? "bg-red-500" : "bg-cyan-500")} />
+                                    Tu Identidad
                                 </h3>
-                                <p className="text-xl lg:text-2xl font-bold text-white leading-tight z-10 drop-shadow-md">
-                                    "{manifesto?.identities.personal || "Define tu identidad..."}"
-                                </p>
-                                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-[50px] group-hover:bg-cyan-500/20 transition-all duration-700" />
+
+                                {/* Content */}
+                                <div className="z-10 flex-1 flex flex-col justify-center mt-3 lg:mt-4">
+                                    {manifesto?.identityStatement || manifesto?.identities?.personal ? (
+                                        <>
+                                            <p className="text-base lg:text-xl font-bold text-white leading-snug drop-shadow-sm line-clamp-4">
+                                                "{manifesto.identityStatement || manifesto.identities.personal}"
+                                            </p>
+                                            {manifesto.goals?.ninetyDays && (
+                                                <p className="text-[10px] lg:text-xs text-neutral-500 mt-3 line-clamp-2 leading-relaxed">
+                                                    <span className={cn("font-bold uppercase tracking-wider", isAccion ? "text-red-500/60" : "text-cyan-500/60")}>90 días: </span>
+                                                    {manifesto.goals.ninetyDays}
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-neutral-600 text-sm font-medium leading-relaxed">
+                                                Define quién eres y hacia dónde vas. Tu brújula de 90 días.
+                                            </p>
+                                            <div className={cn(
+                                                "mt-4 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest self-start px-3 py-2 rounded-xl border transition-colors",
+                                                isAccion ? "text-red-400 border-red-900/50 bg-red-950/30 group-hover:bg-red-950/50" : "text-cyan-400 border-cyan-900/50 bg-cyan-950/20 group-hover:bg-cyan-950/40"
+                                            )}>
+                                                Iniciar Protocolo <ArrowRight size={10} />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Orb glow */}
+                                <div className={cn(
+                                    "absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-[50px] transition-all duration-700 pointer-events-none",
+                                    isAccion ? "bg-red-500/8 group-hover:bg-red-500/15" : "bg-cyan-500/10 group-hover:bg-cyan-500/20"
+                                )} />
                             </div>
 
-                            {/* Card 2: Streak */}
-                            <div className="backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-[2rem] p-6 lg:p-8 flex flex-col justify-center relative overflow-hidden group shadow-lg hover:shadow-emerald-900/20 transition-all duration-500 min-h-[160px] lg:h-1/2">
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <h3 className="text-emerald-400 text-[10px] lg:text-xs font-bold uppercase tracking-widest mb-2 lg:mb-4 z-10 flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-emerald-500 rounded-full" /> Racha Global
+                            {/* Card 2: Progreso 90 Días */}
+                            <div className={cn(
+                                "rounded-[2rem] p-6 lg:p-8 flex flex-col relative overflow-hidden group transition-all duration-500 min-h-[180px] lg:h-[45%]",
+                                isAccion
+                                    ? "bg-[#0a0000]/60 border border-red-950/30 hover:border-red-900/50"
+                                    : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] shadow-lg"
+                            )}>
+                                {/* Header */}
+                                <h3 className={cn(
+                                    "text-[10px] lg:text-xs font-bold uppercase tracking-widest z-10 flex items-center gap-2 mb-3 lg:mb-4",
+                                    isAccion ? "text-red-400" : "text-cyan-400"
+                                )}>
+                                    <div className={cn("w-1 h-3.5 rounded-full", isAccion ? "bg-red-500" : "bg-cyan-500")} />
+                                    Progreso 90 días
                                 </h3>
-                                <div className="flex items-baseline gap-2 z-10">
-                                    <span className="text-6xl lg:text-7xl font-bold text-white tracking-tighter drop-shadow-xl">{userStreak}</span>
-                                    <span className="text-lg lg:text-xl text-neutral-400 font-medium">días</span>
+
+                                {/* Big number */}
+                                <div className="flex items-baseline gap-1.5 z-10 mb-3">
+                                    <span className="text-4xl lg:text-5xl font-black text-white tracking-tighter drop-shadow-xl">
+                                        {ninetyDayStats.congruentDays}
+                                    </span>
+                                    <span className="text-base lg:text-lg text-neutral-500 font-bold">/90</span>
+                                    <span className="text-xs text-neutral-600 font-medium ml-1">días</span>
                                 </div>
-                                <p className="text-xs lg:text-sm text-neutral-500 mt-2 z-10 font-medium">Mejor racha del mes</p>
-                                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-[50px] group-hover:bg-emerald-500/20 transition-all duration-700" />
+
+                                {/* Progress bar */}
+                                <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden z-10 mb-4">
+                                    <motion.div
+                                        className={cn("h-full rounded-full", isAccion ? "bg-red-400" : "bg-cyan-400")}
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${(ninetyDayStats.congruentDays / 90) * 100}%` }}
+                                        transition={{ duration: 1.2, ease: "easeOut" }}
+                                    />
+                                </div>
+
+                                {/* Last 7 days dots */}
+                                <div className="flex items-center gap-1.5 z-10 mb-2">
+                                    {ninetyDayStats.weekDots.map((active, i) => (
+                                        <div
+                                            key={i}
+                                            title={format(subDays(new Date(), 6 - i), 'EEE')}
+                                            className={cn(
+                                                "flex-1 h-1 rounded-full transition-colors",
+                                                active
+                                                    ? isAccion ? "bg-red-400" : "bg-cyan-400"
+                                                    : "bg-white/10"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                                <p className="text-[9px] text-neutral-600 uppercase tracking-widest z-10">Última semana</p>
+
+                                {/* Streak badge */}
+                                {userStreak > 0 && (
+                                    <div className={cn(
+                                        "mt-auto pt-3 flex items-center gap-1.5 z-10",
+                                        isAccion ? "text-red-400" : "text-cyan-400"
+                                    )}>
+                                        <Flame size={12} />
+                                        <span className="text-xs font-bold">{userStreak} días de racha</span>
+                                    </div>
+                                )}
+
+                                {/* Orb */}
+                                <div className={cn(
+                                    "absolute -bottom-8 -left-8 w-32 h-32 rounded-full blur-[40px] transition-all duration-700 pointer-events-none",
+                                    isAccion ? "bg-red-500/8 group-hover:bg-red-500/15" : "bg-cyan-500/8 group-hover:bg-cyan-500/15"
+                                )} />
                             </div>
                         </div>
 
