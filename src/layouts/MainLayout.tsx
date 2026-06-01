@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Reorder } from 'framer-motion';
 import { LucideIcon, LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, User, Brain, CheckSquare, GripVertical } from 'lucide-react';
@@ -59,7 +59,30 @@ export default function MainLayout() {
     const { triggerFab } = useFabStore();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
-    const { navVisible } = useNavStore();
+    const { navVisible, setNavVisible } = useNavStore();
+    const lastScrollRef = useRef(0);
+
+    // Global scroll capture — works on ALL pages
+    useEffect(() => {
+        const handleScroll = (e: Event) => {
+            const el = e.target as HTMLElement;
+            const st = el.scrollTop || 0;
+            const delta = st - lastScrollRef.current;
+            if (Math.abs(delta) > 4) {
+                setNavVisible(delta < 0 || st < 10);
+            }
+            lastScrollRef.current = st;
+        };
+        // capture:true catches scroll from ANY child element
+        window.addEventListener('scroll', handleScroll, true);
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [setNavVisible]);
+
+    // Reset nav visibility on route change
+    useEffect(() => {
+        setNavVisible(true);
+        lastScrollRef.current = 0;
+    }, [location.pathname, setNavVisible]);
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
     const showFab = ['/', '/finances', '/tasks'].includes(location.pathname) && !isEditingOrder;

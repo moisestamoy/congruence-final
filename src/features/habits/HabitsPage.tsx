@@ -17,7 +17,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 import { useAuth } from '../../context/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
 import { useTheme } from '../../hooks/useTheme';
-import { useNavStore } from '../../hooks/useNavStore';
+
 
 export default function HabitsPage() {
     const navigate = useNavigate();
@@ -32,7 +32,6 @@ export default function HabitsPage() {
     const [isScrolled, setIsScrolled] = useState(false);
     const habitsListRef = useRef<HTMLDivElement>(null);
     const lastScrollTopRef = useRef(0);
-    const { setNavVisible } = useNavStore();
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
@@ -453,12 +452,8 @@ export default function HabitsPage() {
                                 <div ref={habitsListRef}
                                     onScroll={(e) => {
                                         const st = e.currentTarget.scrollTop;
-                                        const delta = st - lastScrollTopRef.current;
+                                        // Ring shrink behavior
                                         setIsScrolled(st > 30);
-                                        if (Math.abs(delta) > 4) {
-                                            // scroll down → hide nav, scroll up or near top → show nav
-                                            setNavVisible(delta < 0 || st < 10);
-                                        }
                                         lastScrollTopRef.current = st;
                                     }}
                                     className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
@@ -475,21 +470,19 @@ export default function HabitsPage() {
                                             compact
                                         />
                                     ))}
+                                    {/* Button always right after the last habit */}
+                                    <button
+                                        onClick={handleCreateHabit}
+                                        className={cn(
+                                            "mt-2 w-full py-3 rounded-xl border border-dashed bg-transparent transition-all flex items-center justify-center gap-2 touch-manipulation",
+                                            isAccion
+                                                ? "border-red-950/40 text-neutral-700 hover:border-red-500/25 hover:text-red-400"
+                                                : "border-white/[0.08] text-neutral-600 hover:border-cyan-500/25 hover:text-cyan-300"
+                                        )}
+                                    >
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em]">+ Nuevo Objetivo</span>
+                                    </button>
                                 </div>
-
-
-
-                                <button
-                                    onClick={handleCreateHabit}
-                                    className={cn(
-                                        "mt-2 mb-1 shrink-0 w-full py-3 lg:py-4 rounded-xl border border-dashed bg-transparent transition-all flex items-center justify-center gap-2 relative z-10 group",
-                                        isAccion
-                                            ? "border-red-950/40 text-neutral-700 hover:border-red-500/25 hover:text-red-400 hover:bg-red-500/[0.04]"
-                                            : "border-white/[0.08] text-neutral-600 hover:bg-cyan-500/[0.04] hover:border-cyan-500/25 hover:text-cyan-300"
-                                    )}
-                                >
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">+ Nuevo Objetivo</span>
-                                </button>
                             </div>
                         </div>
                     </motion.div>
