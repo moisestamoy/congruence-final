@@ -37,7 +37,7 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
             case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' };
             case 5: return { primary: '#38bdf8', secondary: '#0284c7', glow: 'rgba(56,189,248,0.8)', text: 'text-sky-400' };
             case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
-            default: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'none', text: 'text-teal-400' };
+            default: return { primary: '#2dd4bf', secondary: '#0f766e', glow: 'rgba(45,212,191,0.25)', text: 'text-teal-400' };
         }
     };
 
@@ -50,17 +50,17 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
         { radius: baseRadius - step*2,  stroke: strokeWidth, opacity: 1.0 },
     ];
 
-    // Filter Logic — ACCIÓN always glows, even at level 1
+    // Filter Logic — all levels have at least a subtle glow
     const containerFilter = (() => {
         if (isAccion) {
             const g = colors.glow;
             if (level >= 3) return `drop-shadow(0 0 14px ${g}) drop-shadow(0 0 30px ${g}) drop-shadow(0 0 50px ${g})`;
             if (level === 2) return `drop-shadow(0 0 10px ${g}) drop-shadow(0 0 24px ${g})`;
-            return `drop-shadow(0 0 8px ${g}) drop-shadow(0 0 20px ${g})`;  // L1 still glows in ACCIÓN
+            return `drop-shadow(0 0 8px ${g}) drop-shadow(0 0 20px ${g})`;
         }
         if (level >= 3) return `drop-shadow(0 0 10px ${colors.glow}) drop-shadow(0 0 20px ${colors.glow})`;
         if (level === 2) return `drop-shadow(0 0 5px ${colors.glow})`;
-        return 'none';
+        return `drop-shadow(0 0 4px ${colors.glow})`; // L1: always a subtle glow
     })();
 
     return (
@@ -157,7 +157,7 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                                     cy={center}
                                     r={ring.radius}
                                     fill="transparent"
-                                    stroke={isAccion ? "#1a0000" : (level === 1 ? "#1a1a1a" : "#0f0f12")}
+                                    stroke={isAccion ? "#250000" : (level === 1 ? "#2e2e2e" : "#1a1a1a")}
                                     strokeWidth={ring.stroke}
                                     strokeOpacity={level === 1 ? 1 : 0.8}
                                 />

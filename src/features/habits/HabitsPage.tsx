@@ -352,7 +352,7 @@ export default function HabitsPage() {
                         <div className={cn(
                             "lg:order-1 shrink-0 lg:shrink-1 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
                             "lg:h-full lg:justify-center lg:pt-0 lg:overflow-visible",
-                            isScrolled ? "h-[96px] overflow-hidden" : "h-[215px] overflow-visible"
+                            isScrolled ? "h-[100px] overflow-hidden" : "h-[240px] overflow-visible"
                         )}>
                             {/* Ambient glow */}
                             <div className={cn(
@@ -392,7 +392,9 @@ export default function HabitsPage() {
                                 "rounded-[1.5rem] lg:rounded-[2rem] p-3 lg:p-6 flex-1 flex flex-col overflow-hidden relative transition-all duration-500",
                                 isAccion
                                     ? "bg-transparent border border-red-950/25"
-                                    : "backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
+                                    // Mobile: transparent (no card) so empty space doesn't show
+                                    // Desktop: glass card effect
+                                    : "bg-transparent border-0 lg:backdrop-blur-3xl lg:bg-gradient-to-br lg:from-white/[0.04] lg:to-white/[0.01] lg:border lg:border-white/[0.09] lg:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
                             )}>
                                 {/* Top accent line — cyan in Classic, red in ACCIÓN */}
                                 <div className={cn(
