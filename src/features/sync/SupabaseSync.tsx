@@ -36,15 +36,40 @@ export function SupabaseSync() {
         try {
             const { habits, manifesto } = useHabitStore.getState();
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
+
+            // Fetch remote expenses BEFORE saving to preserve any iOS Shortcut additions
+            // that may have been added to Supabase without going through local state
+            const { data: remoteData } = await supabase
+                .from('user_data')
+                .select('finances_data')
+                .eq('id', user.id)
+                .single();
+
+            const remoteExpenses: any[] = remoteData?.finances_data?.realExpenses ?? [];
+            const localIds = new Set((realExpenses as any[]).map((e: any) => e.id));
+            const pendingDeletes = pendingDeletionsRef.current;
+
+            // Merge: keep all local (edits/deletes take priority) + add remote-only iOS expenses
+            const mergedExpenses = [
+                ...(realExpenses as any[]),
+                ...remoteExpenses.filter((e: any) => !localIds.has(e.id) && !pendingDeletes.has(e.id)),
+            ];
+
             const { error } = await supabase
                 .from('user_data')
                 .update({
                     habits_data: { habits, manifesto },
-                    finances_data: { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets },
+                    finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', user.id);
             if (error) throw error;
+
+            // If iOS shortcut added expenses that weren't in local state, update local store
+            if (mergedExpenses.length !== (realExpenses as any[]).length) {
+                useFinanceStore.setState({ realExpenses: mergedExpenses });
+            }
+
             setStatus('synced');
             lastSavedRef.current = Date.now();
             pendingDeletionsRef.current.clear();
