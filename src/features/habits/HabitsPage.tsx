@@ -380,14 +380,29 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Derecha (Hábitos) - 50% - Grid Glass Panel */}
+                        {/* Columna Derecha (Hábitos) */}
                         <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
-                            <div className="backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden group transition-all duration-500">
-                                {/* Subtle internal cyan glow at top */}
-                                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent pointer-events-none" />
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-cyan-500/[0.04] rounded-full blur-2xl pointer-events-none" />
+                            <div className={cn(
+                                "rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden transition-all duration-500",
+                                isAccion
+                                    ? "bg-transparent border border-red-950/25"
+                                    : "backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
+                            )}>
+                                {/* Top accent line — cyan in Classic, red in ACCIÓN */}
+                                <div className={cn(
+                                    "absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent to-transparent pointer-events-none",
+                                    isAccion ? "via-red-500/40" : "via-cyan-500/30"
+                                )} />
+                                {/* Orb glow at top */}
+                                <div className={cn(
+                                    "absolute top-0 left-1/2 -translate-x-1/2 rounded-full blur-2xl pointer-events-none transition-all duration-500",
+                                    isAccion ? "w-64 h-32 bg-red-500/[0.06]" : "w-48 h-24 bg-cyan-500/[0.04]"
+                                )} />
 
-                                <div className="flex justify-between items-end mb-4 lg:mb-10 relative z-10 border-b border-white/[0.06] pb-3 lg:pb-6">
+                                <div className={cn(
+                                    "flex justify-between items-end mb-4 lg:mb-10 relative z-10 pb-3 lg:pb-6",
+                                    isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
+                                )}>
                                     <div>
                                         <h2 className="text-xl lg:text-3xl font-black tracking-tight text-white drop-shadow-md mb-0.5 lg:mb-1">Tu Hábito</h2>
                                         <p className="text-cyan-400/80 text-[10px] lg:text-xs font-bold uppercase tracking-widest leading-none">Panel de Control</p>
@@ -436,7 +451,12 @@ export default function HabitsPage() {
 
                                 <button
                                     onClick={handleCreateHabit}
-                                    className="mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-2xl border border-dashed border-white/[0.08] bg-transparent hover:bg-cyan-500/[0.04] hover:border-cyan-500/25 hover:shadow-[inset_0_0_20px_rgba(6,182,212,0.05)] transition-all flex items-center justify-center gap-2 text-neutral-600 hover:text-cyan-300 relative z-10 group"
+                                    className={cn(
+                                        "mt-3 lg:mt-4 w-full py-4 lg:py-5 rounded-2xl border border-dashed bg-transparent transition-all flex items-center justify-center gap-2 relative z-10 group",
+                                        isAccion
+                                            ? "border-red-950/40 text-neutral-700 hover:border-red-500/25 hover:text-red-400 hover:bg-red-500/[0.04]"
+                                            : "border-white/[0.08] text-neutral-600 hover:bg-cyan-500/[0.04] hover:border-cyan-500/25 hover:text-cyan-300"
+                                    )}
                                 >
                                     <span className="text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em] group-hover:scale-105 transition-transform">+ Nuevo Objetivo</span>
                                 </button>
