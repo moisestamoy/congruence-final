@@ -396,7 +396,7 @@ export default function HabitsPage() {
                         {/* Columna Derecha (Hábitos) */}
                         <div className="flex flex-col justify-center h-full lg:max-h-[90vh] transition-all duration-500">
                             <div className={cn(
-                                "rounded-t-[2rem] lg:rounded-[3rem] p-4 pt-5 pb-20 lg:p-10 lg:pb-10 h-full flex flex-col relative overflow-hidden transition-all duration-500",
+                                "rounded-t-[2rem] lg:rounded-[2rem] p-4 pt-4 pb-20 lg:p-6 lg:pb-6 h-full flex flex-col relative overflow-hidden transition-all duration-500",
                                 isAccion
                                     ? "bg-transparent border border-red-950/25"
                                     : "backdrop-blur-3xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.09] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)]"
@@ -413,7 +413,7 @@ export default function HabitsPage() {
                                 )} />
 
                                 <div className={cn(
-                                    "flex justify-between items-end mb-4 lg:mb-10 relative z-10 pb-3 lg:pb-6",
+                                    "flex justify-between items-end mb-3 lg:mb-4 relative z-10 pb-3 lg:pb-4",
                                     isAccion ? "border-b border-red-950/40" : "border-b border-white/[0.06]"
                                 )}>
                                     <div>
@@ -442,19 +442,19 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 relative z-10 content-start">
+                                <div className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 relative z-10">
                                     {sortedHabits.map(habit => (
-                                        <div key={habit.id} className="group relative">
-                                            <HabitCard
-                                                habit={habit}
-                                                isCompleted={!!habit.logs[selectedDate]?.completed}
-                                                currentValue={habit.logs[selectedDate]?.value || 0}
-                                                onToggle={() => handleToggleHabit(habit.id)}
-                                                onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
-                                                onEdit={() => handleEditHabit(habit)}
-                                                onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
-                                            />
-                                        </div>
+                                        <HabitCard
+                                            key={habit.id}
+                                            habit={habit}
+                                            isCompleted={!!habit.logs[selectedDate]?.completed}
+                                            currentValue={habit.logs[selectedDate]?.value || 0}
+                                            onToggle={() => handleToggleHabit(habit.id)}
+                                            onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
+                                            onEdit={() => handleEditHabit(habit)}
+                                            onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
+                                            compact
+                                        />
                                     ))}
                                 </div>
 

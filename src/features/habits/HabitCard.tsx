@@ -31,9 +31,10 @@ interface HabitCardProps {
     onValueChange: (val: number) => void;
     onEdit: () => void;
     onSkip?: () => void;
+    compact?: boolean; // compact single-row layout for split view
 }
 
-export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit, onSkip }: HabitCardProps) {
+export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueChange, onEdit, onSkip, compact = false }: HabitCardProps) {
     const { theme } = useTheme();
     const isAccion = theme === 'accion';
     const AXIS_CONFIG = isAccion ? AXIS_CONFIG_ACCION : AXIS_CONFIG_CLASSIC;
@@ -75,6 +76,132 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         }
         setHistoryDays(days);
     }, [habit.logs]);
+
+    // ── COMPACT MODE — single-row layout ─────────────────────────────────────
+    if (compact) {
+        const accentBorderActive = isAccion ? 'border-red-500/25 bg-red-950/15' : 'border-cyan-400/20 bg-cyan-400/[0.03]';
+        const accentBorderIdle = isAccion ? 'border-red-950/30 hover:border-red-900/40' : 'border-white/[0.07] hover:border-white/[0.12]';
+        const checkActive = isAccion
+            ? 'bg-red-500/20 border-red-400/60'
+            : 'bg-cyan-400/20 border-cyan-400/60';
+        const checkIdle = isAccion
+            ? 'border-white/20 hover:border-red-400/50'
+            : 'border-white/20 hover:border-cyan-400/50';
+
+        return (
+            <motion.div
+                layout
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className={cn(
+                    "group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200 overflow-hidden relative",
+                    isCompleted ? accentBorderActive : accentBorderIdle,
+                    isCompleted && 'opacity-60'
+                )}
+            >
+                {/* Checkbox */}
+                <button
+                    onClick={onToggle}
+                    className={cn(
+                        "w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200 active:scale-90",
+                        isCompleted ? checkActive : checkIdle
+                    )}
+                >
+                    {isCompleted && <Check className="w-3 h-3 text-cyan-400 stroke-[3]" />}
+                </button>
+
+                {/* Icon */}
+                <span className="text-xl shrink-0 leading-none">{habit.icon || '🎯'}</span>
+
+                {/* Name + sub-info */}
+                <div className="flex-1 min-w-0">
+                    <p className={cn(
+                        "text-sm font-bold tracking-wide truncate leading-tight transition-colors",
+                        isCompleted ? 'text-neutral-600 line-through decoration-neutral-600' : 'text-neutral-200'
+                    )}>
+                        {habit.title}
+                    </p>
+                    {habit.type === 'numeric' && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <div className="w-14 h-[3px] bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-cyan-400/60 transition-all duration-500"
+                                    style={{ width: `${Math.min((currentValue / habit.goal) * 100, 100)}%` }}
+                                />
+                            </div>
+                            <span className="text-[9px] text-white/30 tabular-nums">{currentValue}/{habit.goal}</span>
+                        </div>
+                    )}
+                    {habit.type === 'boolean' && streak > 0 && (
+                        <p className="text-[10px] text-white/30 leading-none mt-0.5">🔥 {streak}d</p>
+                    )}
+                </div>
+
+                {/* 7-day history dots */}
+                <div className="flex gap-[3px] shrink-0">
+                    {historyDays.slice(-7).map((day, i) => (
+                        <div
+                            key={i}
+                            className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                day.completed
+                                    ? 'bg-cyan-400/75'
+                                    : day.status === 'rest' || day.status === 'emergency'
+                                        ? 'bg-amber-400/50'
+                                        : 'bg-white/10'
+                            )}
+                        />
+                    ))}
+                </div>
+
+                {/* Quick +/- for numeric on hover */}
+                {habit.type === 'numeric' && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onValueChange(Math.max(0, (currentValue || 0) - 5)); }}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                        >-5</button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onValueChange((currentValue || 0) + 10); }}
+                            className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400/70 hover:text-cyan-400 transition-colors font-bold"
+                        >+10</button>
+                    </div>
+                )}
+
+                {/* Actions (hover) */}
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    {onSkip && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onSkip(); }}
+                            className="p-1 text-neutral-600 hover:text-amber-400 transition-colors"
+                            title="Día de descanso"
+                        >
+                            <span className="text-[10px]">⏸</span>
+                        </button>
+                    )}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                        className="p-1 text-neutral-600 hover:text-cyan-400 transition-colors"
+                    >
+                        <Edit2 size={11} />
+                    </button>
+                </div>
+
+                {/* Completed glow */}
+                {isCompleted && (
+                    <div className={cn(
+                        "absolute inset-0 pointer-events-none",
+                        isAccion
+                            ? 'bg-gradient-to-r from-red-500/[0.06] to-transparent'
+                            : 'bg-gradient-to-r from-cyan-500/[0.05] to-transparent'
+                    )} />
+                )}
+            </motion.div>
+        );
+    }
+
 
     const getStreakText = (count: number) => {
         if (count === 0) return 'Sin racha aún';
