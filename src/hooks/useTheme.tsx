@@ -2,6 +2,26 @@ import { createContext, useContext, useEffect, useState } from "react"
 
 type Theme = "dark" | "light" | "system" | "accion"
 
+// Dynamically generates an SVG favicon matching the current theme accent color
+function setFavicon(color: string) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <rect width="512" height="512" rx="112" fill="#000000"/>
+        <circle cx="256" cy="256" r="204.8" stroke="${color}" stroke-width="14" stroke-opacity="0.25" fill="none"/>
+        <circle cx="256" cy="256" r="153.6" stroke="${color}" stroke-width="17" stroke-opacity="0.60" fill="none"/>
+        <circle cx="256" cy="256" r="102.4" stroke="${color}" stroke-width="20" stroke-opacity="1"    fill="none"/>
+        <circle cx="256" cy="256" r="17.6"  fill="${color}"/>
+    </svg>`
+    const href = `data:image/svg+xml,${encodeURIComponent(svg)}`
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (!link) {
+        link = document.createElement("link")
+        link.rel = "icon"
+        document.head.appendChild(link)
+    }
+    link.type = "image/svg+xml"
+    link.href = href
+}
+
 type ThemeProviderProps = {
     children: React.ReactNode
     defaultTheme?: Theme
@@ -38,16 +58,19 @@ export function ThemeProvider({
                 ? "dark"
                 : "light"
             root.classList.add(systemTheme)
+            setFavicon("#22d3ee")
             return
         }
 
         if (theme === "accion") {
             root.classList.add("dark")    // keep dark base
             root.classList.add("accion")  // apply ACCIÓN overrides
+            setFavicon("#ef4444")
             return
         }
 
         root.classList.add(theme)
+        setFavicon("#22d3ee")
     }, [theme])
 
     const value = {
