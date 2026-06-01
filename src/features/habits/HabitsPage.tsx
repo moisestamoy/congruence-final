@@ -375,7 +375,7 @@ export default function HabitsPage() {
                                 <CongruenceLevelIndicator
                                     percentage={congruence}
                                     size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 155 : 500}
-                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 14 : 35}
+                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 9 : 35}
                                     level={currentLevel}
                                 />
                             </div>
