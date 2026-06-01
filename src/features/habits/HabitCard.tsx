@@ -95,22 +95,22 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
+                onClick={onToggle}
                 className={cn(
-                    "group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200 overflow-hidden relative",
+                    "group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200 overflow-hidden relative cursor-pointer touch-manipulation active:scale-[0.98]",
                     isCompleted ? accentBorderActive : accentBorderIdle,
                     isCompleted && 'opacity-60'
                 )}
             >
-                {/* Checkbox */}
-                <button
-                    onClick={onToggle}
+                {/* Checkbox — visual only, click handled by the card */}
+                <div
                     className={cn(
-                        "w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200 active:scale-90 touch-manipulation",
+                        "w-7 h-7 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200",
                         isCompleted ? checkActive : checkIdle
                     )}
                 >
                     {isCompleted && <Check className="w-3.5 h-3.5 text-cyan-400 stroke-[3]" />}
-                </button>
+                </div>
 
                 {/* Icon */}
                 <span className="text-xl shrink-0 leading-none">{habit.icon || '🎯'}</span>
