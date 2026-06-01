@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@1,300;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -67,6 +67,22 @@
 .accion .border-white\/\[0\.07\] { border-color: rgb(239 68 68 / 0.08) !important; }
 .accion .border-white\/\[0\.08\] { border-color: rgb(239 68 68 / 0.07) !important; }
 .accion .border-white\/\[0\.10\] { border-color: rgb(239 68 68 / 0.08) !important; }
+
+/* Cursor blink — ToDoPage typewriter effect */
+@keyframes cursor-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.blink { animation: cursor-blink 1s step-start infinite; }
+
+/* Task strikethrough animation */
+@keyframes strike { from { width: 0 } to { width: 100% } }
+.strike-anim::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 1px;
+    background: currentColor;
+    animation: strike 380ms ease forwards;
+}
 
 /* ACCION — scrollbar red */
 .accion ::-webkit-scrollbar-thumb { background: #3a0000; }

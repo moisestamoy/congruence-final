@@ -59,20 +59,32 @@ export interface DailyRealExpense {
     note?: string;
 }
 
-// Tasks
-export type TaskPriority = 'high' | 'medium' | 'low';
-export type TaskCategory = 'Personal' | 'Work' | 'Finance' | 'Habits' | 'LongTerm';
+// Tasks — "do it." system
+export type TaskPriority = null | '!' | '!!';
+
+export interface TaskGroup {
+    id: string;
+    name: string;
+    color: string;  // hex
+}
 
 export interface Task {
     id: string;
-    title: string;
-    category: TaskCategory;
+    text: string;
     priority: TaskPriority;
-    dueDate?: string;
+    deadline: string | null;  // 'YYYY-MM-DD'
+    groupId: string | null;
     completed: boolean;
-    tags: string[];
-    icon?: string;
-    color?: string;
+    completedAt: number | null;
+    createdAt: number;
+}
+
+export interface Note {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
 }
 
 // Shared

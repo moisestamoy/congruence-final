@@ -6,6 +6,10 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                'courier': ["'Courier Prime'", 'Courier', 'monospace'],
+                'cormorant': ["'Cormorant Garamond'", 'Georgia', 'serif'],
+            },
             colors: {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
