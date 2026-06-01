@@ -17,6 +17,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 import { useAuth } from '../../context/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
 import { useTheme } from '../../hooks/useTheme';
+import { useNavStore } from '../../hooks/useNavStore';
 
 export default function HabitsPage() {
     const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function HabitsPage() {
     const { fabActionTick } = useFabStore();
     const [isScrolled, setIsScrolled] = useState(false);
     const habitsListRef = useRef<HTMLDivElement>(null);
+    const lastScrollTopRef = useRef(0);
+    const { setNavVisible } = useNavStore();
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
@@ -448,7 +451,16 @@ export default function HabitsPage() {
                                 </div>
 
                                 <div ref={habitsListRef}
-                                    onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 30)}
+                                    onScroll={(e) => {
+                                        const st = e.currentTarget.scrollTop;
+                                        const delta = st - lastScrollTopRef.current;
+                                        setIsScrolled(st > 30);
+                                        if (Math.abs(delta) > 4) {
+                                            // scroll down → hide nav, scroll up or near top → show nav
+                                            setNavVisible(delta < 0 || st < 10);
+                                        }
+                                        lastScrollTopRef.current = st;
+                                    }}
                                     className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
                                     {sortedHabits.map(habit => (
                                         <HabitCard

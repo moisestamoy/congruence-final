@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { SupabaseSync } from '../features/sync/SupabaseSync';
 import { useFabStore } from '../hooks/useFabStore';
 import { useTheme } from '../hooks/useTheme';
+import { useNavStore } from '../hooks/useNavStore';
 
 // ── STATIC CONFIG ────────────────────────────────────────────────────────────
 const featureColors: Record<string, { icon: string; activeBg: string; mobileActiveBg: string; dot: string }> = {
@@ -58,6 +59,7 @@ export default function MainLayout() {
     const { triggerFab } = useFabStore();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
+    const { navVisible } = useNavStore();
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
     const showFab = ['/', '/finances', '/tasks'].includes(location.pathname) && !isEditingOrder;
@@ -239,8 +241,12 @@ export default function MainLayout() {
                 </div>
             </aside>
 
-            {/* ── MOBILE BOTTOM NAV ── */}
-            <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 flex items-end justify-center px-4 bottom-nav-safe">
+            {/* ── MOBILE BOTTOM NAV — auto-hides on scroll down, reappears on scroll up ── */}
+            <div className={cn(
+                "lg:hidden fixed bottom-0 inset-x-0 z-50 flex items-end justify-center px-4 bottom-nav-safe",
+                "transition-transform duration-300 ease-in-out",
+                navVisible ? "translate-y-0" : "translate-y-[110%]"
+            )}>
                 <div className="w-full flex items-center gap-2 pb-4">
                     <nav className="flex-1 bg-[#121212]/95 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 flex justify-between items-center shadow-2xl">
                         {mobileNavItems.map((item) => {
