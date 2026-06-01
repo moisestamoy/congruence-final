@@ -486,7 +486,7 @@ export default function HabitsPage() {
                         className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-8 items-center overflow-y-auto lg:overflow-hidden pb-20 lg:pb-0"
                     >
                         {/* ── Columna Izquierda: Identidad + Progreso ── */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-4 py-4 lg:py-12 order-2 lg:order-1">
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-4 py-2 lg:py-8 order-2 lg:order-1">
 
                             {/* Card 1: Tu Identidad */}
                             <div
@@ -630,62 +630,79 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Derecha (Hábitos Lista) - 3/12 - Orden 3 - GLASS LIST */}
-                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center py-4 lg:py-12 order-3">
-                            <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] rounded-t-[2.5rem] lg:rounded-[2.5rem] h-full p-4 lg:p-6 flex flex-col relative overflow-hidden shadow-2xl min-h-[400px]">
-                                {/* Header */}
-                                <div className="mb-4 lg:mb-6 pb-4 border-b border-white/5 flex items-center justify-between">
-                                    <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_#06b6d4]" />
+                        {/* Columna Derecha (Hábitos Lista) - 3/12 */}
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center py-2 lg:py-8 order-3">
+                            <div className={cn(
+                                "rounded-t-[1.5rem] lg:rounded-[1.5rem] h-full p-3 lg:p-4 flex flex-col relative overflow-hidden min-h-[400px]",
+                                isAccion
+                                    ? "bg-transparent border border-red-950/25"
+                                    : "backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl"
+                            )}>
+                                {/* Accent top line */}
+                                <div className={cn(
+                                    "absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent to-transparent pointer-events-none",
+                                    isAccion ? "via-red-500/35" : "via-cyan-500/25"
+                                )} />
+
+                                {/* Header — compact */}
+                                <div className={cn(
+                                    "mb-3 pb-3 flex items-center justify-between",
+                                    isAccion ? "border-b border-red-950/40" : "border-b border-white/5"
+                                )}>
+                                    <h2 className="text-sm font-black tracking-widest uppercase text-white flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
                                         HÁBITOS
                                     </h2>
-                                    <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
-                                        <button
-                                            onClick={() => navigateDate(-1)}
-                                            className="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
-                                        >
-                                            <ChevronLeft size={14} />
+                                    <div className="flex items-center gap-0.5 bg-white/5 rounded-full px-1 py-0.5 border border-white/8">
+                                        <button onClick={() => navigateDate(-1)} className="p-1 rounded-full hover:bg-white/10 text-neutral-500 hover:text-white transition-colors">
+                                            <ChevronLeft size={12} />
                                         </button>
-                                        <span className="text-[10px] text-neutral-200 font-mono tracking-wider px-1.5 font-bold min-w-[60px] text-center">
+                                        <span className="text-[9px] text-neutral-300 font-mono font-bold px-1 min-w-[46px] text-center">
                                             {format(currentDate, 'dd MMM')}
                                         </span>
                                         <button
                                             onClick={() => navigateDate(1)}
-                                            className="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
                                             disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
+                                            className="p-1 rounded-full hover:bg-white/10 text-neutral-500 hover:text-white transition-colors disabled:opacity-30"
                                         >
-                                            <ChevronRight size={14} className={cn(format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd') ? "opacity-30" : "")} />
+                                            <ChevronRight size={12} />
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* List */}
-                                <div className="space-y-3 overflow-y-auto flex-1 pr-2 custom-scrollbar relative z-10">
+                                {/* Compact habit list */}
+                                <div className="flex flex-col gap-1 overflow-y-auto flex-1 pr-0.5 custom-scrollbar relative z-10">
                                     {sortedHabits.map(habit => (
-                                        <div key={habit.id} className="transform hover:scale-[1.02] transition-transform duration-300">
-                                            <HabitCard
-                                                habit={habit}
-                                                isCompleted={!!habit.logs[selectedDate]?.completed}
-                                                currentValue={habit.logs[selectedDate]?.value || 0}
-                                                onToggle={() => handleToggleHabit(habit.id)}
-                                                onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
-                                                onEdit={() => handleEditHabit(habit)}
-                                                onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
-                                            />
-                                        </div>
+                                        <HabitCard
+                                            key={habit.id}
+                                            habit={habit}
+                                            isCompleted={!!habit.logs[selectedDate]?.completed}
+                                            currentValue={habit.logs[selectedDate]?.value || 0}
+                                            onToggle={() => handleToggleHabit(habit.id)}
+                                            onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
+                                            onEdit={() => handleEditHabit(habit)}
+                                            onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
+                                            compact
+                                        />
                                     ))}
                                 </div>
 
-                                {/* Coach IA Card */}
-                                <div className="mt-1">
+                                {/* Coach IA */}
+                                <div className="mt-2 shrink-0">
                                     <CoachCard />
                                 </div>
 
+                                {/* Add habit */}
                                 <button
                                     onClick={handleCreateHabit}
-                                    className="mt-4 w-full py-4 rounded-xl border border-dashed border-white/10 bg-white/[0.01] hover:bg-white/[0.05] hover:border-cyan-500/30 transition-all flex items-center justify-center gap-2 text-neutral-500 hover:text-cyan-200 relative z-10"
+                                    className={cn(
+                                        "mt-2 w-full py-2.5 rounded-xl border border-dashed transition-all flex items-center justify-center shrink-0",
+                                        isAccion
+                                            ? "border-red-950/40 text-neutral-700 hover:border-red-500/25 hover:text-red-400 hover:bg-red-500/[0.04]"
+                                            : "border-white/8 text-neutral-600 hover:border-cyan-500/30 hover:text-cyan-300 hover:bg-white/[0.02]"
+                                    )}
                                 >
-                                    <span className="text-xs font-bold uppercase tracking-widest">+ Añadir</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest">+ Añadir</span>
                                 </button>
                             </div>
                         </div>
