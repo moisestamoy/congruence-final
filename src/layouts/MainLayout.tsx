@@ -60,28 +60,43 @@ export default function MainLayout() {
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
     const { navVisible, setNavVisible } = useNavStore();
-    const lastScrollRef = useRef(0);
+    const touchStartYRef = useRef(0);
 
-    // Global scroll capture — works on ALL pages
+    // Touch-based scroll direction — works on ALL pages regardless of scroll container
     useEffect(() => {
-        const handleScroll = (e: Event) => {
-            const el = e.target as HTMLElement;
-            const st = el.scrollTop || 0;
-            const delta = st - lastScrollRef.current;
-            if (Math.abs(delta) > 4) {
-                setNavVisible(delta < 0 || st < 10);
-            }
-            lastScrollRef.current = st;
+        const handleTouchStart = (e: TouchEvent) => {
+            touchStartYRef.current = e.touches[0].clientY;
         };
-        // capture:true catches scroll from ANY child element
-        window.addEventListener('scroll', handleScroll, true);
-        return () => window.removeEventListener('scroll', handleScroll, true);
+        const handleTouchMove = (e: TouchEvent) => {
+            const dy = e.touches[0].clientY - touchStartYRef.current;
+            if (Math.abs(dy) > 12) {
+                // dy > 0 → finger moves down → user scrolling UP → show nav
+                // dy < 0 → finger moves up  → user scrolling DOWN → hide nav
+                setNavVisible(dy > 0);
+                touchStartYRef.current = e.touches[0].clientY; // continuous tracking
+            }
+        };
+        const handleTouchEnd = () => {
+            // After lifting finger: check window scroll; if near top, show nav
+            requestAnimationFrame(() => {
+                const st = window.scrollY || document.documentElement.scrollTop || 0;
+                if (st < 20) setNavVisible(true);
+            });
+        };
+
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: true });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        return () => {
+            document.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
     }, [setNavVisible]);
 
-    // Reset nav visibility on route change
+    // Reset nav on route change
     useEffect(() => {
         setNavVisible(true);
-        lastScrollRef.current = 0;
     }, [location.pathname, setNavVisible]);
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
