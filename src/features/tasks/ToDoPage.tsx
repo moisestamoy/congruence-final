@@ -76,8 +76,9 @@ function GroupPicker({ groups, selectedId, onSelect, onCreate, onClose, anchor }
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) onClose();
         };
-        setTimeout(() => document.addEventListener('mousedown', handler), 50);
-        return () => document.removeEventListener('mousedown', handler);
+        // Defer to avoid the opening click immediately triggering close
+        const tid = setTimeout(() => document.addEventListener('mousedown', handler), 50);
+        return () => { clearTimeout(tid); document.removeEventListener('mousedown', handler); };
     }, [onClose]);
 
     return (
@@ -147,7 +148,7 @@ function GroupPicker({ groups, selectedId, onSelect, onCreate, onClose, anchor }
 }
 
 // ── TASK ITEM ─────────────────────────────────────────────────────────────────
-function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, onDelete }: {
+function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, onDelete, onCreateGroup }: {
     task: { id: string; text: string; priority: TaskPriority; deadline: string | null; groupId: string | null; completed: boolean; createdAt: number };
     groups: { id: string; name: string; color: string }[];
     soundEnabled: boolean;
@@ -155,6 +156,7 @@ function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, on
     onToggle: () => void;
     onUpdate: (updates: any) => void;
     onDelete: () => void;
+    onCreateGroup: (name: string, color: string) => void;
 }) {
     const [hovered, setHovered] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -170,9 +172,10 @@ function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, on
 
     const isOverdue = task.deadline && isPast(parseISO(task.deadline)) && !isToday(parseISO(task.deadline));
 
-    const accentColor = isAccion ? '#ef4444' : '#c8920a';
+    // Border: red in ACCIÓN always, red in Classic when overdue, amber in Classic otherwise
+    const priorityBorderColor = isAccion || isOverdue ? '#ef4444' : '#c8920a';
     const priorityBorderStyle = task.priority
-        ? { borderLeft: `2px solid ${isAccion || task.deadline && isOverdue ? '#ef4444' : accentColor}`, paddingLeft: '10px' }
+        ? { borderLeft: `2px solid ${priorityBorderColor}`, paddingLeft: '10px' }
         : { borderLeft: '2px solid transparent', paddingLeft: '10px' };
 
     const saveEdit = () => {
@@ -231,7 +234,7 @@ function TaskItem({ task, groups, soundEnabled, isAccion, onToggle, onUpdate, on
                     <GroupPicker
                         groups={groups} selectedId={editGroupId}
                         onSelect={id => setEditGroupId(id)}
-                        onCreate={() => {}}
+                        onCreate={onCreateGroup}
                         onClose={() => setGroupPickerOpen(false)}
                         anchor={gpAnchor}
                     />
@@ -522,28 +525,39 @@ export default function ToDoPage() {
         .filter(t => t.deadline && (isToday(parseISO(t.deadline)) || (isPast(parseISO(t.deadline)) && !isToday(parseISO(t.deadline)) && !t.completed)))
         .sort((a, b) => (a.deadline || '').localeCompare(b.deadline || ''));
 
-    // Group tasks by groupId (only when no group filter)
+    // Group tasks by groupId — pending and completed each go to their own group
     const groupedTasks = (() => {
-        if (filterGroupId) return [{ groupId: filterGroupId, tasks: pendingTasks.filter(t => !t.completed), completedTasks: sortedTasks.filter(t => t.completed && t.groupId === filterGroupId) }];
-        const groupMap = new Map<string | null, typeof tasks>();
-        pendingTasks.forEach(t => {
-            const key = t.groupId;
-            if (!groupMap.has(key)) groupMap.set(key, []);
-            groupMap.get(key)!.push(t);
+        type GroupEntry = { groupId: string | null; tasks: typeof tasks; completedTasks: typeof tasks };
+        const pendingMap = new Map<string | null, typeof tasks>();
+        const completedMap = new Map<string | null, typeof tasks>();
+
+        sortedTasks.filter(t => !t.completed).forEach(t => {
+            if (!pendingMap.has(t.groupId)) pendingMap.set(t.groupId, []);
+            pendingMap.get(t.groupId)!.push(t);
         });
-        const completedList = sortedTasks.filter(t => t.completed);
-        const result: { groupId: string | null; tasks: typeof tasks; completedTasks?: typeof tasks }[] = [];
-        groupMap.forEach((ts, gid) => result.push({ groupId: gid, tasks: ts }));
+        sortedTasks.filter(t => t.completed).forEach(t => {
+            if (!completedMap.has(t.groupId)) completedMap.set(t.groupId, []);
+            completedMap.get(t.groupId)!.push(t);
+        });
+
+        const allGroupIds = new Set<string | null>([...pendingMap.keys(), ...completedMap.keys()]);
+        if (allGroupIds.size === 0) return [] as GroupEntry[];
+
+        const result: GroupEntry[] = [];
+        allGroupIds.forEach(gid => {
+            result.push({
+                groupId: gid,
+                tasks: pendingMap.get(gid) || [],
+                completedTasks: completedMap.get(gid) || [],
+            });
+        });
+
+        // Sort by order in groups array (null/ungrouped last)
         result.sort((a, b) => {
             const ia = groups.findIndex(g => g.id === a.groupId);
             const ib = groups.findIndex(g => g.id === b.groupId);
             return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
         });
-        if (completedList.length > 0 && result.length > 0) {
-            result[result.length - 1].completedTasks = completedList;
-        } else if (completedList.length > 0) {
-            result.push({ groupId: null, tasks: [], completedTasks: completedList });
-        }
         return result;
     })();
 
@@ -732,9 +746,10 @@ export default function ToDoPage() {
                                                             onToggle={() => toggleTask(task.id)}
                                                             onUpdate={upd => updateTask(task.id, upd)}
                                                             onDelete={() => removeTask(task.id)}
+                                                            onCreateGroup={addGroup}
                                                         />
                                                     ))}
-                                                    {completedTasks && completedTasks.length > 0 && (
+                                                    {completedTasks.length > 0 && (
                                                         <>
                                                             <div className="border-t border-white/5 my-4" />
                                                             {completedTasks.map(task => (
@@ -747,6 +762,7 @@ export default function ToDoPage() {
                                                                     onToggle={() => toggleTask(task.id)}
                                                                     onUpdate={upd => updateTask(task.id, upd)}
                                                                     onDelete={() => removeTask(task.id)}
+                                                                    onCreateGroup={addGroup}
                                                                 />
                                                             ))}
                                                         </>
@@ -793,6 +809,7 @@ export default function ToDoPage() {
                                                 onToggle={() => toggleTask(task.id)}
                                                 onUpdate={upd => updateTask(task.id, upd)}
                                                 onDelete={() => removeTask(task.id)}
+                                                onCreateGroup={addGroup}
                                             />
                                         ))}
                                     </AnimatePresence>
