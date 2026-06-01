@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Edit2 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
+import { getHabitDay } from '../../utils/habitDay';
 import { cn } from '../../utils/cn';
 import { Habit, IdentityAxis } from '../../types';
 import { useTheme } from '../../hooks/useTheme';
@@ -43,8 +44,8 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
 
     useEffect(() => {
         let count = 0;
-        let d = new Date();
-        const todayStr = format(d, 'yyyy-MM-dd');
+        const today = getHabitDay(); // 5 AM reset boundary
+        const todayStr = format(today, 'yyyy-MM-dd');
         const todayLog = habit.logs[todayStr];
 
         if (todayLog?.completed) {
@@ -52,7 +53,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         }
 
         // Calculate streak
-        let streakDate = subDays(new Date(), 1);
+        let streakDate = subDays(today, 1);
         for (let i = 0; i < 365; i++) {
             const dStr = format(streakDate, 'yyyy-MM-dd');
             const log = habit.logs[dStr];
@@ -65,7 +66,7 @@ export function HabitCard({ habit, isCompleted, currentValue, onToggle, onValueC
         // Generate history array (last 14 days, from oldest to newest)
         const days = [];
         for (let i = 13; i >= 0; i--) {
-            const historyDate = subDays(new Date(), i);
+            const historyDate = subDays(today, i);
             const dStr = format(historyDate, 'yyyy-MM-dd');
             const log = habit.logs[dStr];
             days.push({

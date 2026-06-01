@@ -8,6 +8,7 @@ import { CoachCard } from './CoachCard';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
 import { format, addDays, subDays } from 'date-fns';
+import { getHabitDay } from '../../utils/habitDay';
 import { cn } from '../../utils/cn';
 
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
@@ -27,7 +28,7 @@ export default function HabitsPage() {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(getHabitDay); // 5 AM reset
     const { fabActionTick } = useFabStore();
     const [isScrolled, setIsScrolled] = useState(false);
     const habitsListRef = useRef<HTMLDivElement>(null);
@@ -43,12 +44,13 @@ export default function HabitsPage() {
 
     // --- GAMIFICATION: Real streak calculation ---
     const userStreak = useMemo(() => {
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const today = getHabitDay();
+        const todayStr = format(today, 'yyyy-MM-dd');
         let count = 0;
         const todayC = getCongruence(todayStr);
         if (todayC > 0 || todayC === -1) count++;
         for (let i = 1; i <= 365; i++) {
-            const d = subDays(new Date(), i);
+            const d = subDays(today, i);
             const dStr = format(d, 'yyyy-MM-dd');
             const c = getCongruence(dStr);
             if (c > 0 || c === -1) count++;
@@ -59,13 +61,14 @@ export default function HabitsPage() {
 
     // --- 90-DAY IDENTITY PROGRESS ---
     const ninetyDayStats = useMemo(() => {
+        const today = getHabitDay();
         let congruentDays = 0;
         const weekDots: boolean[] = [];
         for (let i = 0; i < 90; i++) {
-            const d = subDays(new Date(), i);
+            const d = subDays(today, i);
             const c = getCongruence(format(d, 'yyyy-MM-dd'));
             if (c > 0 || c === -1) congruentDays++;
-            if (i < 7) weekDots.unshift(c > 0);  // last 7 days, oldest first
+            if (i < 7) weekDots.unshift(c > 0);
         }
         return { congruentDays, weekDots };
     }, [habits, getCongruence]);
@@ -440,7 +443,7 @@ export default function HabitsPage() {
                                             </span>
                                             <button
                                                 onClick={() => navigateDate(1)}
-                                                disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
+                                                disabled={format(currentDate, 'yyyy-MM-dd') >= format(getHabitDay(), 'yyyy-MM-dd')}
                                                 className="p-1 lg:p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors disabled:opacity-30"
                                             >
                                                 <ChevronRight size={14} />
@@ -672,7 +675,7 @@ export default function HabitsPage() {
                                         </span>
                                         <button
                                             onClick={() => navigateDate(1)}
-                                            disabled={format(currentDate, 'yyyy-MM-dd') >= format(new Date(), 'yyyy-MM-dd')}
+                                            disabled={format(currentDate, 'yyyy-MM-dd') >= format(getHabitDay(), 'yyyy-MM-dd')}
                                             className="p-1 rounded-full hover:bg-white/10 text-neutral-500 hover:text-white transition-colors disabled:opacity-30"
                                         >
                                             <ChevronRight size={12} />
