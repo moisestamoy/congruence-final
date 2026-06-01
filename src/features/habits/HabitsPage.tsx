@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +28,8 @@ export default function HabitsPage() {
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const { fabActionTick } = useFabStore();
+    const [isScrolled, setIsScrolled] = useState(false);
+    const habitsListRef = useRef<HTMLDivElement>(null);
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
@@ -346,25 +348,34 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-2 flex-1 min-h-0 gap-2 lg:gap-12"
                     >
-                        {/* Ring column — compact on mobile (top), full on desktop (left) */}
-                        <div className="lg:order-1 h-[200px] shrink-0 lg:h-full lg:shrink-1 flex flex-col items-center justify-center relative transition-all duration-500">
-
-                            {/* Glow */}
+                        {/* Ring column — adaptive on mobile: shrinks on scroll */}
+                        <div className={cn(
+                            "lg:order-1 shrink-0 lg:shrink-1 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
+                            "lg:h-full lg:justify-center lg:pt-0 lg:overflow-visible",
+                            isScrolled ? "h-[96px] overflow-hidden" : "h-[215px] overflow-visible"
+                        )}>
+                            {/* Ambient glow */}
                             <div className={cn(
-                                "absolute inset-0 flex items-center justify-center rounded-full pointer-events-none mix-blend-screen",
-                                isAccion ? "bg-cyan-500/20 blur-[60px]" : "bg-cyan-500/10 blur-[50px]"
+                                "absolute top-0 left-1/2 -translate-x-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-300",
+                                isAccion
+                                    ? isScrolled ? "w-[120px] h-[120px] bg-cyan-500/20 blur-[40px]" : "w-[200px] h-[200px] bg-cyan-500/25 blur-[60px]"
+                                    : isScrolled ? "w-[100px] h-[100px] bg-cyan-500/10 blur-[35px]" : "w-[180px] h-[180px] bg-cyan-500/10 blur-[50px]"
                             )} />
 
-                            {/* Ring — compact on mobile, large on desktop */}
+                            {/* Ring — scales down on scroll (mobile), large on desktop */}
                             <div
-                                className="relative z-10 cursor-pointer"
+                                className={cn(
+                                    "relative z-10 cursor-pointer transition-transform duration-300 ease-in-out origin-top",
+                                    "lg:origin-center lg:!scale-100",
+                                    isScrolled ? "scale-[0.58]" : "scale-100"
+                                )}
                                 onClick={() => navigate('/identity')}
                                 title="Tu Identidad"
                             >
                                 <CongruenceLevelIndicator
                                     percentage={congruence}
-                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 130 : 500}
-                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 12 : 35}
+                                    size={typeof window !== 'undefined' && window.innerWidth < 1024 ? 155 : 500}
+                                    strokeWidth={typeof window !== 'undefined' && window.innerWidth < 1024 ? 14 : 35}
                                     level={currentLevel}
                                 />
                             </div>
@@ -424,7 +435,9 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
+                                <div ref={habitsListRef}
+                                    onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 30)}
+                                    className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
                                     {sortedHabits.map(habit => (
                                         <HabitCard
                                             key={habit.id}
