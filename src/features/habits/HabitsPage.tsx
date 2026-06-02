@@ -392,7 +392,7 @@ export default function HabitsPage() {
                         </div>
 
                         {/* Habits column — fills full height on mobile, right col on desktop */}
-                        <div className="lg:order-2 flex-1 flex flex-col min-h-0 lg:max-h-[90vh] transition-all duration-500">
+                        <div className="lg:order-2 flex-1 flex flex-col min-h-0 lg:max-h-[90vh] lg:pt-16 transition-all duration-500">
                             <div className={cn(
                                 "rounded-[1.5rem] lg:rounded-[2rem] p-3 lg:p-6 flex-1 flex flex-col overflow-hidden relative transition-all duration-500",
                                 isAccion
