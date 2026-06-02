@@ -463,14 +463,16 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
+                                {/* Spacer: pushes habits to bottom when few, shrinks when many */}
+                                <div className="flex-1 min-h-0" />
+
                                 <div ref={habitsListRef}
                                     onScroll={(e) => {
                                         const st = e.currentTarget.scrollTop;
-                                        // Ring shrink behavior
                                         setIsScrolled(st > 30);
                                         lastScrollTopRef.current = st;
                                     }}
-                                    className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
+                                    className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar relative z-10">
                                     {sortedHabits.map(habit => (
                                         <HabitCard
                                             key={habit.id}
