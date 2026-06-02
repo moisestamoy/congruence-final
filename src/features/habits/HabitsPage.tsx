@@ -351,12 +351,12 @@ export default function HabitsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex flex-col lg:block lg:relative flex-1 min-h-0"
+                        className="flex flex-col lg:grid lg:grid-cols-2 flex-1 min-h-0 gap-2 lg:gap-12"
                     >
-                        {/* Ring — mobile: top section; desktop: absolute left background */}
+                        {/* Ring column — adaptive on mobile: shrinks on scroll */}
                         <div className={cn(
-                            "shrink-0 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
-                            "lg:absolute lg:left-0 lg:top-0 lg:bottom-0 lg:w-[52%] lg:flex lg:items-center lg:justify-center lg:pt-0 lg:overflow-visible",
+                            "lg:order-1 shrink-0 lg:shrink-1 flex flex-col items-center justify-start pt-2 relative transition-all duration-300 ease-in-out",
+                            "lg:h-full lg:justify-center lg:pt-0 lg:overflow-visible",
                             isScrolled ? "h-[115px] overflow-hidden" : "h-[320px] overflow-visible"
                         )}>
                             {/* Ambient glow */}
@@ -366,6 +366,8 @@ export default function HabitsPage() {
                                     ? isScrolled ? "w-[120px] h-[120px] bg-cyan-500/20 blur-[40px]" : "w-[200px] h-[200px] bg-cyan-500/25 blur-[60px]"
                                     : isScrolled ? "w-[100px] h-[100px] bg-cyan-500/10 blur-[35px]" : "w-[180px] h-[180px] bg-cyan-500/10 blur-[50px]"
                             )} />
+
+                            {/* Ring — scales down on scroll (mobile), large on desktop */}
                             <div
                                 className={cn(
                                     "relative z-10 cursor-pointer transition-transform duration-300 ease-in-out origin-top",
@@ -382,13 +384,15 @@ export default function HabitsPage() {
                                     level={currentLevel}
                                 />
                             </div>
+
+                            {/* Quote — desktop only */}
                             <p className="hidden lg:block mt-8 text-cyan-200/40 font-light italic text-center max-w-sm drop-shadow-md tracking-wider text-sm">
                                 "La consistencia no es perfección. Es simplemente no rendirse nunca."
                             </p>
                         </div>
 
-                        {/* Habits — mobile: below ring; desktop: centered on screen */}
-                        <div className="flex-1 flex flex-col min-h-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:top-1/2 lg:-translate-y-1/2 lg:w-[440px] lg:max-h-[82vh] transition-all duration-500">
+                        {/* Habits column — fills full height on mobile, right col on desktop */}
+                        <div className="lg:order-2 flex-1 flex flex-col min-h-0 lg:max-h-[90vh] transition-all duration-500">
                             <div className={cn(
                                 "rounded-[1.5rem] lg:rounded-[2rem] p-3 lg:p-6 flex-1 flex flex-col overflow-hidden relative transition-all duration-500",
                                 isAccion
@@ -459,16 +463,14 @@ export default function HabitsPage() {
                                     </div>
                                 </div>
 
-                                {/* Spacer: pushes habits to bottom when few, shrinks when many */}
-                                <div className="flex-1 min-h-0" />
-
                                 <div ref={habitsListRef}
                                     onScroll={(e) => {
                                         const st = e.currentTarget.scrollTop;
+                                        // Ring shrink behavior
                                         setIsScrolled(st > 30);
                                         lastScrollTopRef.current = st;
                                     }}
-                                    className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar relative z-10">
+                                    className="flex flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar flex-1 min-h-0 relative z-10">
                                     {sortedHabits.map(habit => (
                                         <HabitCard
                                             key={habit.id}
@@ -636,19 +638,15 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Columna Central → ahora HÁBITOS (col-6, más ancho) */}
-                        {/* Ring se mueve a la derecha como col-3 */}
-                        {/* Primero renderizamos hábitos (order changes) */}
-
-                        {/* Columna Central (Ring) — now col-3, right side */}
-                        <div className="w-full lg:col-span-3 flex justify-center items-center relative order-2 lg:order-3 h-[200px] lg:h-auto">
+                        {/* Columna Central (Núcleo) — order-2 on mobile, order-2 on desktop */}
+                        <div className="w-full lg:col-span-6 flex justify-center items-center relative order-2 lg:order-2 h-[200px] lg:h-auto">
                             {/* Ambient Glow */}
                             <div className={cn(
                                 "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none mix-blend-screen transition-all duration-1000",
                                 currentLevel >= 3 ? "bg-cyan-500/30 w-[600px] h-[600px] blur-[150px]" : "bg-cyan-500/10 w-[300px] h-[300px] blur-[80px]"
                             )} />
                             <div
-                                className="scale-[0.3] md:scale-60 lg:scale-[0.65] relative z-10 transition-transform duration-500 cursor-pointer"
+                                className="scale-[0.3] md:scale-60 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer"
                                 onClick={() => navigate('/identity')}
                                 title="Tu Identidad"
                             >
@@ -656,8 +654,8 @@ export default function HabitsPage() {
                             </div>
                         </div>
 
-                        {/* Hábitos — now center col-6 (wider, more prominent) */}
-                        <div className="w-full lg:col-span-6 lg:h-full flex flex-col justify-center order-1 lg:order-2 lg:py-8">
+                        {/* Columna Derecha (Hábitos Lista) — order-1 on mobile (TOP), order-3 on desktop */}
+                        <div className="w-full lg:col-span-3 lg:h-full flex flex-col justify-center order-1 lg:order-3 lg:py-8">
                             <div className={cn(
                                 "rounded-[1.5rem] p-3 lg:p-4 flex flex-col relative overflow-hidden min-h-[300px] lg:h-full",
                                 isAccion
