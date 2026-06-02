@@ -677,6 +677,15 @@ export default function HabitsPage() {
                                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
                                         HÁBITOS
                                     </h2>
+                                    <div className="flex items-center gap-1.5">
+                                        {/* Layout toggle */}
+                                        <button
+                                            onClick={() => setLayoutView('split')}
+                                            title="Vista Dividida"
+                                            className="w-7 h-7 rounded-xl bg-white/5 border border-white/10 text-neutral-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
+                                        >
+                                            <LayoutTemplate size={12} />
+                                        </button>
                                     <div className="flex items-center gap-0.5 bg-white/5 rounded-full px-1 py-0.5 border border-white/8">
                                         <button onClick={() => navigateDate(-1)} className="p-1 rounded-full hover:bg-white/10 text-neutral-500 hover:text-white transition-colors">
                                             <ChevronLeft size={12} />
@@ -691,6 +700,7 @@ export default function HabitsPage() {
                                         >
                                             <ChevronRight size={12} />
                                         </button>
+                                    </div>
                                     </div>
                                 </div>
 
