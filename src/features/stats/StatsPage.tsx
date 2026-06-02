@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Activity, Wallet, Target, Brain, Zap } from '
 import { motion } from 'framer-motion';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
-import { format, subDays, eachDayOfInterval, getDay } from 'date-fns';
+import { format, subDays, eachDayOfInterval, getDay, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
     ComposedChart, Bar, XAxis, YAxis, Tooltip,
@@ -376,6 +376,128 @@ export default function StatsPage() {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ── REPORTE DE PAUSAS ───────────────────────────────────────── */}
+            <PauseReport habits={habits} />
+        </div>
+    );
+}
+
+// ── PAUSE REPORT COMPONENT ─────────────────────────────────────────────────
+function PauseReport({ habits }: { habits: any[] }) {
+    const [reportMonth, setReportMonth] = useState(new Date());
+
+    const monthStart = startOfMonth(reportMonth);
+    const monthEnd = endOfMonth(reportMonth);
+
+    // Collect all pauses in the selected month
+    const pausesByHabit = useMemo(() => {
+        const result: { habitTitle: string; habitIcon?: string; pauses: { date: string; reason?: string; status: string }[] }[] = [];
+
+        habits.forEach(habit => {
+            const pauses: { date: string; reason?: string; status: string }[] = [];
+            Object.values(habit.logs as Record<string, any>).forEach((log: any) => {
+                if (log.status === 'rest' || log.status === 'emergency') {
+                    const logDate = new Date(log.date);
+                    if (logDate >= monthStart && logDate <= monthEnd) {
+                        pauses.push({ date: log.date, reason: log.pauseReason, status: log.status });
+                    }
+                }
+            });
+            if (pauses.length > 0) {
+                pauses.sort((a, b) => a.date.localeCompare(b.date));
+                result.push({ habitTitle: habit.title, habitIcon: habit.icon, pauses });
+            }
+        });
+
+        return result;
+    }, [habits, reportMonth]);
+
+    const totalPauses = pausesByHabit.reduce((sum, h) => sum + h.pauses.length, 0);
+
+    // Count most common reasons
+    const allReasons = pausesByHabit.flatMap(h => h.pauses.map(p => p.reason)).filter(Boolean) as string[];
+    const reasonCounts = allReasons.reduce((acc, r) => ({ ...acc, [r]: (acc[r] || 0) + 1 }), {} as Record<string, number>);
+    const topReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+    return (
+        <div className="mt-12">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                        <span className="text-lg">⏸</span>
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-white">Reporte de Pausas</h2>
+                        <p className="text-[11px] text-neutral-500 uppercase tracking-widest">Días de descanso y motivos</p>
+                    </div>
+                </div>
+                {/* Month nav */}
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/8 px-3 py-1.5">
+                    <button onClick={() => setReportMonth(prev => addMonths(prev, -1))} className="text-neutral-500 hover:text-white transition-colors text-sm">‹</button>
+                    <span className="text-sm font-bold text-white/80 min-w-[90px] text-center capitalize">
+                        {format(reportMonth, 'MMMM yyyy', { locale: es })}
+                    </span>
+                    <button
+                        onClick={() => setReportMonth(prev => addMonths(prev, 1))}
+                        disabled={addMonths(reportMonth, 1) > new Date()}
+                        className="text-neutral-500 hover:text-white transition-colors text-sm disabled:opacity-30"
+                    >›</button>
+                </div>
+            </div>
+
+            {totalPauses === 0 ? (
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center">
+                    <p className="text-neutral-600 text-sm">Sin pausas registradas en {format(reportMonth, 'MMMM', { locale: es })}</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {/* Summary chips */}
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                            {totalPauses} pausa{totalPauses !== 1 ? 's' : ''} en total
+                        </span>
+                        {topReasons.map(([reason, count]) => (
+                            <span key={reason} className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">
+                                {reason} × {count}
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Per-habit pauses */}
+                    {pausesByHabit.map(({ habitTitle, habitIcon, pauses }) => (
+                        <div key={habitTitle} className="rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden">
+                            {/* Habit header */}
+                            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/5">
+                                <span className="text-base">{habitIcon || '⏸'}</span>
+                                <span className="text-sm font-bold uppercase tracking-wide text-white/80">{habitTitle}</span>
+                                <span className="ml-auto text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                    {pauses.length} pausa{pauses.length !== 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            {/* Pause entries */}
+                            <div className="divide-y divide-white/5">
+                                {pauses.map((pause, i) => (
+                                    <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[11px] font-mono text-neutral-500 min-w-[60px]">
+                                                {format(new Date(pause.date), 'dd MMM', { locale: es })}
+                                            </span>
+                                            {pause.status === 'emergency' && (
+                                                <span className="text-[9px] font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">urgencia</span>
+                                            )}
+                                        </div>
+                                        <span className={`text-[11px] font-medium ${pause.reason ? 'text-white/60' : 'text-neutral-700 italic'}`}>
+                                            {pause.reason || 'sin motivo'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

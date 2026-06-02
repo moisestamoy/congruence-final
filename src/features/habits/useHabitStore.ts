@@ -17,7 +17,7 @@ interface HabitsState {
     toggleHabit: (habitId: string, date: string) => void;
     setHabitValue: (habitId: string, date: string, value: number) => void;
     removeHabit: (id: string) => void;
-    markHabitSkip: (habitId: string, date: string, status: 'rest' | 'emergency') => void;
+    markHabitSkip: (habitId: string, date: string, status: 'rest' | 'emergency', reason?: string) => void;
     getCongruence: (date: string) => number; // 0-100
 }
 
@@ -161,14 +161,22 @@ export const useHabitStore = create<HabitsState>()(
                     return { habits };
                 });
             },
-            markHabitSkip: (habitId, date, status) => {
+            markHabitSkip: (habitId, date, status, reason) => {
                 set((state) => {
                     const habits = [...state.habits];
                     const habitIndex = habits.findIndex((h) => h.id === habitId);
                     if (habitIndex === -1) return {};
 
                     const habit = habits[habitIndex];
-                    habit.logs = { ...habit.logs, [date]: { date, completed: false, status } };
+                    habit.logs = {
+                        ...habit.logs,
+                        [date]: {
+                            date,
+                            completed: false,
+                            status,
+                            ...(reason?.trim() ? { pauseReason: reason.trim() } : {}),
+                        }
+                    };
 
                     habits[habitIndex] = { ...habit };
                     return { habits };

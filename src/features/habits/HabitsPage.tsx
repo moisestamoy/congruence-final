@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
 import { CoachCard } from './CoachCard';
+import { PauseReasonModal } from './PauseReasonModal';
 import { HabitForm } from './HabitForm';
 import { useHabitStore } from './useHabitStore';
 import { format, addDays, subDays } from 'date-fns';
@@ -33,6 +34,7 @@ export default function HabitsPage() {
     const [isScrolled, setIsScrolled] = useState(false);
     const habitsListRef = useRef<HTMLDivElement>(null);
     const lastScrollTopRef = useRef(0);
+    const [pauseModal, setPauseModal] = useState<{ habitId: string; habitTitle: string; habitIcon?: string } | null>(null);
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
@@ -480,7 +482,7 @@ export default function HabitsPage() {
                                             onToggle={() => handleToggleHabit(habit.id)}
                                             onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
                                             onEdit={() => handleEditHabit(habit)}
-                                            onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
+                                            onSkip={() => setPauseModal({ habitId: habit.id, habitTitle: habit.title, habitIcon: habit.icon })}
                                             compact
                                         />
                                     ))}
@@ -715,7 +717,7 @@ export default function HabitsPage() {
                                             onToggle={() => handleToggleHabit(habit.id)}
                                             onValueChange={(val) => setHabitValue(habit.id, selectedDate, val)}
                                             onEdit={() => handleEditHabit(habit)}
-                                            onSkip={() => markHabitSkip(habit.id, selectedDate, 'rest')}
+                                            onSkip={() => setPauseModal({ habitId: habit.id, habitTitle: habit.title, habitIcon: habit.icon })}
                                             compact
                                         />
                                     ))}
@@ -756,6 +758,21 @@ export default function HabitsPage() {
                 onClose={() => setIsIdentityBuilderOpen(false)}
             />
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+            {/* Pause Reason Modal */}
+            <AnimatePresence>
+                {pauseModal && (
+                    <PauseReasonModal
+                        habitTitle={pauseModal.habitTitle}
+                        habitIcon={pauseModal.habitIcon}
+                        onConfirm={(reason) => {
+                            markHabitSkip(pauseModal.habitId, selectedDate, 'rest', reason);
+                            setPauseModal(null);
+                        }}
+                        onClose={() => setPauseModal(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

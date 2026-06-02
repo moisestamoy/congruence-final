@@ -7,6 +7,7 @@ export interface HabitLog {
     completed: boolean;
     value?: number;
     status?: 'completed' | 'rest' | 'emergency';
+    pauseReason?: string; // reason when status is 'rest' or 'emergency'
 }
 
 export interface Habit {
