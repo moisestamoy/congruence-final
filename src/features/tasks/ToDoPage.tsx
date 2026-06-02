@@ -348,47 +348,10 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
     const formatNoteDate = (ts: number) => format(new Date(ts), "EEE d MMM · HH:mm", { locale: es });
 
     return (
-        <div className="space-y-8">
-            {/* Composer */}
-            <div className="space-y-3">
-                <input
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    placeholder="título..."
-                    className="w-full bg-transparent font-courier text-base font-bold text-white/80 placeholder-white/30 outline-none border-b border-white/8 pb-2"
-                />
-                <div className="border-b border-white/5 my-0" />
-                <textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={e => { setContent(e.target.value); autoGrow(); }}
-                    placeholder="escribe algo..."
-                    rows={3}
-                    className="w-full bg-transparent font-courier text-sm text-white/70 placeholder-white/30 outline-none resize-none leading-relaxed"
-                    style={{ minHeight: '72px' }}
-                />
-                <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-courier text-white/15">
-                        {wordCount} palabras · {charCount} caracteres
-                    </span>
-                    <button
-                        onClick={save}
-                        disabled={!content.trim() && !title.trim()}
-                        className={cn(
-                            "text-[11px] font-courier italic transition-colors",
-                            content.trim() || title.trim()
-                                ? isAccion ? "text-red-400/70 hover:text-red-300" : "text-white/40 hover:text-white/70"
-                                : "text-white/10 cursor-not-allowed"
-                        )}
-                    >
-                        guardar nota →
-                    </button>
-                </div>
-            </div>
-
-            {/* Note list */}
+        <div className="space-y-6">
+            {/* Notes list FIRST — most visible, above the composer */}
             {notes.length > 0 && (
-                <div className="space-y-0 border-t border-white/5 pt-6">
+                <div className="space-y-0">
                     <AnimatePresence>
                         {notes.map(note => (
                             <motion.div
@@ -397,37 +360,41 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="border-b border-white/5 py-4 group"
+                                className="border-b border-white/8 py-5 group"
                             >
                                 {editingId === note.id ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                                            className="w-full bg-transparent font-courier text-sm font-bold text-white/80 outline-none border-b border-white/10 pb-1" />
+                                            className="w-full bg-transparent font-courier text-base font-bold text-white/85 outline-none border-b border-white/15 pb-1" />
                                         <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
-                                            rows={3}
-                                            className="w-full bg-transparent font-courier text-sm text-white/60 outline-none resize-none" />
-                                        <div className="flex gap-3">
+                                            rows={6}
+                                            className="w-full bg-transparent font-courier text-sm text-white/70 outline-none resize-none leading-relaxed whitespace-pre-wrap" />
+                                        <div className="flex gap-4">
                                             <button onClick={() => { onUpdate(note.id, { title: editTitle, content: editContent }); setEditingId(null); }}
-                                                className="text-[11px] font-courier italic text-white/40 hover:text-white transition-colors">guardar cambios →</button>
+                                                className="text-[11px] font-courier italic text-white/50 hover:text-white transition-colors">guardar cambios →</button>
                                             <button onClick={() => setEditingId(null)}
-                                                className="text-[11px] font-courier italic text-white/40 hover:text-white/70 transition-colors">cancelar</button>
+                                                className="text-[11px] font-courier italic text-white/30 hover:text-white/50 transition-colors">cancelar</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 cursor-pointer" onClick={() => setExpandedId(expandedId === note.id ? null : note.id)}>
-                                                <p className="text-[10px] font-courier text-white/40 mb-1">{formatNoteDate(note.createdAt)}</p>
+                                                <p className="text-[11px] font-courier text-white/45 mb-2">{formatNoteDate(note.createdAt)}</p>
                                                 {note.title && note.title !== 'Sin título' && (
-                                                    <p className="font-courier text-sm font-bold text-white/70 mb-1">{note.title}</p>
+                                                    <p className="font-courier text-base font-bold text-white/85 mb-2">{note.title}</p>
                                                 )}
-                                                <p className={cn("font-courier text-sm text-white/40 leading-relaxed", expandedId !== note.id && "line-clamp-2")}>
+                                                {/* whitespace-pre-wrap preserves line breaks and spacing */}
+                                                <p className={cn(
+                                                    "font-courier text-sm text-white/65 leading-relaxed whitespace-pre-wrap",
+                                                    expandedId !== note.id && "line-clamp-3"
+                                                )}>
                                                     {note.content}
                                                 </p>
                                                 {expandedId === note.id && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setEditingId(note.id); setEditTitle(note.title); setEditContent(note.content); }}
-                                                        className="text-[10px] font-courier italic text-white/45 hover:text-white/70 mt-2 block transition-colors"
+                                                        className="text-[11px] font-courier italic text-white/40 hover:text-white/70 mt-3 block transition-colors"
                                                     >
                                                         editar
                                                     </button>
@@ -435,7 +402,7 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
                                             </div>
                                             <button
                                                 onClick={() => { playPop(soundEnabled); onDelete(note.id); }}
-                                                className="text-[11px] text-white/15 hover:text-red-400 font-courier opacity-0 group-hover:opacity-100 transition-all mt-1 shrink-0"
+                                                className="text-[13px] text-white/15 hover:text-red-400 font-courier opacity-0 group-hover:opacity-100 transition-all mt-1 shrink-0"
                                             >×</button>
                                         </div>
                                     </>
@@ -447,8 +414,47 @@ function DiaryView({ notes, soundEnabled, isAccion, onAdd, onUpdate, onDelete }:
             )}
 
             {notes.length === 0 && (
-                <p className="font-cormorant italic text-white/15 text-center text-lg py-8">página en blanco</p>
+                <p className="font-cormorant italic text-white/20 text-center text-lg py-6">página en blanco</p>
             )}
+
+            {/* Composer — below notes, separated by a divider */}
+            <div className={cn(
+                "space-y-3 pt-5",
+                notes.length > 0 && "border-t border-white/8"
+            )}>
+                <input
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="título..."
+                    className="w-full bg-transparent font-courier text-base font-bold text-white/80 placeholder-white/35 outline-none border-b border-white/10 pb-2"
+                />
+                <textarea
+                    ref={textareaRef}
+                    value={content}
+                    onChange={e => { setContent(e.target.value); autoGrow(); }}
+                    placeholder="escribe algo..."
+                    rows={4}
+                    className="w-full bg-transparent font-courier text-sm text-white/70 placeholder-white/30 outline-none resize-none leading-relaxed"
+                    style={{ minHeight: '88px' }}
+                />
+                <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-courier text-white/25">
+                        {wordCount} palabras · {charCount} caracteres
+                    </span>
+                    <button
+                        onClick={save}
+                        disabled={!content.trim() && !title.trim()}
+                        className={cn(
+                            "text-[11px] font-courier italic transition-colors",
+                            content.trim() || title.trim()
+                                ? isAccion ? "text-red-400/70 hover:text-red-300" : "text-white/50 hover:text-white/80"
+                                : "text-white/15 cursor-not-allowed"
+                        )}
+                    >
+                        guardar nota →
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
