@@ -177,8 +177,8 @@ export default function HabitsPage() {
 
 
 
-            {/* HEADER ACTIONS — below notch on mobile */}
-            <div className="fixed top-14 right-3 z-50 lg:absolute lg:top-8 lg:right-8 flex gap-3 lg:gap-4">
+            {/* HEADER ACTIONS — mobile only (desktop uses sidebar for auth) */}
+            <div className="fixed top-14 right-3 z-50 lg:hidden flex gap-3">
                 <div className="relative">
                     <button
                         onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -433,6 +433,17 @@ export default function HabitsPage() {
                                         </button>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        {/* Layout toggle — desktop only, inline in header */}
+                                        <button
+                                            onClick={() => setLayoutView(layoutView === 'split' ? 'central' : 'split')}
+                                            title={layoutView === 'split' ? "Vista Central" : "Vista Dividida"}
+                                            className="hidden lg:flex w-8 h-8 rounded-xl bg-white/5 border border-white/10 text-neutral-500 hover:text-white hover:bg-white/10 transition-all items-center justify-center"
+                                        >
+                                            {layoutView === 'split'
+                                                ? <Monitor size={14} />
+                                                : <LayoutTemplate size={14} />
+                                            }
+                                        </button>
                                         <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5 lg:p-1 border border-white/10">
                                             <button onClick={() => navigateDate(-1)} className="p-1 lg:p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors">
                                                 <ChevronLeft size={14} />
