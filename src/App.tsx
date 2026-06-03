@@ -12,6 +12,7 @@ import IdentityPage from './features/identity/IdentityPage';
 import CoachPage from './features/coach/CoachPage';
 import ToDoPage from './features/tasks/ToDoPage';
 import StorePage from './features/gamification/StorePage';
+import OnboardingPage from './features/onboarding/OnboardingPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -20,13 +21,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
+function OnboardingGuard({ children }: { children: React.ReactNode }) {
+    const onboardingDone = localStorage.getItem('congruence_onboarding') === 'done';
+    if (!onboardingDone) return <Navigate to="/onboarding" replace />;
+    return <>{children}</>;
+}
+
 function App() {
     return (
         <ThemeProvider defaultTheme="dark" storageKey="lifeos-ui-theme">
             <BrowserRouter>
                 <Routes>
+                    {/* Onboarding — no layout wrapper */}
+                    <Route path="/onboarding" element={<OnboardingPage />} />
+
                     <Route element={<MainLayout />}>
-                        <Route path="/" element={<HabitsPage />} />
+                        <Route path="/" element={<OnboardingGuard><HabitsPage /></OnboardingGuard>} />
                         <Route path="/finances" element={<FinancesPage />} />
                         <Route path="/stats" element={<StatsPage />} />
                         <Route path="/identity" element={<IdentityPage />} />
