@@ -106,17 +106,17 @@ export default function OnboardingPage() {
         return true;
     };
 
-    const displayName = name.trim() || 'tú';
+    const displayName = name.trim() || 'ti';
 
     return (
-        <div className="min-h-screen bg-[#020202] text-white flex flex-col items-center justify-between p-6 relative overflow-hidden">
+        <div className="min-h-screen bg-[#020202] text-white flex flex-col items-center p-6 relative overflow-hidden">
             {/* Background glow that grows with progress */}
             <motion.div
                 className="absolute inset-0 pointer-events-none"
                 animate={{ opacity: progress / 100 }}
                 transition={{ duration: 1 }}
             >
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-cyan-500/[0.07] rounded-full blur-[150px]" />
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-cyan-500/[0.08] rounded-full blur-[160px]" />
             </motion.div>
 
             {/* Skip button — from step 2 onwards */}
@@ -142,25 +142,25 @@ export default function OnboardingPage() {
                 ))}
             </div>
 
-            {/* Ring — grows with each step */}
-            <div className="flex flex-col items-center z-10 my-4">
+            {/* Ring — centered, bigger, grows with each step */}
+            <div className="flex flex-col items-center justify-center z-10 w-full" style={{ height: '42vh', minHeight: 220 }}>
                 <motion.div
                     key={`ring-${step}`}
-                    initial={{ scale: 0.95, opacity: 0.8 }}
+                    initial={{ scale: 0.9, opacity: 0.7 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
                 >
                     <CongruenceLevelIndicator
                         percentage={progress}
-                        size={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 220}
-                        strokeWidth={typeof window !== 'undefined' && window.innerWidth < 640 ? 12 : 14}
+                        size={typeof window !== 'undefined' && window.innerWidth < 640 ? 210 : 260}
+                        strokeWidth={typeof window !== 'undefined' && window.innerWidth < 640 ? 13 : 16}
                         level={progress === 100 ? 2 : 1}
                     />
                 </motion.div>
             </div>
 
             {/* Step content */}
-            <div className="flex-1 w-full max-w-md z-10 flex flex-col justify-center">
+            <div className="w-full max-w-md z-10 flex flex-col justify-start pb-4">
                 <AnimatePresence mode="wait" custom={dir}>
                     <motion.div
                         key={step}
@@ -170,7 +170,7 @@ export default function OnboardingPage() {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.35, ease: 'easeInOut' }}
-                        className="flex flex-col gap-6"
+                        className="flex flex-col gap-5"
                     >
                         {/* ── STEP 0: Bienvenida ── */}
                         {step === 0 && (
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
                                         Hola. Soy <span className="text-cyan-400">Congruence</span>.
                                     </h1>
                                     <p className="text-neutral-400 text-base mt-3 leading-relaxed">
-                                        Soy tu sistema personal para vivir alineado/a con quien querés ser. Antes de empezar, ¿cómo te llamás?
+                                        Soy tu sistema personal para vivir alineado con quien quieres ser. Solo toma 3 minutos configurarlo. ¿Cómo te llamas?
                                     </p>
                                 </div>
                                 <input
@@ -201,20 +201,20 @@ export default function OnboardingPage() {
                                 <div>
                                     <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">¿Cómo funciona?</p>
                                     <h1 className="text-3xl font-black text-white leading-tight">
-                                        ¡Hola, <span className="text-cyan-400">{displayName}</span>! 👋
+                                        Hola, <span className="text-cyan-400">{name.trim() || 'bienvenido/a'}</span> 👋
                                     </h1>
                                     <p className="text-neutral-400 text-base mt-3 leading-relaxed">
-                                        Congruence mide qué tan alineado/a estás con la persona que querés ser. El anillo de arriba lo refleja.
+                                        Congruence mide qué tan alineado estás con la persona que quieres ser. El anillo de arriba lo refleja: mientras más lo completas, más en línea estás con tu versión ideal.
                                     </p>
                                 </div>
                                 <div className="space-y-3">
                                     {[
-                                        { icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20', title: 'Hábitos', desc: 'Acciones diarias que te construyen. Cada día que los cumplís, el anillo sube.' },
-                                        { icon: Wallet, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', title: 'Finanzas', desc: 'Tu realidad financiera sin juicios. Sabés exactamente qué tenés y a dónde va tu dinero.' },
-                                        { icon: Target, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', title: 'Identidad', desc: 'Tu brújula. Define quién sos y hacia dónde vas en los próximos 90 días.' },
+                                        { icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20', title: 'Hábitos', desc: 'Las acciones diarias que te construyen. Cada día que los cumples, el anillo sube.' },
+                                        { icon: Wallet, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', title: 'Finanzas', desc: 'Tu realidad financiera sin juicios. Sabes exactamente qué tienes y a dónde va tu dinero.' },
+                                        { icon: Target, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20', title: 'Identidad', desc: 'Tu brújula. Define quién eres y hacia dónde vas en los próximos 90 días.' },
                                     ].map(({ icon: Icon, color, bg, title, desc }) => (
                                         <div key={title} className={cn("flex items-start gap-3 p-4 rounded-2xl border", bg)}>
-                                            <div className={cn("p-2 rounded-xl", bg, "shrink-0")}>
+                                            <div className={cn("p-2 rounded-xl shrink-0", bg)}>
                                                 <Icon size={18} className={color} />
                                             </div>
                                             <div>
@@ -233,17 +233,18 @@ export default function OnboardingPage() {
                                 <div>
                                     <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 1 de 3 — Tu Identidad</p>
                                     <h1 className="text-2xl font-black text-white leading-tight">
-                                        Todo empieza por saber quién querés ser
+                                        El 95% de las personas nunca define quién quiere ser
                                     </h1>
                                     <p className="text-neutral-400 text-sm mt-2 leading-relaxed">
-                                        Esta declaración es tu brújula. Cuando tenés un mal día, te recuerda hacia dónde vas. Podés editarla después.
+                                        Y por eso actúan sin dirección. Esta declaración es tu norte: cuando tengas un día difícil, te recuerda por qué haces lo que haces. No tiene que ser perfecta, puede editarse después.
                                     </p>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">
-                                            Soy una persona que...
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">
+                                            Escribe: "Soy una persona que..."
                                         </label>
+                                        <p className="text-[11px] text-neutral-600 mb-2">Usa el presente como si ya fueras esa persona. Por ejemplo: "siempre cumple lo que dice".</p>
                                         <textarea
                                             value={identityStatement}
                                             onChange={e => setIdentityStatement(e.target.value)}
@@ -253,9 +254,10 @@ export default function OnboardingPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">
-                                            Mi objetivo en 90 días es...
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">
+                                            ¿Qué quieres lograr en los próximos 90 días?
                                         </label>
+                                        <p className="text-[11px] text-neutral-600 mb-2">Sé específico. "Bajar 5kg" es mejor que "estar más fit".</p>
                                         <input
                                             value={goal90}
                                             onChange={e => setGoal90(e.target.value)}
@@ -271,18 +273,17 @@ export default function OnboardingPage() {
                         {step === 3 && (
                             <>
                                 <div>
-                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 2 de 3 — Tu Hábito #1</p>
+                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 2 de 3 — Tu primer hábito</p>
                                     <h1 className="text-2xl font-black text-white leading-tight">
-                                        ¿Cuál es el hábito más importante que debés tener?
+                                        Los hábitos construyen a esa persona
                                     </h1>
                                     <p className="text-neutral-400 text-sm mt-2 leading-relaxed">
-                                        Solo uno por ahora. El que más impacto tiene en quien querés ser. Podés agregar más después.
+                                        ¿Cuál es la única acción que, si la hicieras todos los días, más te acercaría a quien quieres ser? Elige solo una. Puedes agregar más después.
                                     </p>
                                 </div>
                                 <div className="space-y-4">
-                                    {/* Icon picker */}
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">Icono</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">Elige un icono</label>
                                         <div className="flex gap-2 flex-wrap">
                                             {HABIT_ICONS.map(icon => (
                                                 <button
@@ -301,7 +302,8 @@ export default function OnboardingPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">Nombre del hábito</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">Nombre del hábito</label>
+                                        <p className="text-[11px] text-neutral-600 mb-2">Ponle un nombre corto y claro. Ej: "Entrenar 30 min", "Meditar", "Leer".</p>
                                         <input
                                             autoFocus
                                             value={habitTitle}
@@ -319,17 +321,17 @@ export default function OnboardingPage() {
                         {step === 4 && (
                             <>
                                 <div>
-                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 3 de 3 — Tus Finanzas</p>
+                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 3 de 3 — Tus finanzas</p>
                                     <h1 className="text-2xl font-black text-white leading-tight">
-                                        Configuremos tu dinero
+                                        No puedes mejorar lo que no mides
                                     </h1>
                                     <p className="text-neutral-400 text-sm mt-2 leading-relaxed">
-                                        Congruence no juzga tus números. Solo los muestra tal como son para que puedas tomar mejores decisiones.
+                                        Congruence no juzga tus números. Solo los muestra tal como son para que puedas tomar decisiones más inteligentes. ¿Con qué moneda trabajas y cuánto tienes disponible ahora mismo?
                                     </p>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">¿Con qué moneda trabajás?</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">Tu moneda</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             {CURRENCIES.map(c => (
                                                 <button
@@ -349,9 +351,10 @@ export default function OnboardingPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">
-                                            ¿Cuánto dinero disponible tenés ahora mismo?
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">
+                                            ¿Cuánto dinero tienes disponible ahora?
                                         </label>
+                                        <p className="text-[11px] text-neutral-600 mb-2">Este es tu punto de partida. Puedes ajustarlo en cualquier momento.</p>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-lg">
                                                 {CURRENCIES.find(c => c.code === currency)?.symbol}
@@ -364,7 +367,6 @@ export default function OnboardingPage() {
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl pl-10 pr-4 py-3 text-white placeholder-white/20 outline-none focus:border-cyan-500/50 transition-colors text-xl font-bold"
                                             />
                                         </div>
-                                        <p className="text-[11px] text-neutral-600 mt-1.5">Este es tu punto de partida. Podés ajustarlo en cualquier momento.</p>
                                     </div>
                                 </div>
                             </>
@@ -378,18 +380,16 @@ export default function OnboardingPage() {
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ delay: 0.2, type: 'spring', bounce: 0.4 }}
-                                        className="text-5xl mb-4"
                                     >
-                                        <Sparkles className="w-12 h-12 text-cyan-400 mx-auto" />
+                                        <Sparkles className="w-10 h-10 text-cyan-400 mx-auto mb-4" />
                                     </motion.div>
                                     <h1 className="text-3xl font-black text-white leading-tight">
                                         Tu sistema está <span className="text-cyan-400">activado</span>
                                     </h1>
                                     <p className="text-neutral-400 text-base mt-3 leading-relaxed">
-                                        {name.trim() ? `${name.trim()}, ya` : 'Ya'} tenés todo configurado. Cada día que completés tus hábitos, el anillo crece. Cada decisión financiera consciente, cuenta. Cada acción alineada con tu identidad, te acerca a quien querés ser.
+                                        {name.trim() ? `${name.trim()}, ya tienes` : 'Tienes'} todo configurado. Cada día que completes tus hábitos, el anillo crece. Cada decisión financiera consciente cuenta. Cada acción alineada con tu identidad te acerca a quien quieres ser.
                                     </p>
                                 </div>
-                                {/* Summary */}
                                 <div className="space-y-2">
                                     {identityStatement.trim() && (
                                         <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/8">
