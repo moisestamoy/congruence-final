@@ -323,15 +323,28 @@ export default function OnboardingPage() {
                                 <div>
                                     <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Paso 3 de 3 — Tus finanzas</p>
                                     <h1 className="text-2xl font-black text-white leading-tight">
-                                        No puedes mejorar lo que no mides
+                                        La mayoría pierde dinero sin saber por qué
                                     </h1>
                                     <p className="text-neutral-400 text-sm mt-2 leading-relaxed">
-                                        Congruence no juzga tus números. Solo los muestra tal como son para que puedas tomar decisiones más inteligentes. ¿Con qué moneda trabajas y cuánto tienes disponible ahora mismo?
+                                        Congruence te muestra tu dinero día a día: cuánto tienes, cuánto entra, cuánto sale y hacia dónde va. Sin juicios, solo claridad.
                                     </p>
+                                    {/* What you get */}
+                                    <div className="mt-3 space-y-2">
+                                        {[
+                                            { emoji: '📅', text: 'Tu balance proyectado para cada día del mes' },
+                                            { emoji: '📊', text: 'Qué categorías se llevan más de tu dinero' },
+                                            { emoji: '🎯', text: 'Cuánto puedes gastar hoy sin comprometer tus metas' },
+                                        ].map(({ emoji, text }) => (
+                                            <div key={text} className="flex items-center gap-2.5 text-[12px] text-neutral-500">
+                                                <span>{emoji}</span>
+                                                <span>{text}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">Tu moneda</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-2">¿Con qué moneda trabajas?</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             {CURRENCIES.map(c => (
                                                 <button
@@ -354,7 +367,7 @@ export default function OnboardingPage() {
                                         <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">
                                             ¿Cuánto dinero tienes disponible ahora?
                                         </label>
-                                        <p className="text-[11px] text-neutral-600 mb-2">Este es tu punto de partida. Puedes ajustarlo en cualquier momento.</p>
+                                        <p className="text-[11px] text-neutral-600 mb-2">Este es tu punto de partida. Solo tú lo ves. Puedes ajustarlo en cualquier momento.</p>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-lg">
                                                 {CURRENCIES.find(c => c.code === currency)?.symbol}
