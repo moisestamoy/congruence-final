@@ -28,6 +28,7 @@ export interface Habit {
 // Finance
 export interface FinancialConfig {
     initialBalance: number;
+    actualBalanceDisplay?: number; // what the user sees as "saldo actual" — may differ from initialBalance
     monthlyFixedBudget: number; // Global daily plan derived from this? Or this is the "Expense" baseline? Prompt says "presupuesto mensual fijo (gasto diario global)"
     cycleStartDate: number; // Day of month, e.g., 1
     monthlyIncomeGoal?: number;

@@ -51,17 +51,20 @@ export default function FinancesPage() {
     const [draftBalance, setDraftBalance] = useState('');
     const { fabActionTick } = useFabStore();
 
-    // Saves "saldo actual de hoy" back-calculating the initialBalance needed
+    // Saves "saldo actual de hoy" back-calculating the correct initialBalance
     // so projections don't double-subtract past expenses.
+    // actualBalanceDisplay stores the user-entered value for display purposes.
     const saveCurrentBalance = (userInput: number) => {
         const todayStr = format(startOfToday(), 'yyyy-MM-dd');
         const todayProjection = projections.find((d: any) => d.date === todayStr);
         if (todayProjection) {
-            // netFlow = everything that happened from cycleStart to today
             const netFlowToToday = todayProjection.balance - config.initialBalance;
-            updateConfig({ initialBalance: userInput - netFlowToToday });
+            updateConfig({
+                initialBalance: userInput - netFlowToToday,
+                actualBalanceDisplay: userInput,
+            });
         } else {
-            updateConfig({ initialBalance: userInput });
+            updateConfig({ initialBalance: userInput, actualBalanceDisplay: userInput });
         }
     };
 
@@ -375,10 +378,10 @@ export default function FinancesPage() {
                                         </div>
                                     ) : (
                                         <button
-                                            onClick={() => { setDraftBalance(String(config.initialBalance)); setEditingBalance(true); }}
+                                            onClick={() => { setDraftBalance(String(config.actualBalanceDisplay ?? config.initialBalance)); setEditingBalance(true); }}
                                             className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-white transition-colors group"
                                         >
-                                            <span className="font-mono">{fmtCur(config.initialBalance)}</span>
+                                            <span className="font-mono">{fmtCur(config.actualBalanceDisplay ?? config.initialBalance)}</span>
                                             <Edit3 size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </button>
                                     )}
