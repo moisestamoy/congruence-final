@@ -106,7 +106,7 @@ export default function OnboardingPage() {
         return true;
     };
 
-    const displayName = name.trim() || 'ti';
+    
 
     return (
         <div className="min-h-screen bg-[#020202] text-white flex flex-col items-center p-6 relative overflow-hidden">
