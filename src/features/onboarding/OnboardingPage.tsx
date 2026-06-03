@@ -208,7 +208,7 @@ export default function OnboardingPage() {
                                 <div>
                                     <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Para empezar</p>
                                     <h1 className="text-3xl font-black text-white leading-tight">¿Cómo te llamas?</h1>
-                                    <p className="text-neutral-400 text-base mt-2 leading-relaxed">Solo para personalizar tu experiencia. Nada más.</p>
+                                    <p className="text-neutral-400 text-base mt-2 leading-relaxed">Con tu nombre, esto se vuelve tuyo.</p>
                                 </div>
                                 <input
                                     autoFocus value={name}
