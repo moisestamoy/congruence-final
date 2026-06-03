@@ -55,28 +55,44 @@ html.ocean {
   --glow-4: rgba(99, 102, 241, 0.50);
 }
 
-/* SAKURA — rose/blush palette */
+/* SAKURA — fuchsia/orchid palette (feminine jewel-dark) */
 html.sakura {
-  --accent-300: 253 164 175;   /* rose-300  #fda4af */
-  --accent-400: 251 113 133;   /* rose-400  #fb7185 */
-  --accent-500: 244 63 94;     /* rose-500  #f43f5e */
-  --accent-900: 76 5 25;       /* rose-950  #4c0519 */
-  --logo-color: #fb7185;
-  --logo-glow-sm: rgba(251, 113, 133, 0.40);
-  --logo-glow-lg: rgba(251, 113, 133, 0.75);
-  --glow-1: rgba(251, 113, 133, 0.10);
-  --glow-2: rgba(251, 113, 133, 0.30);
-  --glow-3: rgba(251, 113, 133, 0.40);
-  --glow-4: rgba(251, 113, 133, 0.50);
+  --accent-300: 240 171 252;   /* fuchsia-300  #f0abfc */
+  --accent-400: 232 121 249;   /* fuchsia-400  #e879f9 */
+  --accent-500: 217 70 239;    /* fuchsia-500  #d946ef */
+  --accent-900: 74 4 78;       /* fuchsia-950  #4a044e */
+  --logo-color: #e879f9;
+  --logo-glow-sm: rgba(232, 121, 249, 0.40);
+  --logo-glow-lg: rgba(232, 121, 249, 0.75);
+  --glow-1: rgba(217, 70, 239, 0.10);
+  --glow-2: rgba(217, 70, 239, 0.30);
+  --glow-3: rgba(217, 70, 239, 0.40);
+  --glow-4: rgba(217, 70, 239, 0.50);
 }
 
 /* OCEAN — dark background */
 .ocean body,
 .ocean .bg-\[\#050505\], .ocean .bg-\[\#020202\], .ocean .bg-\[\#0a0a0a\] { background-color: #00001a !important; }
 
-/* SAKURA — dark background */
+/* SAKURA — dark background (deep plum, not pure black) */
 .sakura body,
-.sakura .bg-\[\#050505\], .sakura .bg-\[\#020202\], .sakura .bg-\[\#0a0a0a\] { background-color: #0d0008 !important; }
+.sakura .bg-\[\#050505\], .sakura .bg-\[\#020202\], .sakura .bg-\[\#0a0a0a\] { background-color: #0e000f !important; }
+
+/* SAKURA — panel tint (cards / surfaces get a fuchsia wash) */
+.sakura .bg-white\/\[0\.04\] { background-color: rgba(232, 121, 249, 0.04) !important; }
+.sakura .bg-white\/\[0\.05\] { background-color: rgba(232, 121, 249, 0.05) !important; }
+.sakura .border-white\/\[0\.07\] { border-color: rgba(217, 70, 239, 0.10) !important; }
+.sakura .border-white\/\[0\.08\] { border-color: rgba(217, 70, 239, 0.10) !important; }
+.sakura .border-white\/\[0\.10\] { border-color: rgba(217, 70, 239, 0.12) !important; }
+
+/* SAKURA — shadow/glow overrides for hardcoded cyan values */
+.sakura [class*="shadow-\[0_0_"][class*="rgba\(6,182,212"] { --tw-shadow-color: rgb(217 70 239) !important; }
+.sakura [class*="shadow-\[0_0_"][class*="rgba\(34,211,238"] { --tw-shadow-color: rgb(217 70 239) !important; }
+
+/* SAKURA — selection + scrollbar */
+.sakura ::selection { background: rgba(217, 70, 239, 0.28); }
+.sakura ::-webkit-scrollbar-thumb { background: #2d0030; }
+.sakura ::-webkit-scrollbar-thumb:hover { background: #450048; }
 
 /* ACCION — pure black background override */
 .accion body,
