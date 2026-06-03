@@ -9,20 +9,17 @@ export const GROUP_PALETTE = [
 ];
 
 export const DEFAULT_GROUPS: TaskGroup[] = [
-    { id: 'antoecom', name: 'AntoEcom',  color: '#5b8dd9' },
-    { id: 'casa',     name: 'Casa',      color: '#c8920a' },
-    { id: 'personal', name: 'Personal',  color: '#3aada8' },
-    { id: 'otras',    name: 'Otras',     color: '#7a8fa6' },
+    { id: 'personal',  name: 'Personal',  color: '#3aada8' },
+    { id: 'trabajo',   name: 'Trabajo',   color: '#5b8dd9' },
+    { id: 'salud',     name: 'Salud',     color: '#8fbb5a' },
+    { id: 'proyectos', name: 'Proyectos', color: '#c8920a' },
 ];
 
-// Seed tasks — user's real data, seeded as defaults
+// Generic example tasks for new users
 const DEFAULT_TASKS: Task[] = [
-    { id: 'seed-t1', text: 'reporte de ventas(saber de donde vinieron y por que)', priority: '!',  deadline: '2026-05-30', groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600001 },
-    { id: 'seed-t2', text: 'laboratorio de contenido',                             priority: null, deadline: null,         groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600002 },
-    { id: 'seed-t3', text: 'comprobantes excel pagos',                             priority: null, deadline: null,         groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600003 },
-    { id: 'seed-t4', text: 'reporte de llamdas viernes',                           priority: null, deadline: '2026-06-06', groupId: 'antoecom', completed: false, completedAt: null, createdAt: 1748649600004 },
-    { id: 'seed-t5', text: 'decoraciones casa',                                    priority: null, deadline: null,         groupId: 'casa',     completed: false, completedAt: null, createdAt: 1748649600005 },
-    { id: 'seed-t6', text: 'script nuevo antoecom ENFOCADO EN RESOLVER DINERO LOGISTICO', priority: null, deadline: null, groupId: 'otras',    completed: false, completedAt: null, createdAt: 1748649600006 },
+    { id: 'demo-t1', text: 'Define tus primeras metas', priority: '!!', deadline: null, groupId: 'personal', completed: false, completedAt: null, createdAt: 1748649600001 },
+    { id: 'demo-t2', text: 'Organiza tu semana',        priority: '!',  deadline: null, groupId: 'trabajo',  completed: false, completedAt: null, createdAt: 1748649600002 },
+    { id: 'demo-t3', text: 'Toca una tarea para completarla', priority: null, deadline: null, groupId: null, completed: false, completedAt: null, createdAt: 1748649600003 },
 ];
 
 interface TaskState {
