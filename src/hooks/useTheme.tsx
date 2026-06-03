@@ -72,7 +72,7 @@ export function ThemeProvider({
         }
         if (theme === "sakura") {
             root.classList.add("dark"); root.classList.add("sakura")
-            setFavicon("#e879f9")
+            setFavicon("#f472b6")
             return
         }
 

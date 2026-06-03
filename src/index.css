@@ -55,44 +55,51 @@ html.ocean {
   --glow-4: rgba(99, 102, 241, 0.50);
 }
 
-/* SAKURA — fuchsia/orchid palette (feminine jewel-dark) */
+/* SAKURA — warm pink palette (feminine, jewel-dark) */
 html.sakura {
-  --accent-300: 240 171 252;   /* fuchsia-300  #f0abfc */
-  --accent-400: 232 121 249;   /* fuchsia-400  #e879f9 */
-  --accent-500: 217 70 239;    /* fuchsia-500  #d946ef */
-  --accent-900: 74 4 78;       /* fuchsia-950  #4a044e */
-  --logo-color: #e879f9;
-  --logo-glow-sm: rgba(232, 121, 249, 0.40);
-  --logo-glow-lg: rgba(232, 121, 249, 0.75);
-  --glow-1: rgba(217, 70, 239, 0.10);
-  --glow-2: rgba(217, 70, 239, 0.30);
-  --glow-3: rgba(217, 70, 239, 0.40);
-  --glow-4: rgba(217, 70, 239, 0.50);
+  --accent-300: 249 168 212;   /* pink-300  #f9a8d4 */
+  --accent-400: 244 114 182;   /* pink-400  #f472b6 */
+  --accent-500: 236 72  153;   /* pink-500  #ec4899 */
+  --accent-900: 131 24  67;    /* pink-900  #831843 */
+  --logo-color: #f472b6;
+  --logo-glow-sm: rgba(244, 114, 182, 0.45);
+  --logo-glow-lg: rgba(244, 114, 182, 0.80);
+  --glow-1: rgba(236, 72, 153, 0.10);
+  --glow-2: rgba(236, 72, 153, 0.30);
+  --glow-3: rgba(236, 72, 153, 0.45);
+  --glow-4: rgba(236, 72, 153, 0.55);
 }
 
 /* OCEAN — dark background */
 .ocean body,
 .ocean .bg-\[\#050505\], .ocean .bg-\[\#020202\], .ocean .bg-\[\#0a0a0a\] { background-color: #00001a !important; }
 
-/* SAKURA — dark background (deep plum, not pure black) */
+/* SAKURA — dark background (deep plum) */
 .sakura body,
 .sakura .bg-\[\#050505\], .sakura .bg-\[\#020202\], .sakura .bg-\[\#0a0a0a\] { background-color: #0e000f !important; }
 
-/* SAKURA — panel tint (cards / surfaces get a fuchsia wash) */
-.sakura .bg-white\/\[0\.04\] { background-color: rgba(232, 121, 249, 0.04) !important; }
-.sakura .bg-white\/\[0\.05\] { background-color: rgba(232, 121, 249, 0.05) !important; }
-.sakura .border-white\/\[0\.07\] { border-color: rgba(217, 70, 239, 0.10) !important; }
-.sakura .border-white\/\[0\.08\] { border-color: rgba(217, 70, 239, 0.10) !important; }
-.sakura .border-white\/\[0\.10\] { border-color: rgba(217, 70, 239, 0.12) !important; }
+/* SAKURA — warm bloom on body */
+.sakura body {
+  background-image:
+    radial-gradient(ellipse at 25% 15%, rgba(244, 114, 182, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 85%, rgba(236, 72, 153, 0.05) 0%, transparent 50%) !important;
+}
+
+/* SAKURA — panel tint (stronger pink wash on cards/surfaces) */
+.sakura .bg-white\/\[0\.04\] { background-color: rgba(236, 72, 153, 0.06) !important; }
+.sakura .bg-white\/\[0\.05\] { background-color: rgba(236, 72, 153, 0.07) !important; }
+.sakura .border-white\/\[0\.07\] { border-color: rgba(236, 72, 153, 0.14) !important; }
+.sakura .border-white\/\[0\.08\] { border-color: rgba(236, 72, 153, 0.15) !important; }
+.sakura .border-white\/\[0\.10\] { border-color: rgba(236, 72, 153, 0.18) !important; }
 
 /* SAKURA — shadow/glow overrides for hardcoded cyan values */
-.sakura [class*="shadow-\[0_0_"][class*="rgba\(6,182,212"] { --tw-shadow-color: rgb(217 70 239) !important; }
-.sakura [class*="shadow-\[0_0_"][class*="rgba\(34,211,238"] { --tw-shadow-color: rgb(217 70 239) !important; }
+.sakura [class*="shadow-\[0_0_"][class*="rgba\(6,182,212"] { --tw-shadow-color: rgb(236 72 153) !important; }
+.sakura [class*="shadow-\[0_0_"][class*="rgba\(34,211,238"] { --tw-shadow-color: rgb(236 72 153) !important; }
 
 /* SAKURA — selection + scrollbar */
-.sakura ::selection { background: rgba(217, 70, 239, 0.28); }
-.sakura ::-webkit-scrollbar-thumb { background: #2d0030; }
-.sakura ::-webkit-scrollbar-thumb:hover { background: #450048; }
+.sakura ::selection { background: rgba(244, 114, 182, 0.30); }
+.sakura ::-webkit-scrollbar-thumb { background: #3d0022; }
+.sakura ::-webkit-scrollbar-thumb:hover { background: #5a0033; }
 
 /* ACCION — pure black background override */
 .accion body,
