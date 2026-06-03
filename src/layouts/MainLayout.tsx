@@ -58,7 +58,6 @@ export default function MainLayout() {
     const { user, signOut } = useAuth();
     const { triggerFab } = useFabStore();
     const { theme, setTheme } = useTheme();
-    const isAccion = theme === 'accion';
     const { navVisible, setNavVisible } = useNavStore();
     const touchStartYRef = useRef(0);
 
@@ -101,7 +100,14 @@ export default function MainLayout() {
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
     const showFab = ['/', '/finances', '/tasks'].includes(location.pathname) && !isEditingOrder;
-    const toggleTheme = () => setTheme(isAccion ? 'dark' : 'accion');
+    // Cycle: dark → accion → ocean → sakura → dark
+    const THEME_CYCLE = ['dark', 'accion', 'ocean', 'sakura'] as const;
+    const THEME_DOTS: Record<string, string> = { dark: '#22d3ee', accion: '#ef4444', ocean: '#818cf8', sakura: '#fb7185' };
+    const THEME_LABELS: Record<string, string> = { dark: 'CLASSIC', accion: 'ACCIÓN', ocean: 'OCEAN', sakura: 'SAKURA' };
+    const toggleTheme = () => {
+        const idx = THEME_CYCLE.indexOf(theme as typeof THEME_CYCLE[number]);
+        setTheme(THEME_CYCLE[(idx + 1) % THEME_CYCLE.length]);
+    };
 
     // Mobile always shows first 4 from the current order
     const mobileNavItems = sidebarItems.slice(0, 4);
@@ -274,19 +280,15 @@ export default function MainLayout() {
                         ▶ OB
                     </button>
 
-                    {/* Theme Switcher */}
+                    {/* Theme Switcher — cycles through 4 themes */}
                     <button
                         onClick={toggleTheme}
-                        title={isAccion ? 'Cambiar a tema Classic' : 'Cambiar a tema ACCIÓN'}
-                        className={cn(
-                            "w-full h-7 rounded-lg flex items-center justify-center gap-1 text-[9px] font-black uppercase tracking-widest transition-all border",
-                            isAccion
-                                ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-                                : "bg-white/[0.03] border-white/[0.06] text-neutral-600 hover:bg-white/[0.07] hover:text-neutral-400"
-                        )}
+                        title={`Tema: ${THEME_LABELS[theme] ?? 'CLASSIC'} → siguiente`}
+                        className="w-full h-7 rounded-lg flex items-center justify-center gap-1 text-[9px] font-black uppercase tracking-widest transition-all border bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]"
+                        style={{ color: THEME_DOTS[theme] ?? '#22d3ee' }}
                     >
-                        <span className={cn("w-1.5 h-1.5 rounded-full transition-colors duration-300", isAccion ? "bg-red-500" : "bg-cyan-400")} />
-                        {isAccion ? 'ACCIÓN' : 'CLASSIC'}
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: THEME_DOTS[theme] ?? '#22d3ee' }} />
+                        {THEME_LABELS[theme] ?? 'CLASSIC'}
                     </button>
                 </div>
             </aside>

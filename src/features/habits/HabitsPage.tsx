@@ -38,6 +38,8 @@ export default function HabitsPage() {
     const { user, signOut } = useAuth();
     const { theme, setTheme } = useTheme();
     const isAccion = theme === 'accion';
+    const isOcean = theme === 'ocean';
+    const isSakura = theme === 'sakura';
     const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
 
     const navigateDate = (days: number) => {
@@ -167,7 +169,11 @@ export default function HabitsPage() {
             "h-screen overflow-hidden flex flex-col w-full text-white relative p-3 lg:p-8 font-sans",
             isAccion
                 ? "bg-[#000000] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-red-950/40 via-[#000000] to-[#000000]"
-                : "bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202]"
+                : isOcean
+                    ? "bg-[#00001a] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-950/40 via-[#00001a] to-[#00001a]"
+                    : isSakura
+                        ? "bg-[#0d0008] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-rose-950/40 via-[#0d0008] to-[#0d0008]"
+                        : "bg-[#020202] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#050505] to-[#020202]"
         )}>
 
             {/* Ambient Background Glow */}

@@ -10,12 +10,12 @@
    Using html:not(.accion) to guarantee cyan wins in classic mode.
    ──────────────────────────────────────────────────────────────────────── */
 
-/* Classic / Default — explicit :not(.accion) prevents any red bleed */
-html:not(.accion) {
-  --accent-300: 103 232 249 !important;   /* cyan-300  #67e8f9 */
-  --accent-400: 34 211 238 !important;    /* cyan-400  #22d3ee */
-  --accent-500: 6 182 212 !important;     /* cyan-500  #06b6d4 */
-  --accent-900: 8 51 68 !important;       /* cyan-900  #083444 */
+/* Classic / Default — only when NO theme class is active */
+html:not(.accion):not(.ocean):not(.sakura) {
+  --accent-300: 103 232 249 !important;
+  --accent-400: 34 211 238 !important;
+  --accent-500: 6 182 212 !important;
+  --accent-900: 8 51 68 !important;
   --logo-color: #22d3ee !important;
   --logo-glow-sm: rgba(34, 211, 238, 0.35) !important;
   --logo-glow-lg: rgba(34, 211, 238, 0.70) !important;
@@ -39,6 +39,44 @@ html.accion {
   --glow-3: rgba(239, 68, 68, 0.40);
   --glow-4: rgba(239, 68, 68, 0.50);
 }
+
+/* OCEAN — deep indigo/blue palette */
+html.ocean {
+  --accent-300: 165 180 252;   /* indigo-300  #a5b4fc */
+  --accent-400: 129 140 248;   /* indigo-400  #818cf8 */
+  --accent-500: 99 102 241;    /* indigo-500  #6366f1 */
+  --accent-900: 30 27 75;      /* indigo-950  #1e1b4b */
+  --logo-color: #818cf8;
+  --logo-glow-sm: rgba(99, 102, 241, 0.40);
+  --logo-glow-lg: rgba(99, 102, 241, 0.75);
+  --glow-1: rgba(99, 102, 241, 0.10);
+  --glow-2: rgba(99, 102, 241, 0.30);
+  --glow-3: rgba(99, 102, 241, 0.40);
+  --glow-4: rgba(99, 102, 241, 0.50);
+}
+
+/* SAKURA — rose/blush palette */
+html.sakura {
+  --accent-300: 253 164 175;   /* rose-300  #fda4af */
+  --accent-400: 251 113 133;   /* rose-400  #fb7185 */
+  --accent-500: 244 63 94;     /* rose-500  #f43f5e */
+  --accent-900: 76 5 25;       /* rose-950  #4c0519 */
+  --logo-color: #fb7185;
+  --logo-glow-sm: rgba(251, 113, 133, 0.40);
+  --logo-glow-lg: rgba(251, 113, 133, 0.75);
+  --glow-1: rgba(251, 113, 133, 0.10);
+  --glow-2: rgba(251, 113, 133, 0.30);
+  --glow-3: rgba(251, 113, 133, 0.40);
+  --glow-4: rgba(251, 113, 133, 0.50);
+}
+
+/* OCEAN — dark background */
+.ocean body,
+.ocean .bg-\[\#050505\], .ocean .bg-\[\#020202\], .ocean .bg-\[\#0a0a0a\] { background-color: #00001a !important; }
+
+/* SAKURA — dark background */
+.sakura body,
+.sakura .bg-\[\#050505\], .sakura .bg-\[\#020202\], .sakura .bg-\[\#0a0a0a\] { background-color: #0d0008 !important; }
 
 /* ACCION — pure black background override */
 .accion body,

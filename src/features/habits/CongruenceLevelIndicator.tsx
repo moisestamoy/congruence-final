@@ -12,6 +12,8 @@ interface CongruenceLevelIndicatorProps {
 export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth = 10, level = 1 }: CongruenceLevelIndicatorProps) {
     const { theme } = useTheme();
     const isAccion = theme === 'accion';
+    const isOcean = theme === 'ocean';
+    const isSakura = theme === 'sakura';
     const center = size / 2;
     const baseRadius = size * 0.4;
     const step = size * 0.09;
@@ -28,6 +30,28 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                 case 5: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.8)', text: 'text-slate-200' };
                 case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
                 default: return { primary: '#ef4444', secondary: '#b91c1c', glow: 'rgba(239,68,68,0.4)', text: 'text-red-400' };
+            }
+        }
+        if (isOcean) {
+            switch (level) {
+                case 1: return { primary: '#818cf8', secondary: '#6366f1', glow: 'rgba(129,140,248,0.35)', text: 'text-indigo-400' };
+                case 2: return { primary: '#6366f1', secondary: '#4f46e5', glow: 'rgba(99,102,241,0.5)', text: 'text-indigo-400' };
+                case 3: return { primary: '#a78bfa', secondary: '#7c3aed', glow: 'rgba(167,139,250,0.6)', text: 'text-violet-400' };
+                case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' };
+                case 5: return { primary: '#38bdf8', secondary: '#0284c7', glow: 'rgba(56,189,248,0.8)', text: 'text-sky-400' };
+                case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
+                default: return { primary: '#818cf8', secondary: '#6366f1', glow: 'rgba(129,140,248,0.35)', text: 'text-indigo-400' };
+            }
+        }
+        if (isSakura) {
+            switch (level) {
+                case 1: return { primary: '#fda4af', secondary: '#fb7185', glow: 'rgba(253,164,175,0.35)', text: 'text-rose-300' };
+                case 2: return { primary: '#fb7185', secondary: '#f43f5e', glow: 'rgba(251,113,133,0.5)', text: 'text-rose-400' };
+                case 3: return { primary: '#f9a8d4', secondary: '#ec4899', glow: 'rgba(249,168,212,0.6)', text: 'text-pink-300' };
+                case 4: return { primary: '#fbbf24', secondary: '#d97706', glow: 'rgba(251,191,36,0.8)', text: 'text-amber-400' };
+                case 5: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.8)', text: 'text-slate-200' };
+                case 6: return { primary: '#e2e8f0', secondary: '#94a3b8', glow: 'rgba(255,255,255,0.9)', text: 'text-slate-200' };
+                default: return { primary: '#fda4af', secondary: '#fb7185', glow: 'rgba(253,164,175,0.35)', text: 'text-rose-300' };
             }
         }
         switch (level) {
@@ -157,7 +181,12 @@ export function CongruenceLevelIndicator({ percentage, size = 160, strokeWidth =
                                     cy={center}
                                     r={ring.radius}
                                     fill="transparent"
-                                    stroke={isAccion ? "#3d0000" : (level === 1 ? "#333333" : "#1a1a1a")}
+                                    stroke={
+                                        isAccion ? "#3d0000" :
+                                        isOcean  ? "#0a0a28" :
+                                        isSakura ? "#1a0010" :
+                                        level === 1 ? "#333333" : "#1a1a1a"
+                                    }
                                     strokeWidth={ring.stroke}
                                     strokeOpacity={level === 1 ? 1 : 0.8}
                                 />

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "dark" | "light" | "system" | "accion"
+type Theme = "dark" | "light" | "system" | "accion" | "ocean" | "sakura"
 
 // Dynamically generates an SVG favicon matching the current theme accent color
 function setFavicon(color: string) {
@@ -51,21 +51,28 @@ export function ThemeProvider({
 
     useEffect(() => {
         const root = window.document.documentElement
-        root.classList.remove("light", "dark", "accion")
+        root.classList.remove("light", "dark", "accion", "ocean", "sakura")
 
         if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light"
+            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
             root.classList.add(systemTheme)
             setFavicon("#22d3ee")
             return
         }
 
         if (theme === "accion") {
-            root.classList.add("dark")    // keep dark base
-            root.classList.add("accion")  // apply ACCIÓN overrides
+            root.classList.add("dark"); root.classList.add("accion")
             setFavicon("#ef4444")
+            return
+        }
+        if (theme === "ocean") {
+            root.classList.add("dark"); root.classList.add("ocean")
+            setFavicon("#818cf8")
+            return
+        }
+        if (theme === "sakura") {
+            root.classList.add("dark"); root.classList.add("sakura")
+            setFavicon("#fb7185")
             return
         }
 
