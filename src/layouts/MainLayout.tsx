@@ -262,6 +262,18 @@ export default function MainLayout() {
                         }
                     </button>
 
+                    {/* Test Onboarding button */}
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('congruence_onboarding');
+                            navigate('/onboarding');
+                        }}
+                        title="Testear Onboarding"
+                        className="w-full h-7 rounded-lg flex items-center justify-center gap-1 text-[9px] font-black uppercase tracking-widest transition-all border bg-white/[0.03] border-white/[0.06] text-neutral-600 hover:bg-violet-500/[0.10] hover:border-violet-500/20 hover:text-violet-400"
+                    >
+                        ▶ OB
+                    </button>
+
                     {/* Theme Switcher */}
                     <button
                         onClick={toggleTheme}
