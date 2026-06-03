@@ -177,9 +177,9 @@ export default function OnboardingPage() {
                         {step === 0 && (
                             <>
                                 <div>
-                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Bienvenido/a a</p>
+                                    <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'rgb(var(--accent-400))' }}>Bienvenido/a a</p>
                                     <h1 className="text-4xl font-black text-white leading-none mb-3">
-                                        Congru<span className="text-cyan-400">ence</span>
+                                        Congru<span style={{ color: 'rgb(var(--accent-400))' }}>ence</span>
                                     </h1>
                                     <p className="text-neutral-400 text-base leading-relaxed">
                                         Un solo lugar para construir a la persona que quieres ser: tus hábitos, tu dinero, tus ideas y tu identidad — todo alineado.
@@ -190,7 +190,7 @@ export default function OnboardingPage() {
                                         { icon: Activity, color: 'text-cyan-400',    label: 'Hábitos' },
                                         { icon: Wallet,   color: 'text-emerald-400', label: 'Finanzas' },
                                         { icon: BookOpen, color: 'text-amber-400',   label: 'Notas' },
-                                        { icon: Target,   color: 'text-violet-400',  label: 'Identidad' },
+                                        { icon: Target,   color: 'text-violet-400',  label: 'Mi Norte' },
                                     ].map(({ icon: Icon, color, label }) => (
                                         <div key={label} className="flex items-center gap-2.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                                             <Icon size={18} className={color} />
