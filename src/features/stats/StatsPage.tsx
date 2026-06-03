@@ -12,6 +12,7 @@ import {
     ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { cn } from '../../utils/cn';
+import { StatsCoach } from './StatsCoach';
 
 // ─────────────────────────────────────────────────────────────────────────────
 type Period = 'week' | 'month' | 'year' | 'global';
@@ -244,6 +245,21 @@ export default function StatsPage() {
                     ))}
                 </div>
             </header>
+
+            {/* ── COACH IA ── */}
+            {habits.length > 0 && (
+                <StatsCoach
+                    avgCongruence={avgCongruence}
+                    activeDays={activeDays}
+                    totalDays={pastDays.length}
+                    streak={streak}
+                    period={PERIOD_LABELS[period]}
+                    habitStats={habitStats.map(h => ({ title: h.habit.title, rate: h.rate, currentStreak: h.currentStreak }))}
+                    trendUp={trendUp}
+                    bestDow={bestDow}
+                    worstDow={worstDow}
+                />
+            )}
 
             {/* ── BLOQUE 1: PULSO ── */}
             <div className="grid grid-cols-3 gap-3 mb-5">
