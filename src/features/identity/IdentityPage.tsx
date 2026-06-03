@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Edit3, Target, Flame, Compass } from 'lucide-react';
 import { useHabitStore, IdentityManifesto } from '../habits/useHabitStore';
 import { IdentityProtocolWizard } from '../habits/IdentityProtocolWizard';
-import { cn } from '../../utils/cn';
 
 type CardKey = 'identity' | 'goal' | 'minimum';
 
