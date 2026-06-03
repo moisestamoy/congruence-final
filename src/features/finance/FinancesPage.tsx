@@ -51,6 +51,20 @@ export default function FinancesPage() {
     const [draftBalance, setDraftBalance] = useState('');
     const { fabActionTick } = useFabStore();
 
+    // Saves "saldo actual de hoy" back-calculating the initialBalance needed
+    // so projections don't double-subtract past expenses.
+    const saveCurrentBalance = (userInput: number) => {
+        const todayStr = format(startOfToday(), 'yyyy-MM-dd');
+        const todayProjection = projections.find((d: any) => d.date === todayStr);
+        if (todayProjection) {
+            // netFlow = everything that happened from cycleStart to today
+            const netFlowToToday = todayProjection.balance - config.initialBalance;
+            updateConfig({ initialBalance: userInput - netFlowToToday });
+        } else {
+            updateConfig({ initialBalance: userInput });
+        }
+    };
+
     // Global FAB Event Listener using Zustand
     useEffect(() => {
         if (fabActionTick > 0) {
@@ -339,7 +353,7 @@ export default function FinancesPage() {
                                                 onKeyDown={e => {
                                                     if (e.key === 'Enter') {
                                                         const val = parseFloat(draftBalance.replace(',', '.'));
-                                                        if (!isNaN(val)) updateConfig({ initialBalance: val });
+                                                        if (!isNaN(val)) saveCurrentBalance(val);
                                                         setEditingBalance(false);
                                                     }
                                                     if (e.key === 'Escape') setEditingBalance(false);
@@ -349,7 +363,7 @@ export default function FinancesPage() {
                                             <button
                                                 onClick={() => {
                                                     const val = parseFloat(draftBalance.replace(',', '.'));
-                                                    if (!isNaN(val)) updateConfig({ initialBalance: val });
+                                                    if (!isNaN(val)) saveCurrentBalance(val);
                                                     setEditingBalance(false);
                                                 }}
                                                 className="text-emerald-400 hover:text-emerald-300 transition-colors text-xs font-bold"
