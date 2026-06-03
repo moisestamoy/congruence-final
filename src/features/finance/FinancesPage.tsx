@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3 } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -20,7 +20,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
-    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries } = useFinanceStore();
+    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries, updateConfig } = useFinanceStore();
 
     // Force 2 months view for this specific "Dashboard" requirement
     const [horizon, setHorizon] = useState<number>(2);
@@ -47,6 +47,8 @@ export default function FinancesPage() {
         initialData?: { amount: number; category: string; description?: string };
     }>({ isOpen: false, type: 'income', date: '' });
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
+    const [editingBalance, setEditingBalance] = useState(false);
+    const [draftBalance, setDraftBalance] = useState('');
     const { fabActionTick } = useFabStore();
 
     // Global FAB Event Listener using Zustand
@@ -324,6 +326,48 @@ export default function FinancesPage() {
                                 </div>
                                 <div className={cn("text-4xl font-black font-mono tracking-tight", safemetric_projectedEnd >= 0 ? "text-white" : "text-rose-400")}>
                                     {fmtCur(safemetric_projectedEnd)}
+                                </div>
+                                {/* Saldo inicial editable */}
+                                <div className="flex items-center justify-between border-t border-white/[0.05] pt-2 mt-auto">
+                                    <span className="text-[10px] text-neutral-600 uppercase font-bold tracking-widest">Saldo actual</span>
+                                    {editingBalance ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                autoFocus
+                                                value={draftBalance}
+                                                onChange={e => setDraftBalance(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        const val = parseFloat(draftBalance.replace(',', '.'));
+                                                        if (!isNaN(val)) updateConfig({ initialBalance: val });
+                                                        setEditingBalance(false);
+                                                    }
+                                                    if (e.key === 'Escape') setEditingBalance(false);
+                                                }}
+                                                className="w-28 bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-xs font-mono text-white outline-none focus:border-emerald-500/40"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    const val = parseFloat(draftBalance.replace(',', '.'));
+                                                    if (!isNaN(val)) updateConfig({ initialBalance: val });
+                                                    setEditingBalance(false);
+                                                }}
+                                                className="text-emerald-400 hover:text-emerald-300 transition-colors text-xs font-bold"
+                                            >✓</button>
+                                            <button
+                                                onClick={() => setEditingBalance(false)}
+                                                className="text-neutral-600 hover:text-neutral-400 transition-colors text-xs"
+                                            >✕</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => { setDraftBalance(String(config.initialBalance)); setEditingBalance(true); }}
+                                            className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-white transition-colors group"
+                                        >
+                                            <span className="font-mono">{fmtCur(config.initialBalance)}</span>
+                                            <Edit3 size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </button>
+                                    )}
                                 </div>
                                 {savingsGoals?.monthly > 0 && (
                                     <div className="flex flex-col gap-1.5 mt-1">
