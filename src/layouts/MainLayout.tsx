@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Reorder } from 'framer-motion';
-import { LucideIcon, LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, User, Brain, CheckSquare, GripVertical } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, CheckSquare, GripVertical } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
@@ -15,20 +15,16 @@ const featureColors: Record<string, { icon: string; activeBg: string; mobileActi
     '/':         { icon: 'text-cyan-400',    activeBg: 'bg-cyan-500/[0.10]',    mobileActiveBg: 'bg-cyan-500/15',    dot: 'bg-cyan-400'    },
     '/finances': { icon: 'text-emerald-400', activeBg: 'bg-emerald-500/[0.10]', mobileActiveBg: 'bg-emerald-500/15', dot: 'bg-emerald-400' },
     '/stats':    { icon: 'text-violet-400',  activeBg: 'bg-violet-500/[0.10]',  mobileActiveBg: 'bg-violet-500/15',  dot: 'bg-violet-400'  },
-    '/identity': { icon: 'text-purple-400',  activeBg: 'bg-purple-500/[0.10]',  mobileActiveBg: 'bg-purple-500/15',  dot: 'bg-purple-400'  },
-    '/coach':    { icon: 'text-amber-400',   activeBg: 'bg-amber-500/[0.10]',   mobileActiveBg: 'bg-amber-500/15',   dot: 'bg-amber-400'   },
     '/tasks':    { icon: 'text-indigo-400',  activeBg: 'bg-indigo-500/[0.10]',  mobileActiveBg: 'bg-indigo-500/15',  dot: 'bg-indigo-400'  },
 };
 
 type NavItem = { path: string; icon: LucideIcon; label: string };
 
 const DEFAULT_ITEMS: NavItem[] = [
-    { path: '/',         icon: LayoutDashboard, label: 'Tracker'      },
-    { path: '/finances', icon: Wallet,          label: 'Finanzas'     },
-    { path: '/stats',    icon: PieChart,        label: 'Esta Semana'  },
-    { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'       },
-    { path: '/identity', icon: User,            label: 'Mi Norte'     },
-    { path: '/coach',    icon: Brain,           label: 'Coach IA'     },
+    { path: '/',         icon: LayoutDashboard, label: 'Tracker'     },
+    { path: '/finances', icon: Wallet,          label: 'Finanzas'    },
+    { path: '/stats',    icon: PieChart,        label: 'Esta Semana' },
+    { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'      },
 ];
 
 // Reconstruct full item list from saved path order
