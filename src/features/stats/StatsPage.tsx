@@ -1,505 +1,205 @@
-import { useMemo, useState, useCallback } from 'react';
-import { TrendingUp, TrendingDown, Activity, Wallet, Target, Brain, Zap } from 'lucide-react';
+import { useMemo } from 'react';
+import { TrendingUp, TrendingDown, Flame, Wallet, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
-import { format, subDays, eachDayOfInterval, getDay, startOfMonth, endOfMonth, addMonths } from 'date-fns';
+import { format, subDays, eachDayOfInterval, startOfWeek, endOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-    ComposedChart, Bar, XAxis, YAxis, Tooltip,
-    ResponsiveContainer, CartesianGrid, Area, Cell
-} from 'recharts';
 import { cn } from '../../utils/cn';
 
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-type Period = '7d' | '14d' | '30d';
-
 export default function StatsPage() {
-    const { habits, getCongruence, manifesto } = useHabitStore();
+    const { habits, getCongruence } = useHabitStore();
     const { events, realExpenses } = useFinanceStore();
-    const [period, setPeriod] = useState<Period>('14d');
 
-    const periodDays = period === '7d' ? 7 : period === '14d' ? 14 : 30;
+    const today = useMemo(() => new Date(), []);
+    const todayStr = format(today, 'yyyy-MM-dd');
 
-    // --- Congruence averages ---
-    const last30Days = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 29), end: new Date() }), []);
-    const lastWeek = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 6), end: new Date() }), []);
-    const prevWeek = useMemo(() => eachDayOfInterval({ start: subDays(new Date(), 13), end: subDays(new Date(), 7) }), []);
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekEnd   = endOfWeek(today,   { weekStartsOn: 1 });
+    const thisWeekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-    const calcAvg = useCallback((days: Date[]) => {
+    const prevWeekStart = subDays(weekStart, 7);
+    const prevWeekEnd   = subDays(weekEnd,   7);
+    const prevWeekDays  = eachDayOfInterval({ start: prevWeekStart, end: prevWeekEnd });
+
+    const calcAvg = (days: Date[]) => {
         if (habits.length === 0) return 0;
-        const values = days
-            .map(d => getCongruence(format(d, 'yyyy-MM-dd')))
-            .filter(v => v >= 0);
-        if (values.length === 0) return 0;
-        return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-    }, [habits.length, getCongruence]);
+        const past = days.filter(d => d <= today);
+        if (past.length === 0) return 0;
+        const vals = past.map(d => getCongruence(format(d, 'yyyy-MM-dd'))).filter(v => v >= 0);
+        if (vals.length === 0) return 0;
+        return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    };
 
-    const avgCongruence30d = calcAvg(last30Days);
-    const avgCongruenceThisWeek = calcAvg(lastWeek);
-    const avgCongruencePrevWeek = calcAvg(prevWeek);
+    const thisWeekAvg = calcAvg(thisWeekDays);
+    const prevWeekAvg = calcAvg(prevWeekDays);
+    const weekTrend   = thisWeekAvg - prevWeekAvg;
 
-    const congruenceTrend = avgCongruenceThisWeek - avgCongruencePrevWeek;
+    // 7-day dot data
+    const weekDots = thisWeekDays.map(date => {
+        const isFuture = date > today;
+        const isToday  = format(date, 'yyyy-MM-dd') === todayStr;
+        const value    = isFuture ? -1 : getCongruence(format(date, 'yyyy-MM-dd'));
+        const dow      = (getDay(date) + 6) % 7; // Mon=0
+        return { value, isFuture, isToday, label: DAY_LABELS[dow] };
+    });
 
-    // --- Chart Data ---
-    const chartData = useMemo(() => {
-        const days = eachDayOfInterval({ start: subDays(new Date(), periodDays - 1), end: new Date() });
-        return days.map(date => {
-            const dateStr = format(date, 'yyyy-MM-dd');
-            const congruence = getCongruence(dateStr);
-            const dayIncome = events.filter(e => e.date === dateStr && e.type === 'income').reduce((s, e) => s + e.amount, 0);
-            const dayExpenses = realExpenses.filter(e => e.date === dateStr).reduce((s, e) => s + e.amount, 0);
-            return {
-                date: format(date, period === '30d' ? 'dd/MM' : 'dd MMM', { locale: es }),
-                congruence,
-                netFlow: dayIncome - dayExpenses,
-                expenses: dayExpenses,
-            };
-        });
-    }, [events, realExpenses, getCongruence, periodDays, period]);
+    // Streak
+    const streak = useMemo(() => {
+        let count = 0;
+        let d = today;
+        for (let i = 0; i < 365; i++) {
+            const v = getCongruence(format(d, 'yyyy-MM-dd'));
+            if (v > 0) { count++; d = subDays(d, 1); }
+            else break;
+        }
+        return count;
+    }, [habits, getCongruence, today]);
 
-    // --- Finance totals ---
-    const totalNetFlow = chartData.reduce((acc, d) => acc + d.netFlow, 0);
-    const totalExpenses = chartData.reduce((acc, d) => acc + d.expenses, 0);
+    // Days completed this week
+    const pastDaysThisWeek     = thisWeekDays.filter(d => d <= today).length;
+    const daysCompletedThisWeek = thisWeekDays.filter(d => d <= today && getCongruence(format(d, 'yyyy-MM-dd')) > 0).length;
 
-    // Previous period for trend
-    const prevChartData = useMemo(() => {
-        const days = eachDayOfInterval({ start: subDays(new Date(), periodDays * 2 - 1), end: subDays(new Date(), periodDays) });
-        return days.map(date => {
-            const dateStr = format(date, 'yyyy-MM-dd');
-            const dayIncome = events.filter(e => e.date === dateStr && e.type === 'income').reduce((s, e) => s + e.amount, 0);
-            const dayExpenses = realExpenses.filter(e => e.date === dateStr).reduce((s, e) => s + e.amount, 0);
-            return { netFlow: dayIncome - dayExpenses, expenses: dayExpenses };
-        });
-    }, [events, realExpenses, periodDays]);
+    // Finance this week
+    const weekFinance = thisWeekDays.reduce((acc, date) => {
+        const ds = format(date, 'yyyy-MM-dd');
+        const income  = events.filter(e => e.date === ds && e.type === 'income').reduce((s, e) => s + e.amount, 0);
+        const expense = realExpenses.filter(e => e.date === ds).reduce((s, e) => s + e.amount, 0);
+        return acc + income - expense;
+    }, 0);
 
-    const prevNetFlow = prevChartData.reduce((acc, d) => acc + d.netFlow, 0);
-    const prevExpenses = prevChartData.reduce((acc, d) => acc + d.expenses, 0);
-    const netFlowTrend = totalNetFlow - prevNetFlow;
-    const expensesTrend = totalExpenses - prevExpenses;
+    // Insight
+    const insight =
+        habits.length === 0
+            ? 'Crea tus primeros hábitos para ver tu progreso aquí.'
+        : thisWeekAvg === 0
+            ? 'Empieza a completar hábitos para ver tu Congruencia esta semana.'
+        : weekTrend > 5
+            ? `Vas ${weekTrend}% mejor que la semana pasada. Sigue así.`
+        : weekTrend < -5
+            ? `Bajaste ${Math.abs(weekTrend)}% vs la semana pasada. Todavía tienes tiempo esta semana.`
+        : 'Vas al mismo ritmo que la semana pasada.';
 
-    // --- Heatmap (35 days, aligned to week) ---
-    const heatmapData = useMemo(() => {
-        const end = new Date();
-        const start = subDays(end, 34);
-        const days = eachDayOfInterval({ start, end });
-        // Find what day of week the first day is (Mon=0)
-        const firstDow = (getDay(start) + 6) % 7; // convert Sun=0 to Mon=0
-        const padded: (null | { date: Date; value: number })[] = [
-            ...Array(firstDow).fill(null),
-            ...days.map(date => ({ date, value: getCongruence(format(date, 'yyyy-MM-dd')) }))
-        ];
-        return padded;
-    }, [getCongruence]);
-
-    // --- Say-Do Ratio ---
-    const sayDoRatio = avgCongruence30d;
-    const sayDoLabel =
-        sayDoRatio >= 90 ? 'Alta congruencia' :
-        sayDoRatio >= 70 ? 'Buena alineación' :
-        sayDoRatio >= 50 ? 'En progreso' :
-        sayDoRatio > 0 ? 'Brecha alta' : 'Sin datos';
-    const sayDoColor =
-        sayDoRatio >= 90 ? 'text-emerald-400' :
-        sayDoRatio >= 70 ? 'text-cyan-400' :
-        sayDoRatio >= 50 ? 'text-yellow-400' : 'text-rose-400';
-    const sayDoBarColor =
-        sayDoRatio >= 90 ? 'bg-emerald-400' :
-        sayDoRatio >= 70 ? 'bg-cyan-400' :
-        sayDoRatio >= 50 ? 'bg-yellow-400' : 'bg-rose-400';
-
-    const totalHabits = habits.length;
+    const dotColor = (value: number, isFuture: boolean) => {
+        if (isFuture) return {};
+        if (value >= 100) return { background: 'rgb(var(--accent-400))', boxShadow: '0 0 10px rgba(var(--accent-500), 0.5)' };
+        if (value >= 75)  return { background: 'rgba(var(--accent-500), 0.70)' };
+        if (value >= 50)  return { background: 'rgba(var(--accent-500), 0.40)' };
+        if (value >= 25)  return { background: 'rgba(var(--accent-500), 0.20)' };
+        if (value > 0)    return { background: 'rgba(var(--accent-500), 0.10)' };
+        return {};
+    };
 
     return (
-        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-950/20 via-[#020508] to-[#020508] text-white p-4 md:p-6 lg:p-8 font-sans overflow-y-auto pb-40 lg:pb-32">
+        <div className="min-h-screen w-full bg-[#0a0a0a] text-white p-4 md:p-6 lg:p-8 overflow-y-auto pb-40 lg:pb-16">
 
             {/* Header */}
-            <header className="mb-6 md:mb-8">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white mb-1">
-                    Inteligencia Personal
-                </h1>
-                <p className="text-violet-400/60 text-xs sm:text-sm font-medium">
-                    {format(new Date(), "EEEE d 'de' MMMM", { locale: es })} · datos reales, sin interpretación
+            <header className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'rgb(var(--accent-400))' }}>
+                    {format(weekStart, "d MMM", { locale: es })} – {format(weekEnd, "d MMM", { locale: es })}
                 </p>
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Esta Semana</h1>
             </header>
 
-            {/* SAY-DO RATIO — Hero metric */}
-            <div className="relative w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 md:p-8 mb-5 md:mb-6 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.06] via-transparent to-transparent pointer-events-none" />
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Brain size={14} className="text-violet-400" />
-                            <span className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Say-Do Ratio · 30 días</span>
-                        </div>
-                        <div className="flex items-end gap-3 mb-3">
-                            <span className={cn("text-5xl md:text-6xl font-black font-mono tracking-tight", sayDoColor)}>
-                                {sayDoRatio}%
-                            </span>
-                            <span className="text-neutral-500 text-sm mb-2">{sayDoLabel}</span>
-                        </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${sayDoRatio}%` }}
-                                transition={{ duration: 1.2, ease: 'easeOut' }}
-                                className={cn("h-full rounded-full", sayDoBarColor)}
-                            />
-                        </div>
-                        <p className="text-xs text-neutral-600 mt-2">
-                            Brecha entre lo que declaras ser y lo que haces cada día.
-                        </p>
-                    </div>
+            {/* Hero — congruencia */}
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 md:p-7 mb-4 relative overflow-hidden"
+            >
+                <div className="absolute top-0 right-0 w-56 h-56 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(var(--accent-500), 0.06)' }} />
+                <div className="relative z-10">
+                    <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-3">Congruencia · esta semana</p>
 
-                    {/* Week trend */}
-                    <div className="flex flex-col items-center justify-center min-w-[140px] border border-white/[0.07] rounded-xl p-4 bg-white/[0.03]">
-                        <span className="text-xs font-bold text-neutral-600 uppercase tracking-widest mb-1">Esta semana</span>
-                        <span className={cn("text-3xl font-black font-mono", avgCongruenceThisWeek >= avgCongruencePrevWeek ? "text-emerald-400" : "text-rose-400")}>
-                            {avgCongruenceThisWeek}%
+                    <div className="flex items-end gap-4 mb-3">
+                        <span className="text-6xl md:text-7xl font-black font-mono" style={{ color: 'rgb(var(--accent-400))' }}>
+                            {thisWeekAvg}%
                         </span>
-                        <div className={cn("flex items-center gap-1 text-xs font-bold mt-1", congruenceTrend >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                            {congruenceTrend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                            {congruenceTrend >= 0 ? '+' : ''}{congruenceTrend}% vs semana ant.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 4 Metric cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-6">
-                {/* Hábitos activos */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
-                    <div className="flex items-center gap-2">
-                        <Target size={13} className="text-violet-400" />
-                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Hábitos activos</span>
-                    </div>
-                    <span className="text-3xl font-black text-white">{totalHabits}</span>
-                    <span className="text-xs text-neutral-600">
-                        {habits.filter(h => h.type === 'boolean').length} simples · {habits.filter(h => h.type === 'numeric').length} medibles
-                    </span>
-                </div>
-
-                {/* Días activos */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
-                    <div className="flex items-center gap-2">
-                        <Zap size={13} className="text-yellow-400" />
-                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Días activos (30d)</span>
-                    </div>
-                    <span className="text-3xl font-black text-white">
-                        {last30Days.filter(d => getCongruence(format(d, 'yyyy-MM-dd')) > 0).length}
-                    </span>
-                    <span className="text-xs text-neutral-600">de 30 días con registro</span>
-                </div>
-
-                {/* Flujo neto */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
-                    <div className="flex items-center gap-2">
-                        <Wallet size={13} className="text-violet-400" />
-                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Flujo neto ({period})</span>
-                    </div>
-                    <span className={cn("text-2xl md:text-3xl font-black font-mono", totalNetFlow >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                        {totalNetFlow >= 0 ? '+' : ''}€{totalNetFlow.toLocaleString('de-DE')}
-                    </span>
-                    <div className={cn("flex items-center gap-1 text-xs font-bold", netFlowTrend >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                        {netFlowTrend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                        {netFlowTrend >= 0 ? '+' : ''}€{netFlowTrend.toLocaleString('de-DE')} vs ant.
-                    </div>
-                </div>
-
-                {/* Gastos */}
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-4 md:p-5 flex flex-col gap-2 hover:border-white/[0.12] transition-colors">
-                    <div className="flex items-center gap-2">
-                        <Activity size={13} className="text-rose-400" />
-                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wide">Gastos ({period})</span>
-                    </div>
-                    <span className="text-2xl md:text-3xl font-black font-mono text-white">
-                        €{Math.abs(totalExpenses).toLocaleString('de-DE')}
-                    </span>
-                    <div className={cn("flex items-center gap-1 text-xs font-bold", expensesTrend <= 0 ? "text-emerald-600" : "text-rose-600")}>
-                        {expensesTrend <= 0 ? <TrendingDown size={10} /> : <TrendingUp size={10} />}
-                        {expensesTrend >= 0 ? '+' : ''}€{expensesTrend.toLocaleString('de-DE')} vs ant.
-                    </div>
-                </div>
-            </div>
-
-            {/* Main chart + Heatmap */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
-                {/* Correlation Chart */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="lg:col-span-2 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/[0.06] rounded-full blur-3xl pointer-events-none" />
-                    <div className="flex items-center justify-between mb-6 relative z-10">
-                        <div>
-                            <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                <Activity size={16} className="text-violet-400" />
-                                Disciplina vs Finanzas
-                            </h3>
-                            <p className="text-[11px] text-neutral-600 mt-0.5">% hábitos completados · flujo de caja diario</p>
-                        </div>
-                        {/* Period selector */}
-                        <div className="flex items-center bg-white/[0.04] rounded-xl border border-white/[0.07] p-0.5 gap-0.5">
-                            {(['7d', '14d', '30d'] as Period[]).map(p => (
-                                <button
-                                    key={p}
-                                    onClick={() => setPeriod(p)}
-                                    className={cn(
-                                        "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest",
-                                        period === p ? "bg-violet-500/20 text-violet-300 border border-violet-500/30" : "text-neutral-500 hover:text-white"
-                                    )}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                        </div>
+                        {prevWeekAvg > 0 && (
+                            <div className={cn("flex items-center gap-1 text-sm font-bold mb-2.5", weekTrend >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                                {weekTrend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                {weekTrend >= 0 ? '+' : ''}{weekTrend}% vs sem. ant.
+                            </div>
+                        )}
                     </div>
 
-                    <div className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -10 }}>
-                                <defs>
-                                    <linearGradient id="colorCongruence" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
-                                <XAxis dataKey="date" stroke="#333" tick={{ fill: '#525252', fontSize: 9 }} axisLine={false} tickLine={false} />
-                                <YAxis yAxisId="left" stroke="#333" tick={{ fill: '#525252', fontSize: 9 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
-                                <YAxis yAxisId="right" orientation="right" stroke="#333" tick={{ fill: '#525252', fontSize: 9 }} axisLine={false} tickLine={false} unit="€" />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#0d0d0d', borderColor: '#222', borderRadius: '12px', fontSize: '11px' }}
-                                    itemStyle={{ fontWeight: 'bold' }}
-                                    labelStyle={{ color: '#888', fontSize: '10px' }}
-                                />
-                                <Bar yAxisId="right" dataKey="netFlow" name="Flujo Neto" barSize={period === '30d' ? 6 : 10} radius={[3, 3, 0, 0]}>
-                                    {chartData.map((entry, i) => (
-                                        <Cell key={`cell-${i}`} fill={entry.netFlow >= 0 ? '#10b981' : '#f43f5e'} />
-                                    ))}
-                                </Bar>
-                                <Area yAxisId="left" type="monotone" dataKey="congruence" name="Congruencia" stroke="#22d3ee" fill="url(#colorCongruence)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#22d3ee', strokeWidth: 0 }} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                    {/* Progress bar */}
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-5">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${thisWeekAvg}%` }}
+                            transition={{ duration: 1, ease: 'easeOut' }}
+                            className="h-full rounded-full"
+                            style={{ background: 'rgb(var(--accent-400))' }}
+                        />
                     </div>
 
-                    {/* Legend */}
-                    <div className="flex items-center gap-4 mt-2 relative z-10">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-0.5 bg-cyan-400 rounded" />
-                            <span className="text-[10px] text-neutral-500">Congruencia %</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-2 bg-emerald-500 rounded-sm" />
-                            <span className="text-[10px] text-neutral-500">Flujo neto +</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-2 bg-rose-500 rounded-sm" />
-                            <span className="text-[10px] text-neutral-500">Flujo neto −</span>
-                        </div>
-                    </div>
-                </motion.div>
-
-                {/* Heatmap */}
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="lg:col-span-1 rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col"
-                >
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-                        <h3 className="text-base font-bold text-white">Consistencia · 35d</h3>
-                    </div>
-
-                    {/* Day labels */}
-                    <div className="grid grid-cols-7 gap-1.5 mb-1">
-                        {DAY_LABELS.map(d => (
-                            <div key={d} className="text-center text-xs font-bold text-neutral-600 uppercase">{d}</div>
-                        ))}
-                    </div>
-
-                    {/* Grid */}
-                    <div className="grid grid-cols-7 gap-1.5 flex-1 content-start">
-                        {heatmapData.map((day, i) => (
-                            day === null ? (
-                                <div key={`pad-${i}`} />
-                            ) : (
+                    {/* 7-day dots */}
+                    <div className="flex gap-2 md:gap-2.5">
+                        {weekDots.map(({ value, isFuture, isToday, label }, i) => (
+                            <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
                                 <div
-                                    key={i}
                                     className={cn(
-                                        "aspect-square rounded-md transition-all duration-300 relative group cursor-default",
-                                        day.value === -1 ? "bg-white/[0.06] border border-white/10" :
-                                        day.value >= 100 ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" :
-                                        day.value >= 75  ? "bg-cyan-600" :
-                                        day.value >= 50  ? "bg-cyan-800/80" :
-                                        day.value >= 25  ? "bg-cyan-900/60" :
-                                        day.value > 0    ? "bg-cyan-950/80" : "bg-white/[0.03]"
+                                        "w-full aspect-square rounded-lg transition-all",
+                                        isToday ? "ring-1" : "",
+                                        isFuture ? "bg-white/[0.03] border border-white/[0.06]" :
+                                        value === 0 ? "bg-white/[0.04]" : ""
                                     )}
-                                    title={`${format(day.date, 'dd MMM', { locale: es })}: ${day.value}%`}
-                                >
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-[7px] font-bold text-white/80 pointer-events-none">
-                                        {day.value}%
-                                    </div>
-                                </div>
-                            )
-                        ))}
-                    </div>
-
-                    {/* Intensity legend */}
-                    <div className="flex items-center gap-1.5 mt-4 justify-center">
-                        <span className="text-[9px] text-neutral-600 mr-1">Menos</span>
-                        {['bg-white/[0.03]', 'bg-cyan-950/80', 'bg-cyan-900/60', 'bg-cyan-800/80', 'bg-cyan-600', 'bg-cyan-400'].map((c, i) => (
-                            <div key={i} className={cn("w-3 h-3 rounded-sm", c)} />
-                        ))}
-                        <span className="text-[9px] text-neutral-600 ml-1">Más</span>
-                    </div>
-                </motion.div>
-            </div>
-
-            {/* Identity anchors (if manifesto exists) */}
-            {manifesto?.identityStatement && (
-                <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Brain size={14} className="text-violet-400" />
-                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Tu ancla de identidad</span>
-                    </div>
-                    <p className="text-white font-semibold text-lg leading-snug mb-4">"{manifesto.identityStatement}"</p>
-                    {manifesto.beliefs?.empowering && manifesto.beliefs.empowering.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {manifesto.beliefs.empowering.filter(b => b.trim()).map((belief, i) => (
-                                <span key={i} className="text-[11px] font-medium text-violet-300 bg-violet-500/10 border border-violet-500/20 px-3 py-1 rounded-full">
-                                    Soy el tipo de persona que {belief}
+                                    style={{
+                                        ...(isToday ? { outlineColor: 'rgb(var(--accent-400))' } : {}),
+                                        ...(isToday ? { ringColor: 'rgb(var(--accent-400))' } : {}),
+                                        ...dotColor(value, isFuture),
+                                    }}
+                                />
+                                <span className={cn("text-[10px] font-bold", isToday ? '' : "text-neutral-600")} style={isToday ? { color: 'rgb(var(--accent-400))' } : {}}>
+                                    {label}
                                 </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* ── REPORTE DE PAUSAS ───────────────────────────────────────── */}
-            <PauseReport habits={habits} />
-        </div>
-    );
-}
-
-// ── PAUSE REPORT COMPONENT ─────────────────────────────────────────────────
-function PauseReport({ habits }: { habits: any[] }) {
-    const [reportMonth, setReportMonth] = useState(new Date());
-
-    const monthStart = startOfMonth(reportMonth);
-    const monthEnd = endOfMonth(reportMonth);
-
-    // Collect all pauses in the selected month
-    const pausesByHabit = useMemo(() => {
-        const result: { habitTitle: string; habitIcon?: string; pauses: { date: string; reason?: string; status: string }[] }[] = [];
-
-        habits.forEach(habit => {
-            const pauses: { date: string; reason?: string; status: string }[] = [];
-            Object.values(habit.logs as Record<string, any>).forEach((log: any) => {
-                if (log.status === 'rest' || log.status === 'emergency') {
-                    const logDate = new Date(log.date);
-                    if (logDate >= monthStart && logDate <= monthEnd) {
-                        pauses.push({ date: log.date, reason: log.pauseReason, status: log.status });
-                    }
-                }
-            });
-            if (pauses.length > 0) {
-                pauses.sort((a, b) => a.date.localeCompare(b.date));
-                result.push({ habitTitle: habit.title, habitIcon: habit.icon, pauses });
-            }
-        });
-
-        return result;
-    }, [habits, reportMonth]);
-
-    const totalPauses = pausesByHabit.reduce((sum, h) => sum + h.pauses.length, 0);
-
-    // Count most common reasons
-    const allReasons = pausesByHabit.flatMap(h => h.pauses.map(p => p.reason)).filter(Boolean) as string[];
-    const reasonCounts = allReasons.reduce((acc, r) => ({ ...acc, [r]: (acc[r] || 0) + 1 }), {} as Record<string, number>);
-    const topReasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
-    return (
-        <div className="mt-12">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                        <span className="text-lg">⏸</span>
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-white">Reporte de Pausas</h2>
-                        <p className="text-[11px] text-neutral-500 uppercase tracking-widest">Días de descanso y motivos</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
-                {/* Month nav */}
-                <div className="flex items-center gap-2 bg-white/5 rounded-xl border border-white/8 px-3 py-1.5">
-                    <button onClick={() => setReportMonth(prev => addMonths(prev, -1))} className="text-neutral-500 hover:text-white transition-colors text-sm">‹</button>
-                    <span className="text-sm font-bold text-white/80 min-w-[90px] text-center capitalize">
-                        {format(reportMonth, 'MMMM yyyy', { locale: es })}
-                    </span>
-                    <button
-                        onClick={() => setReportMonth(prev => addMonths(prev, 1))}
-                        disabled={addMonths(reportMonth, 1) > new Date()}
-                        className="text-neutral-500 hover:text-white transition-colors text-sm disabled:opacity-30"
-                    >›</button>
+            </motion.div>
+
+            {/* 3 metric cards */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Flame size={12} className="text-orange-400" />
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Racha</span>
+                    </div>
+                    <p className="text-2xl font-black text-white">{streak}<span className="text-neutral-600 text-sm font-bold">d</span></p>
+                    <p className="text-[10px] text-neutral-600 mt-0.5">consecutivos</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Calendar size={12} style={{ color: 'rgb(var(--accent-400))' }} />
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Días</span>
+                    </div>
+                    <p className="text-2xl font-black text-white">
+                        {daysCompletedThisWeek}<span className="text-neutral-600 text-sm font-bold">/{pastDaysThisWeek}</span>
+                    </p>
+                    <p className="text-[10px] text-neutral-600 mt-0.5">completados</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Wallet size={12} className="text-emerald-400" />
+                        <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wide">Flujo</span>
+                    </div>
+                    <p className={cn("text-xl font-black font-mono", weekFinance >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                        {weekFinance >= 0 ? '+' : ''}{weekFinance.toFixed(0)}
+                    </p>
+                    <p className="text-[10px] text-neutral-600 mt-0.5">esta semana</p>
                 </div>
             </div>
 
-            {totalPauses === 0 ? (
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-8 text-center">
-                    <p className="text-neutral-600 text-sm">Sin pausas registradas en {format(reportMonth, 'MMMM', { locale: es })}</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {/* Summary chips */}
-                    <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                            {totalPauses} pausa{totalPauses !== 1 ? 's' : ''} en total
-                        </span>
-                        {topReasons.map(([reason, count]) => (
-                            <span key={reason} className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-neutral-400">
-                                {reason} × {count}
-                            </span>
-                        ))}
-                    </div>
-
-                    {/* Per-habit pauses */}
-                    {pausesByHabit.map(({ habitTitle, habitIcon, pauses }) => (
-                        <div key={habitTitle} className="rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden">
-                            {/* Habit header */}
-                            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/5">
-                                <span className="text-base">{habitIcon || '⏸'}</span>
-                                <span className="text-sm font-bold uppercase tracking-wide text-white/80">{habitTitle}</span>
-                                <span className="ml-auto text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                    {pauses.length} pausa{pauses.length !== 1 ? 's' : ''}
-                                </span>
-                            </div>
-                            {/* Pause entries */}
-                            <div className="divide-y divide-white/5">
-                                {pauses.map((pause, i) => (
-                                    <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[11px] font-mono text-neutral-500 min-w-[60px]">
-                                                {format(new Date(pause.date), 'dd MMM', { locale: es })}
-                                            </span>
-                                            {pause.status === 'emergency' && (
-                                                <span className="text-[9px] font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">urgencia</span>
-                                            )}
-                                        </div>
-                                        <span className={`text-[11px] font-medium ${pause.reason ? 'text-white/60' : 'text-neutral-700 italic'}`}>
-                                            {pause.reason || 'sin motivo'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            {/* Insight */}
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] px-5 py-4">
+                <p className="text-sm text-neutral-400 italic text-center">{insight}</p>
+            </div>
         </div>
     );
 }

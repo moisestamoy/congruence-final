@@ -25,9 +25,9 @@ type NavItem = { path: string; icon: LucideIcon; label: string };
 const DEFAULT_ITEMS: NavItem[] = [
     { path: '/',         icon: LayoutDashboard, label: 'Tracker'      },
     { path: '/finances', icon: Wallet,          label: 'Finanzas'     },
-    { path: '/stats',    icon: PieChart,        label: 'Estadísticas' },
+    { path: '/stats',    icon: PieChart,        label: 'Esta Semana'  },
     { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'       },
-    { path: '/identity', icon: User,            label: 'Identidad'    },
+    { path: '/identity', icon: User,            label: 'Mi Norte'     },
     { path: '/coach',    icon: Brain,           label: 'Coach IA'     },
 ];
 
@@ -102,7 +102,7 @@ export default function MainLayout() {
     const showFab = ['/', '/finances', '/tasks'].includes(location.pathname) && !isEditingOrder;
     // Cycle: dark → accion → ocean → sakura → dark
     const THEME_CYCLE = ['dark', 'accion', 'ocean', 'sakura'] as const;
-    const THEME_DOTS: Record<string, string> = { dark: '#22d3ee', accion: '#ef4444', ocean: '#818cf8', sakura: '#fb7185' };
+    const THEME_DOTS: Record<string, string> = { dark: '#22d3ee', accion: '#ef4444', ocean: '#818cf8', sakura: '#f472b6' };
     const THEME_LABELS: Record<string, string> = { dark: 'CLASSIC', accion: 'ACCIÓN', ocean: 'OCEAN', sakura: 'SAKURA' };
     const toggleTheme = () => {
         const idx = THEME_CYCLE.indexOf(theme as typeof THEME_CYCLE[number]);

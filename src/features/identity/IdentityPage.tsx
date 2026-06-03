@@ -1,311 +1,185 @@
-import { useState, useMemo } from 'react';
-import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Hexagon, Plus, BrainCircuit, Target, AlertTriangle, Zap, BookOpen, Flame, Skull, Edit3, ArrowRight, Brain, Sparkles } from 'lucide-react';
-import { useHolisticStore } from '../stats/useHolisticStore';
-import { HolisticCheckInModal } from '../stats/HolisticCheckInModal';
-import { useHabitStore } from '../habits/useHabitStore';
+import { useState } from 'react';
+import { Edit3, Target, Flame, Compass } from 'lucide-react';
+import { useHabitStore, IdentityManifesto } from '../habits/useHabitStore';
 import { IdentityProtocolWizard } from '../habits/IdentityProtocolWizard';
+import { cn } from '../../utils/cn';
 
-const AXIS_LABELS: Record<string, string> = {
-    physical: 'Físico',
-    emotional: 'Emocional',
-    vision: 'Visión',
-    standards: 'Disciplina',
-    growth: 'Crecimiento',
-    environment: 'Entorno',
+type CardKey = 'identity' | 'goal' | 'minimum';
+
+const EMPTY_MANIFESTO: IdentityManifesto = {
+    identityStatement: '',
+    identities: { personal: '', professional: '', financial: '' },
+    goals: { oneYear: '', ninetyDays: '', antiGoals: '' },
+    ignoranceDebt: { missingSkill: '', investmentAction: '' },
+    executionProtocol: { planA_Action: '', planA_Volume: '', planB_Minimum: '' },
 };
 
 export default function IdentityPage() {
-    const { getLatestCheckIn, getCheckInAxesForDay, isFullCheckIn } = useHolisticStore();
-    const { manifesto } = useHabitStore();
-    const [isHolisticModalOpen, setIsHolisticModalOpen] = useState(false);
+    const { manifesto, setManifesto } = useHabitStore();
     const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [editing, setEditing] = useState<CardKey | null>(null);
+    const [draft, setDraft] = useState({ identity: '', goal: '', minimum: '' });
 
-    const latestHolistic = getLatestCheckIn();
-    const todayAxes = getCheckInAxesForDay();
-    const isSunday = isFullCheckIn();
+    const identityText = manifesto?.identityStatement || manifesto?.identities?.personal || '';
+    const goalText     = manifesto?.goals?.ninetyDays || '';
+    const minimumText  = manifesto?.executionProtocol?.planB_Minimum || '';
 
-    // Normalize data for chart (0-100 scale)
-    const holisticData = useMemo(() => {
-        const h = latestHolistic || { physical: 0, emotional: 0, vision: 0, standards: 0, growth: 0, environment: 0 };
-        return [
-            { subject: 'Físico', A: h.physical * 10, fullMark: 100 },
-            { subject: 'Crecimiento', A: h.growth * 10, fullMark: 100 },
-            { subject: 'Visión', A: h.vision * 10, fullMark: 100 },
-            { subject: 'Emocional', A: h.emotional * 10, fullMark: 100 },
-            { subject: 'Entorno', A: h.environment * 10, fullMark: 100 },
-            { subject: 'Disciplina', A: h.standards * 10, fullMark: 100 },
-        ];
-    }, [latestHolistic]);
+    const startEdit = (key: CardKey) => {
+        setDraft({ identity: identityText, goal: goalText, minimum: minimumText });
+        setEditing(key);
+    };
 
-    const isRadarEmpty = !latestHolistic;
+    const saveEdit = () => {
+        const base = manifesto ?? EMPTY_MANIFESTO;
+        setManifesto({
+            ...base,
+            identityStatement: draft.identity.trim() || base.identityStatement,
+            identities: { ...base.identities, personal: draft.identity.trim() },
+            goals: { ...base.goals, ninetyDays: draft.goal.trim() },
+            executionProtocol: { ...base.executionProtocol, planB_Minimum: draft.minimum.trim() },
+        });
+        setEditing(null);
+    };
 
-    const displayedIdentity = manifesto?.identityStatement ||
-        manifesto?.identities?.personal || null;
+    const cards = [
+        {
+            key: 'identity' as CardKey,
+            Icon: Compass,
+            accentStyle: { color: 'rgb(var(--accent-400))' },
+            borderStyle: { borderColor: 'rgba(var(--accent-500), 0.20)' },
+            bgStyle:     { backgroundColor: 'rgba(var(--accent-500), 0.04)' },
+            label: 'Soy una persona que...',
+            value: identityText,
+            placeholder: '...siempre hace lo que dice, sin importar cómo se sienta',
+            multiline: true,
+        },
+        {
+            key: 'goal' as CardKey,
+            Icon: Target,
+            accentStyle: { color: 'rgb(167 139 250)' },
+            borderStyle: { borderColor: 'rgba(139 92 246 / 0.20)' },
+            bgStyle:     { backgroundColor: 'rgba(139 92 246 / 0.04)' },
+            label: 'Meta a 90 días',
+            value: goalText,
+            placeholder: 'Ej: Lanzar mi negocio, bajar 5kg, ahorrar $X...',
+            multiline: false,
+        },
+        {
+            key: 'minimum' as CardKey,
+            Icon: Flame,
+            accentStyle: { color: 'rgb(251 191 36)' },
+            borderStyle: { borderColor: 'rgba(245 158 11 / 0.20)' },
+            bgStyle:     { backgroundColor: 'rgba(245 158 11 / 0.04)' },
+            label: 'Mi mínimo diario',
+            value: minimumText,
+            placeholder: 'Lo mínimo que haré sin importar qué pase hoy...',
+            multiline: false,
+        },
+    ];
 
     return (
-        <div className="min-h-screen w-full bg-[#020508] bg-[radial-gradient(ellipse_at_top_center,_var(--tw-gradient-stops))] from-[#1a0b2e] via-[#020508] to-black text-white p-4 sm:p-6 md:p-8 font-sans overflow-y-auto pb-40 lg:pb-32">
+        <div className="min-h-screen w-full bg-[#0a0a0a] text-white p-4 md:p-6 lg:p-8 pb-40 lg:pb-16 font-sans">
 
-            <header className="mb-8 md:mb-12 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-white mb-1 md:mb-2">
-                        Centro de Identidad
-                    </h1>
-                    <p className="text-purple-400/70 font-medium tracking-widest uppercase text-xs sm:text-sm">
-                        Protocolo de Personaje & Perfil Holístico
-                    </p>
-                </div>
+            {/* Header */}
+            <header className="mb-6 md:mb-8">
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'rgb(var(--accent-400))' }}>
+                    Tu brújula
+                </p>
+                <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Mi Norte</h1>
             </header>
 
-            {/* 1. HOLISTIC PROFILE WIDGET */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-purple-500/15 shadow-2xl p-5 md:p-8 shrink-0 mb-8 md:mb-12 flex flex-col lg:flex-row items-center gap-6 md:gap-8">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent pointer-events-none" />
+            <div className="space-y-3 max-w-2xl">
+                {cards.map(({ key, Icon, accentStyle, borderStyle, bgStyle, label, value, placeholder, multiline }) => {
+                    const isEditing = editing === key;
+                    const isEmpty   = !value.trim();
+                    const draftVal  = key === 'identity' ? draft.identity : key === 'goal' ? draft.goal : draft.minimum;
+                    const setDraftVal = (v: string) => setDraft(prev => ({ ...prev, [key === 'identity' ? 'identity' : key === 'goal' ? 'goal' : 'minimum']: v }));
 
-                <div className="w-full lg:w-1/3 flex flex-col justify-center relative z-10 text-center lg:text-left">
-                    <div className="inline-flex items-center justify-center lg:justify-start gap-3 mb-4">
-                        <div className="p-3 bg-purple-500/10 rounded-2xl text-purple-400">
-                            <Hexagon size={24} />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white tracking-tight">Estado Actual</h2>
-                    </div>
-                    <p className="text-sm text-neutral-400 mb-4 max-w-sm mx-auto lg:mx-0">
-                        Una representación visual de tu ejecución diaria.
-                    </p>
-
-                    {/* Today's axes indicator */}
-                    <div className="mb-6 flex flex-wrap gap-2 justify-center lg:justify-start">
-                        {isSunday ? (
-                            <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                🌟 Domingo — Radar Completo
-                            </span>
-                        ) : (
-                            <>
-                                <span className="text-[10px] text-neutral-600 uppercase font-bold tracking-wider flex items-center">Hoy:</span>
-                                {todayAxes.map(axis => (
-                                    <span key={axis} className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/5 text-neutral-300 border border-white/10">
-                                        {AXIS_LABELS[axis]}
-                                    </span>
-                                ))}
-                            </>
-                        )}
-                    </div>
-
-                    <button
-                        onClick={() => setIsHolisticModalOpen(true)}
-                        className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-4 rounded-xl bg-purple-500 text-black font-bold uppercase tracking-widest text-xs hover:bg-purple-400 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] active:scale-95"
-                    >
-                        <Plus size={16} /> Evaluarte Hoy
-                    </button>
-                </div>
-
-                <div className="w-full lg:w-2/3 h-[240px] sm:h-[300px] md:h-[380px] relative z-10 flex justify-center items-center">
-                    {isRadarEmpty ? (
-                        <div className="text-center flex flex-col items-center gap-4">
-                            {/* Faint empty hexagon outline */}
-                            <div className="w-48 h-48 flex items-center justify-center opacity-10">
-                                <Hexagon size={180} className="text-purple-400" />
-                            </div>
-                            <div className="absolute flex flex-col items-center gap-3">
-                                <p className="text-sm text-neutral-400 max-w-[200px] text-center leading-snug">
-                                    Tu primera evaluación dibujará esto. Empieza ahora.
-                                </p>
-                                <button
-                                    onClick={() => setIsHolisticModalOpen(true)}
-                                    className="flex items-center gap-1.5 text-purple-400 text-xs font-bold uppercase tracking-widest hover:text-purple-300 transition-colors"
-                                >
-                                    Evaluarte hoy <ArrowRight size={12} />
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={holisticData}>
-                                <PolarGrid stroke="#ffffff20" />
-                                <PolarAngleAxis
-                                    dataKey="subject"
-                                    tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 'bold' }}
-                                />
-                                <PolarRadiusAxis
-                                    angle={30}
-                                    domain={[0, 100]}
-                                    tick={false}
-                                    axisLine={false}
-                                />
-                                <Radar
-                                    name="Nivel Actual"
-                                    dataKey="A"
-                                    stroke="#a855f7"
-                                    strokeWidth={3}
-                                    fill="#a855f7"
-                                    fillOpacity={0.4}
-                                />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    )}
-                </div>
-            </div>
-
-            {/* 2. IDENTITY MANIFESTO */}
-            <div className="relative w-full rounded-[32px] overflow-hidden bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-purple-500/10 shadow-2xl p-5 md:p-8">
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent pointer-events-none" />
-                <div className="flex justify-between items-center mb-6 md:mb-10 border-b border-white/[0.06] pb-5 md:pb-6">
-                    <div>
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <BrainCircuit className="text-purple-400" size={24} />
-                            Tu Palabra
-                        </h2>
-                        <p className="text-sm text-neutral-500 mt-2">Todo lo demás se evalúa contra esto.</p>
-                    </div>
-                    {manifesto && (
-                        <button
-                            onClick={() => setIsWizardOpen(true)}
-                            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-xs font-bold uppercase tracking-widest text-neutral-300 transition-all flex items-center gap-2"
+                    return (
+                        <div
+                            key={key}
+                            className="rounded-2xl border p-5 md:p-6 transition-all"
+                            style={{ ...borderStyle, ...bgStyle }}
                         >
-                            <Edit3 size={14} /> Editar
-                        </button>
-                    )}
-                </div>
-
-                {!manifesto ? (
-                    <div className="text-center py-16 flex flex-col items-center gap-5">
-                        <div className="p-5 rounded-full bg-purple-500/10 border border-purple-500/20">
-                            <BrainCircuit className="text-purple-400" size={36} />
-                        </div>
-                        <div>
-                            <p className="text-neutral-400 mb-1 text-lg font-semibold">Aún no has definido Tu Palabra.</p>
-                            <p className="text-neutral-600 text-sm max-w-xs mx-auto">
-                                Sin esto, no hay nada contra qué medirte.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setIsWizardOpen(true)}
-                            className="px-8 py-4 bg-white text-black text-sm font-black rounded-xl hover:scale-105 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.15)] flex flex-col items-center gap-1"
-                        >
-                            <span>Crear Tu Manifiesto</span>
-                            <span className="text-[10px] font-normal text-black/50 normal-case tracking-normal">Todo lo demás se evalúa contra esto</span>
-                        </button>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {/* Identity Statement hero */}
-                        {displayedIdentity && (
-                            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 mb-6">
-                                <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest mb-3">Declaración de Identidad</div>
-                                <p className="text-xl font-bold text-white leading-snug">"{displayedIdentity}"</p>
-                            </div>
-                        )}
-
-                        {/* BELIEFS SECTION */}
-                        {manifesto.beliefs && (manifesto.beliefs.empowering?.length > 0) && (
-                            <div className="bg-violet-500/5 border border-violet-500/20 rounded-2xl p-6 mb-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="text-xs font-bold text-violet-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Brain size={14} /> Sistema de Creencias
-                                    </div>
-                                    <span className="text-[10px] text-violet-400/40 uppercase font-bold tracking-wider">
-                                        {manifesto.beliefs.empowering.filter(b => b).length} creencias activas
-                                    </span>
+                            {/* Card header */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Icon size={14} style={accentStyle} />
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{label}</span>
                                 </div>
-                                <ul className="space-y-2 mb-4">
-                                    {manifesto.beliefs.empowering.filter(b => b).map((belief, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-sm text-violet-100">
-                                            <Sparkles size={12} className="text-violet-400 mt-0.5 shrink-0" />
-                                            <span>
-                                                <span className="text-violet-400/60">Soy el tipo de persona que </span>
-                                                <span className="font-semibold">{belief}</span>
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                {manifesto.beliefs.limiting && (
-                                    <div className="border-t border-violet-500/10 pt-3 mt-3">
-                                        <div className="text-[10px] text-red-400/50 uppercase font-bold flex items-center gap-1 mb-1">
-                                            <AlertTriangle size={10} /> Creencia que elimino
-                                        </div>
-                                        <p className="text-xs text-red-300/70 line-through">{manifesto.beliefs.limiting}</p>
-                                    </div>
+                                {!isEditing && (
+                                    <button
+                                        onClick={() => startEdit(key)}
+                                        className="text-neutral-600 hover:text-neutral-300 transition-colors p-1 rounded-lg hover:bg-white/5"
+                                    >
+                                        <Edit3 size={13} />
+                                    </button>
                                 )}
                             </div>
-                        )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {/* Misión 90 Días */}
-                            <div className="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-6">
-                                <div className="text-xs font-bold text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Target size={14} /> Misión 90 Días
-                                </div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="text-lg font-bold text-white leading-tight">{manifesto.goals.ninetyDays || '-'}</div>
-                                    </div>
-                                    {manifesto.goals.toxicHabit && (
-                                        <div className="mt-4 pt-4 border-t border-purple-500/10">
-                                            <div className="text-[10px] text-red-400/60 uppercase font-bold flex items-center gap-1">
-                                                <AlertTriangle size={12} /> No toleraré
-                                            </div>
-                                            <div className="text-xs text-red-200 mt-1">{manifesto.goals.toxicHabit}</div>
-                                        </div>
+                            {/* Content */}
+                            {isEditing ? (
+                                <div className="space-y-2.5">
+                                    {multiline ? (
+                                        <textarea
+                                            autoFocus
+                                            value={draftVal}
+                                            onChange={e => setDraftVal(e.target.value)}
+                                            placeholder={placeholder}
+                                            rows={2}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 outline-none transition-colors text-base resize-none focus:border-white/20"
+                                        />
+                                    ) : (
+                                        <input
+                                            autoFocus
+                                            value={draftVal}
+                                            onChange={e => setDraftVal(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && saveEdit()}
+                                            placeholder={placeholder}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 outline-none transition-colors text-base focus:border-white/20"
+                                        />
                                     )}
-                                </div>
-                            </div>
-
-                            {/* Deuda de Ignorancia */}
-                            {manifesto.ignoranceDebt.missingSkill && (
-                                <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-6">
-                                    <div className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <BookOpen size={14} /> Deuda de Ignorancia
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="text-[10px] text-rose-400/60 uppercase font-bold">Skill Faltante</div>
-                                            <div className="text-sm font-bold text-white mt-1">{manifesto.ignoranceDebt.missingSkill}</div>
-                                        </div>
-                                        {manifesto.ignoranceDebt.investmentAction && (
-                                            <div>
-                                                <div className="text-[10px] text-rose-400/60 uppercase font-bold flex items-center gap-1">
-                                                    <Zap size={12} /> Inversión
-                                                </div>
-                                                <div className="text-sm text-neutral-300 mt-1">{manifesto.ignoranceDebt.investmentAction}</div>
-                                            </div>
-                                        )}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={saveEdit}
+                                            className="px-4 py-2 rounded-xl text-black text-xs font-black uppercase tracking-wide transition-all hover:opacity-90"
+                                            style={{ background: 'rgb(var(--accent-400))' }}
+                                        >
+                                            Guardar
+                                        </button>
+                                        <button
+                                            onClick={() => setEditing(null)}
+                                            className="px-4 py-2 rounded-xl bg-white/5 text-neutral-400 text-xs font-bold uppercase tracking-wide hover:bg-white/10 transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
                                     </div>
                                 </div>
+                            ) : isEmpty ? (
+                                <button
+                                    onClick={() => startEdit(key)}
+                                    className="text-sm font-medium italic transition-colors hover:opacity-80"
+                                    style={{ ...accentStyle, opacity: 0.45 }}
+                                >
+                                    Toca para definir →
+                                </button>
+                            ) : (
+                                <p className="text-lg md:text-xl font-bold text-white leading-snug">{value}</p>
                             )}
-
-                            {/* Plan B (hero) */}
-                            <div className="bg-yellow-950/20 border border-yellow-500/20 rounded-2xl p-6">
-                                <div className="text-xs font-bold text-yellow-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Skull size={14} /> Tu Contrato Diario
-                                </div>
-                                <div className="space-y-3">
-                                    <div>
-                                        <div className="text-[10px] text-emerald-400/60 uppercase font-bold flex items-center gap-1">
-                                            <Flame size={12} /> Plan A
-                                        </div>
-                                        <div className="text-sm font-bold text-emerald-100 mt-1">{manifesto.executionProtocol.planA_Action || '-'}</div>
-                                    </div>
-                                    <div className="pt-3 border-t border-yellow-500/10">
-                                        <div className="text-[10px] text-yellow-400/70 uppercase font-bold flex items-center gap-1">
-                                            <Skull size={12} /> Plan B — Mínimo
-                                        </div>
-                                        <div className="text-sm font-semibold text-yellow-100 mt-1 leading-snug">
-                                            "{manifesto.executionProtocol.planB_Minimum || '-'}"
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })}
+
+                {/* Full wizard access */}
+                <button
+                    onClick={() => setIsWizardOpen(true)}
+                    className="text-[11px] text-neutral-600 hover:text-neutral-400 transition-colors uppercase tracking-widest font-bold flex items-center gap-1.5 pt-1"
+                >
+                    <Edit3 size={11} /> Editar manifiesto completo
+                </button>
             </div>
 
-            {isHolisticModalOpen && (
-                <HolisticCheckInModal onClose={() => setIsHolisticModalOpen(false)} />
-            )}
-
             <IdentityProtocolWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
-
         </div>
     );
 }
