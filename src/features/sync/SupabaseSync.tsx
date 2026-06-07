@@ -8,6 +8,24 @@ import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 // Tracks when this device last edited finance data (client epoch ms).
 // Used for last-write-wins against the cloud copy's updated_at.
 const LOCAL_EDIT_KEY = 'finance_local_edit_at';
+// Tombstones for realExpenses deleted/migrated locally but possibly still in the
+// cloud copy. Persisted so they survive a reload before the change has synced —
+// otherwise the cloud merge would resurrect a just-deleted/migrated expense.
+const PENDING_DELETES_KEY = 'finance_pending_deletes';
+
+function loadPendingDeletes(): Set<string> {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(PENDING_DELETES_KEY) || '[]'));
+    } catch {
+        return new Set();
+    }
+}
+function persistPendingDeletes(set: Set<string>) {
+    try { localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify([...set])); } catch { /* ignore */ }
+}
+function clearPendingDeletes() {
+    try { localStorage.removeItem(PENDING_DELETES_KEY); } catch { /* ignore */ }
+}
 
 export function SupabaseSync() {
     const { user } = useAuth();
@@ -17,7 +35,7 @@ export function SupabaseSync() {
     const isSavingRef = useRef(false);
     const initialLoadDoneRef = useRef(false);
     const hasPendingChangesRef = useRef(false);
-    const pendingDeletionsRef = useRef<Set<string>>(new Set());
+    const pendingDeletionsRef = useRef<Set<string>>(loadPendingDeletes());
     const prevExpenseIdsRef = useRef<Set<string>>(new Set());
 
     const habitsState = useHabitStore();
@@ -26,9 +44,11 @@ export function SupabaseSync() {
     useEffect(() => {
         if (!initialLoadDoneRef.current) return;
         const currentIds = new Set((financeState.realExpenses as any[]).map((e: any) => e.id));
+        let changed = false;
         prevExpenseIdsRef.current.forEach(id => {
-            if (!currentIds.has(id)) pendingDeletionsRef.current.add(id);
+            if (!currentIds.has(id)) { pendingDeletionsRef.current.add(id); changed = true; }
         });
+        if (changed) persistPendingDeletes(pendingDeletionsRef.current);
         prevExpenseIdsRef.current = currentIds;
     }, [financeState.realExpenses]);
 
@@ -80,7 +100,10 @@ export function SupabaseSync() {
 
             setStatus('synced');
             lastSavedRef.current = Date.now();
+            // The cloud copy we just wrote already excludes the tombstoned ids,
+            // so it's safe to forget them now.
             pendingDeletionsRef.current.clear();
+            clearPendingDeletes();
         } catch (e) {
             console.error('Save error:', e);
             setStatus('error');
