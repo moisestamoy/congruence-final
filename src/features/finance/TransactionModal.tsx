@@ -14,6 +14,7 @@ interface TransactionModalProps {
     onSave: (amount: number, category: string, description: string, finalDate?: string, finalType?: 'income' | 'expense', isRecurring?: boolean) => void;
     onDelete?: () => void;
     isGlobal?: boolean;
+    defaultIsRecurring?: boolean;
 }
 
 const INCOME_CATEGORIES = [
@@ -45,7 +46,7 @@ const EXPENSE_CATEGORIES = [
     '🧠 Inversión en mentoría'
 ];
 
-export function TransactionModal({ isOpen, onClose, type, date, initialData, onSave, onDelete, isGlobal }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, type, date, initialData, onSave, onDelete, isGlobal, defaultIsRecurring }: TransactionModalProps) {
     // Form input states
     const [amount, setAmount] = useState<string>(initialData ? initialData.amount.toString() : '');
     const [category, setCategory] = useState<string>(initialData ? initialData.category : '');
@@ -62,7 +63,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
             setAmount(initialData ? initialData.amount.toString() : '');
             setCategory(initialData ? initialData.category : '');
             setDescription(initialData?.description || '');
-            setIsRecurring(false);
+            setIsRecurring(defaultIsRecurring ?? false);
 
             // If opening in global mode, initialize the global states
             if (isGlobal) {

@@ -15,7 +15,9 @@ import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
 import { RestartModal } from './RestartModal';
-// SafeToSpendWidget removed — replaced by AnnualGoalVelocityCard
+import { FixedCommitmentsPanel } from './FixedCommitmentsPanel';
+import { CategoryBudgetsPanel } from './CategoryBudgetsPanel';
+import { AnnualChart } from './AnnualChart';
 import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
@@ -45,6 +47,7 @@ export default function FinancesPage() {
         editingId?: string;
         editingSource?: 'event' | 'realExpense';
         initialData?: { amount: number; category: string; description?: string };
+        defaultIsRecurring?: boolean;
     }>({ isOpen: false, type: 'income', date: '' });
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
     const [editingBalance, setEditingBalance] = useState(false);
@@ -228,6 +231,22 @@ export default function FinancesPage() {
     const totalIncome = monthIncome;
     const totalExpenses = monthExpenses;
     const netFlow = totalIncome - totalExpenses;
+
+    // Category spending map for CategoryBudgetsPanel
+    const currentMonthSpending = useMemo(() => {
+        const map: Record<string, number> = {};
+        displayedMonthData.forEach(day => {
+            realExpenses.filter(e => e.date === day.date).forEach(e => {
+                const cat = e.category || '📦 Otros';
+                map[cat] = (map[cat] || 0) + e.amount;
+            });
+            events.filter(e => e.date === day.date && e.type === 'expense' && !e.isRecurring).forEach(e => {
+                const cat = e.category || '📦 Otros';
+                map[cat] = (map[cat] || 0) + e.amount;
+            });
+        });
+        return map;
+    }, [displayedMonthData, realExpenses, events]);
 
     const categoryData = categoryBreakdown;
 
@@ -508,6 +527,18 @@ export default function FinancesPage() {
                             inline={true}
                         />
                     </div>
+
+                    {/* FIXED COMMITMENTS PANEL */}
+                    <FixedCommitmentsPanel
+                        fmtCur={fmtCur}
+                        onAddRecurring={() => setTxModal({
+                            isOpen: true,
+                            type: 'expense',
+                            date: format(today, 'yyyy-MM-dd'),
+                            isGlobal: true,
+                            defaultIsRecurring: true,
+                        })}
+                    />
 
                     {/* CONTROL BAR — simplified */}
                     <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
@@ -968,6 +999,12 @@ export default function FinancesPage() {
             <div className="w-full max-w-[1800px] mx-auto mt-12">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
+                    {/* Category Budgets Panel (1/3) */}
+                    <CategoryBudgetsPanel
+                        currentMonthSpending={currentMonthSpending}
+                        fmtCur={fmtCur}
+                    />
+
                     {/* Categories Chart (2/3) */}
                     <CategoryBreakdownWidget
                         totalIncome={totalIncome}
@@ -1028,9 +1065,14 @@ export default function FinancesPage() {
                 </div>
             </div>
 
-            {/* 6. CASH FLOW WAVE CHART (Moved to Bottom) */}
-            <div className="w-full max-w-[1800px] mx-auto mt-12 mb-12">
+            {/* CASH FLOW WAVE CHART */}
+            <div className="w-full max-w-[1800px] mx-auto mt-12">
                 <CashFlowChart data={currentMonthData?.days || []} />
+            </div>
+
+            {/* ANNUAL PROJECTION CHART */}
+            <div className="w-full max-w-[1800px] mx-auto mt-8 mb-12">
+                <AnnualChart fmtCur={fmtCur} />
             </div>
 
             {/* MODALS */}
@@ -1059,11 +1101,12 @@ export default function FinancesPage() {
 
             <TransactionModal
                 isOpen={txModal.isOpen}
-                onClose={() => setTxModal({ ...txModal, isOpen: false, editingId: undefined, editingSource: undefined, initialData: undefined })}
+                onClose={() => setTxModal({ ...txModal, isOpen: false, editingId: undefined, editingSource: undefined, initialData: undefined, defaultIsRecurring: undefined })}
                 type={txModal.type}
                 date={txModal.date}
                 isGlobal={txModal.isGlobal}
                 initialData={txModal.initialData}
+                defaultIsRecurring={txModal.defaultIsRecurring}
                 onSave={handleAddTransaction}
                 onDelete={txModal.editingId ? handleDeleteTransaction : undefined}
             />
