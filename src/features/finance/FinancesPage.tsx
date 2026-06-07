@@ -89,7 +89,7 @@ export default function FinancesPage() {
         if (!targetDate) return;
 
         if (txModal.editingId && txModal.editingSource) {
-            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
+            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description, isRecurring });
         } else {
             addTransaction(targetDate, targetType, amount, category, isRecurring);
         }
@@ -926,7 +926,8 @@ export default function FinancesPage() {
                                                                     date: event.date || day.date,
                                                                     editingId: event.id,
                                                                     editingSource: event.source,
-                                                                    initialData: { amount: event.amount, category: event.category, description: '' }
+                                                                    initialData: { amount: event.amount, category: event.category, description: '' },
+                                                                    defaultIsRecurring: event.isRecurring ?? false
                                                                 });
                                                             }}
                                                             className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/[0.02] cursor-pointer hover:bg-white/[0.05] transition-colors"
@@ -934,8 +935,13 @@ export default function FinancesPage() {
                                                             <div className="flex items-center gap-3">
                                                                 <div className={cn("w-1 h-8 rounded-full", event.type === 'income' ? 'bg-emerald-500' : 'bg-red-500')} />
                                                                 <div className="flex flex-col">
-                                                                    <span className="text-sm font-bold text-white">{event.category}</span>
-                                                                    <span className="text-[9px] text-neutral-500 uppercase tracking-wider">{event.type === 'income' ? 'Ingreso' : 'Gasto Variable'}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-sm font-bold text-white">{event.category}</span>
+                                                                        {event.isRecurring && (
+                                                                            <span className="text-[8px] font-bold text-violet-400 bg-violet-500/15 border border-violet-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Fijo</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-[9px] text-neutral-500 uppercase tracking-wider">{event.type === 'income' ? 'Ingreso' : (event.isRecurring ? 'Gasto Fijo' : 'Gasto Variable')}</span>
                                                                 </div>
                                                             </div>
                                                             <span className={cn("font-mono font-bold text-sm", event.type === 'income' ? "text-emerald-400" : "text-red-400")}>
