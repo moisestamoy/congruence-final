@@ -89,14 +89,16 @@ export default function FinancesPage() {
         if (!targetDate) return;
 
         if (txModal.editingId && txModal.editingSource) {
-            // First update amount/category/date
-            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
-            // Then handle recurring separately with dedicated action to guarantee it saves
-            const currentEvent = events.find(e => e.id === txModal.editingId);
-            const currentIsRecurring = currentEvent?.isRecurring ?? false;
-            if (isRecurring !== undefined && isRecurring !== currentIsRecurring) {
-                makeRecurring(txModal.editingId, txModal.editingSource);
-            }
+            // Pass isRecurring directly — updateTransaction sets it to the exact value
+            // (and migrates realExpense → event when it becomes recurring)
+            updateTransaction(txModal.editingId, txModal.editingSource, {
+                amount,
+                category,
+                date: targetDate,
+                type: targetType,
+                note: description,
+                isRecurring: isRecurring ?? false,
+            });
         } else {
             addTransaction(targetDate, targetType, amount, category, isRecurring);
         }

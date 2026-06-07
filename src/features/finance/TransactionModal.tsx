@@ -57,12 +57,19 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
     const [globalDate, setGlobalDate] = useState<string>('');
     const [isRecurring, setIsRecurring] = useState(false);
 
-    // Sync form state when modal opens
+    // Sync form state when modal opens.
+    // IMPORTANT: depend ONLY on primitive values, NOT on the `initialData` object.
+    // `initialData` is recreated on every parent render, so depending on it would
+    // re-run this effect on every FinancesPage re-render and RESET the toggle
+    // (and other fields) back to defaults — wiping out the user's selection before save.
+    const initAmount = initialData?.amount;
+    const initCategory = initialData?.category;
+    const initDescription = initialData?.description;
     useEffect(() => {
         if (isOpen) {
-            setAmount(initialData ? initialData.amount.toString() : '');
-            setCategory(initialData ? initialData.category : '');
-            setDescription(initialData?.description || '');
+            setAmount(initAmount != null ? initAmount.toString() : '');
+            setCategory(initCategory != null ? initCategory : '');
+            setDescription(initDescription || '');
             setIsRecurring(defaultIsRecurring ?? false);
 
             // If opening in global mode, initialize the global states
@@ -71,7 +78,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                 setGlobalDate(date || format(new Date(), 'yyyy-MM-dd'));
             }
         }
-    }, [isOpen, initialData, isGlobal, type, date]);
+    }, [isOpen, initAmount, initCategory, initDescription, defaultIsRecurring, isGlobal, type, date]);
 
     if (!isOpen) return null;
 
