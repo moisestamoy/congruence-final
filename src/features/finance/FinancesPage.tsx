@@ -266,8 +266,9 @@ export default function FinancesPage() {
     };
 
     // Annual goal velocity: how many months until reaching the annual goal
-    const monthsToGoal = netFlow > 0 && currentSaved < annualGoal
-        ? Math.ceil((annualGoal - currentSaved) / netFlow)
+    // Based on monthly income (not net flow) — pure earning rate
+    const monthsToGoal = totalIncome > 0 && currentSaved < annualGoal
+        ? Math.ceil((annualGoal - currentSaved) / totalIncome)
         : null;
     const goalTargetDate = monthsToGoal != null ? addMonths(today, monthsToGoal) : null;
 
@@ -467,7 +468,7 @@ export default function FinancesPage() {
                                             {format(goalTargetDate, 'MMM yy', { locale: dateLocale })}
                                         </div>
                                         <p className="text-xs text-neutral-500">
-                                            en {monthsToGoal}m · al ritmo de {fmtCur(netFlow)}/mes
+                                            en {monthsToGoal}m · {fmtCur(totalIncome)} ingresos/mes
                                         </p>
                                     </>
                                 ) : (
