@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3 } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -683,13 +683,20 @@ export default function FinancesPage() {
                                         </div>
 
                                         {/* DAILY PLAN */}
-                                        <div className="text-right relative">
+                                        <div className="flex items-center gap-1.5 justify-end relative">
                                             <input
                                                 type="number"
-                                                className="w-full bg-transparent text-right font-mono font-medium text-white/50 focus:text-white focus:outline-none placeholder-neutral-800 border-b border-transparent focus:border-cyan-500/50 focus:bg-cyan-500/5 transition-all rounded-sm px-1 py-0.5"
+                                                className="w-12 bg-transparent text-right font-mono font-medium text-white/50 focus:text-white focus:outline-none placeholder-neutral-800 border-b border-transparent focus:border-cyan-500/50 focus:bg-cyan-500/5 transition-all rounded-sm px-1 py-0.5"
                                                 value={day.plannedExpense}
                                                 onChange={(e) => setDailyOverride({ date: day.date, budget: Number(e.target.value) })}
                                             />
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setDailyOverride({ date: day.date, budget: 0 }); }}
+                                                title="Poner diario a 0"
+                                                className="w-5 h-5 rounded-full flex items-center justify-center border transition-all opacity-0 group-hover:opacity-100 bg-white/5 border-white/10 text-neutral-600 hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-400 shrink-0"
+                                            >
+                                                <Check size={9} />
+                                            </button>
                                         </div>
 
                                         {/* BALANCE */}
@@ -783,7 +790,7 @@ export default function FinancesPage() {
                                                 ) : (
                                                     <div className="flex flex-col items-center opacity-60 group-hover:opacity-100 transition-opacity">
                                                         {/* Simplified Input Appearance */}
-                                                        <div onClick={(e) => e.stopPropagation()} className="relative">
+                                                        <div onClick={(e) => e.stopPropagation()} className="relative flex items-center gap-1">
                                                             <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-bold text-neutral-600 uppercase tracking-wider whitespace-nowrap">Diario</span>
                                                             <input
                                                                 type="number"
@@ -791,6 +798,13 @@ export default function FinancesPage() {
                                                                 value={day.plannedExpense}
                                                                 onChange={(e) => setDailyOverride({ date: day.date, budget: Number(e.target.value) })}
                                                             />
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setDailyOverride({ date: day.date, budget: 0 }); }}
+                                                                title="Poner a 0"
+                                                                className="w-6 h-6 rounded-full flex items-center justify-center border bg-white/5 border-white/10 text-neutral-500 active:bg-emerald-500/30 active:text-emerald-400 hover:border-emerald-500/40 hover:text-emerald-400 transition-all shrink-0"
+                                                            >
+                                                                <Check size={11} />
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 )}
