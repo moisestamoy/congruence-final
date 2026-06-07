@@ -235,7 +235,9 @@ export default function FinancesPage() {
     // Savings Calculations
     const currentYear = new Date().getFullYear();
     const annualGoal = savingsGoals?.annual || 20000;
-    const currentSaved = savingsEntries
+    // Current balance counts as patrimony already accumulated toward annual goal
+    const currentBalanceForSavings = config.actualBalanceDisplay ?? config.initialBalance;
+    const currentSaved = currentBalanceForSavings + savingsEntries
         .filter(e => new Date(e.date).getFullYear() === currentYear)
         .reduce((sum, e) => sum + e.amount, 0);
     const savingsProgress = Math.min((currentSaved / annualGoal) * 100, 100);

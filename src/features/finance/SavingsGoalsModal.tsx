@@ -10,7 +10,7 @@ interface SavingsGoalsModalProps {
 }
 
 export function SavingsGoalsModal({ onClose }: SavingsGoalsModalProps) {
-    const { savingsGoals, savingsEntries, setSavingsGoal, addSavingsEntry, deleteSavingsEntry } = useFinanceStore();
+    const { config, savingsGoals, savingsEntries, setSavingsGoal, addSavingsEntry, deleteSavingsEntry } = useFinanceStore();
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
 
@@ -18,7 +18,10 @@ export function SavingsGoalsModal({ onClose }: SavingsGoalsModalProps) {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
 
-    const annualSaved = savingsEntries
+    // Current balance counts as part of total patrimony (annual goal)
+    const currentBalance = config.actualBalanceDisplay ?? config.initialBalance;
+
+    const annualSaved = currentBalance + savingsEntries
         .filter(e => new Date(e.date).getFullYear() === currentYear)
         .reduce((sum, e) => sum + e.amount, 0);
 
@@ -93,6 +96,9 @@ export function SavingsGoalsModal({ onClose }: SavingsGoalsModalProps) {
                             <h3 className="text-neutral-400 font-bold text-sm uppercase tracking-wider mb-1">Anual</h3>
                             <p className="text-emerald-400 font-mono font-medium">
                                 {annualSaved.toLocaleString()} / {savingsGoals.annual.toLocaleString()} €
+                            </p>
+                            <p className="text-[10px] text-neutral-600 mt-1">
+                                Saldo actual: {currentBalance.toLocaleString()} €
                             </p>
                         </div>
 
