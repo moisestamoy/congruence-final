@@ -670,20 +670,8 @@ export default function FinancesPage() {
 
             </div>
 
-            {/* Month range + horizon selector — sits right above the month panels */}
+            {/* Horizon selector (left) + month range (right) — sits right above the month panels */}
             <div className="hidden lg:flex w-full max-w-[1800px] mx-auto items-center justify-between gap-2 mb-4 px-1">
-                <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
-                    <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                        <ChevronUp className="-rotate-90" size={16} />
-                    </button>
-                    <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
-                        {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
-                        {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
-                    </span>
-                    <button onClick={() => navigateMonth(1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                        <ChevronUp className="rotate-90" size={16} />
-                    </button>
-                </div>
                 <div className="flex items-center bg-white/[0.04] rounded-2xl border border-white/[0.07] p-1 gap-1">
                     {[1, 2, 3, 4, 12].map(m => (
                         <button
@@ -697,6 +685,18 @@ export default function FinancesPage() {
                             {m === 1 && '1M'}{m === 2 && '2M'}{m === 3 && '3M'}{m === 4 && '4M'}{m === 12 && '1A'}
                         </button>
                     ))}
+                </div>
+                <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
+                    <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+                        <ChevronUp className="-rotate-90" size={16} />
+                    </button>
+                    <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
+                        {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
+                        {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
+                    </span>
+                    <button onClick={() => navigateMonth(1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+                        <ChevronUp className="rotate-90" size={16} />
+                    </button>
                 </div>
             </div>
 
