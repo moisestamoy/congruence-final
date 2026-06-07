@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check, Trophy, Repeat } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check, Trophy, Repeat, Sparkles } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -73,6 +73,7 @@ export default function FinancesPage() {
     const [editingBalance, setEditingBalance] = useState(false);
     const [draftBalance, setDraftBalance] = useState('');
     const [isBudgetsOpen, setIsBudgetsOpen] = useState(false);
+    const [isCoachOpen, setIsCoachOpen] = useState(false);
     const { fabActionTick } = useFabStore();
 
     // Saves "saldo actual de hoy" back-calculating the correct initialBalance
@@ -516,20 +517,6 @@ export default function FinancesPage() {
                         </div>
                     )}
 
-                    {/* Coach IA — Full width row */}
-                    <div className="w-full rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] overflow-hidden">
-                        <FinanceCoach
-                            finances={realExpenses}
-                            config={config}
-                            savingsGoals={savingsGoals}
-                            monthIncome={totalIncome}
-                            monthExpenses={totalExpenses}
-                            categoryBreakdown={categoryData}
-                            currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
-                            inline={true}
-                        />
-                    </div>
-
                     {/* CONTROL BAR — simplified */}
                     <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
                         <div className="flex items-center gap-2">
@@ -544,6 +531,9 @@ export default function FinancesPage() {
                             </button>
                         </div>
                         <div className="flex items-center gap-2">
+                            <button onClick={() => setIsCoachOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-500/10 text-violet-300 border border-violet-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-violet-500/20 hover:border-violet-500/50 transition-all">
+                                <Sparkles size={14} /> Coach IA
+                            </button>
                             <button onClick={() => setIsBudgetOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all">
                                 <Calculator size={14} /> Presupuesto
                             </button>
@@ -660,16 +650,21 @@ export default function FinancesPage() {
                     </div>
 
                     {/* Action buttons — proper touch targets (min h-12) */}
-                    <div className="grid grid-cols-3 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-md sticky top-4 z-40 gap-2">
-                        <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-rose-500/10 text-rose-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-rose-500/20 transition-all">
-                            <RotateCcw size={14} /> Reiniciar
+                    <div className="bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-md sticky top-4 z-40 space-y-2">
+                        <button onClick={() => setIsCoachOpen(true)} className="w-full flex justify-center items-center gap-1.5 h-11 rounded-xl bg-violet-500/10 text-violet-300 border border-violet-500/20 text-xs font-bold uppercase tracking-wide active:bg-violet-500/20 transition-all">
+                            <Sparkles size={14} /> Coach IA
                         </button>
-                        <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-emerald-500/20 transition-all">
-                            <Calculator size={14} /> Presup.
-                        </button>
-                        <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-xs font-bold uppercase tracking-wide active:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                            <Target size={14} /> Metas
-                        </button>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => setIsRestartOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-rose-500/10 text-rose-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-rose-500/20 transition-all">
+                                <RotateCcw size={14} /> Reiniciar
+                            </button>
+                            <button onClick={() => setIsBudgetOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-transparent text-xs font-bold uppercase tracking-wide active:bg-emerald-500/20 transition-all">
+                                <Calculator size={14} /> Presup.
+                            </button>
+                            <button onClick={() => setIsGoalsOpen(true)} className="flex justify-center items-center gap-1.5 h-12 rounded-xl bg-emerald-500 text-black border border-emerald-400 text-xs font-bold uppercase tracking-wide active:bg-emerald-400 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                                <Target size={14} /> Metas
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1127,6 +1122,26 @@ export default function FinancesPage() {
                         <div className="p-2 max-h-[70vh] overflow-y-auto">
                             <CategoryBudgetsPanel currentMonthSpending={currentMonthSpending} fmtCur={fmtCur} />
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isCoachOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsCoachOpen(false)}>
+                    <div className="w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <FinanceCoach
+                            finances={realExpenses}
+                            config={config}
+                            savingsGoals={savingsGoals}
+                            monthIncome={totalIncome}
+                            monthExpenses={totalExpenses}
+                            categoryBreakdown={categoryData}
+                            currentMonth={format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
+                            autoStart={true}
+                        />
+                        <button onClick={() => setIsCoachOpen(false)} className="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-neutral-400 text-xs font-bold uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all">
+                            Cerrar
+                        </button>
                     </div>
                 </div>
             )}

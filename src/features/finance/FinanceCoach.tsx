@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw, TrendingDown, TrendingUp, Minus, DollarSign } from 'lucide-react';
 import { AIService } from '../../services/ai';
@@ -13,11 +13,13 @@ interface FinanceCoachProps {
     categoryBreakdown: { name: string; value: number; color: string }[];
     currentMonth: string;
     inline?: boolean;
+    autoStart?: boolean;
 }
 
-export function FinanceCoach({ finances, config, savingsGoals, monthIncome, monthExpenses, categoryBreakdown, currentMonth, inline }: FinanceCoachProps) {
+export function FinanceCoach({ finances, config, savingsGoals, monthIncome, monthExpenses, categoryBreakdown, currentMonth, inline, autoStart }: FinanceCoachProps) {
     const [insight, setInsight] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const startedRef = useRef(false);
 
     const netFlow = monthIncome - monthExpenses;
     const budgetUsedPct = config?.monthlyFixedBudget > 0 ? Math.round((monthExpenses / config.monthlyFixedBudget) * 100) : 0;
@@ -56,6 +58,15 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
             setIsLoading(false);
         }
     };
+
+    // Auto-run the analysis once when opened with autoStart (e.g. from the modal)
+    useEffect(() => {
+        if (autoStart && !startedRef.current) {
+            startedRef.current = true;
+            generateInsight();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoStart]);
 
     const MoodIcon = insight?.mood === 'positive' ? TrendingUp : insight?.mood === 'warning' ? TrendingDown : Minus;
 
