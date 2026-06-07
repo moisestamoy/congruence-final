@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check, Trophy } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check, Trophy, Repeat } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -918,35 +918,54 @@ export default function FinancesPage() {
                                                     {dayEvents.map(event => (
                                                         <div
                                                             key={`${event.source}-${event.id}`}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setTxModal({
-                                                                    isOpen: true,
-                                                                    type: event.type,
-                                                                    date: event.date || day.date,
-                                                                    editingId: event.id,
-                                                                    editingSource: event.source,
-                                                                    initialData: { amount: event.amount, category: event.category, description: '' },
-                                                                    defaultIsRecurring: event.isRecurring ?? false
-                                                                });
-                                                            }}
-                                                            className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/[0.02] cursor-pointer hover:bg-white/[0.05] transition-colors"
+                                                            className="group flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/[0.02] hover:bg-white/[0.05] transition-colors"
                                                         >
-                                                            <div className="flex items-center gap-3">
+                                                            {/* Left: clickable to edit */}
+                                                            <div
+                                                                className="flex items-center gap-3 flex-1 cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setTxModal({
+                                                                        isOpen: true,
+                                                                        type: event.type,
+                                                                        date: event.date || day.date,
+                                                                        editingId: event.id,
+                                                                        editingSource: event.source,
+                                                                        initialData: { amount: event.amount, category: event.category, description: '' },
+                                                                        defaultIsRecurring: event.isRecurring ?? false
+                                                                    });
+                                                                }}
+                                                            >
                                                                 <div className={cn("w-1 h-8 rounded-full", event.type === 'income' ? 'bg-emerald-500' : 'bg-red-500')} />
                                                                 <div className="flex flex-col">
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-sm font-bold text-white">{event.category}</span>
                                                                         {event.isRecurring && (
-                                                                            <span className="text-[8px] font-bold text-violet-400 bg-violet-500/15 border border-violet-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Fijo</span>
+                                                                            <span className="text-[8px] font-bold text-violet-400 bg-violet-500/15 border border-violet-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wide">🔄 Fijo</span>
                                                                         )}
                                                                     </div>
                                                                     <span className="text-[9px] text-neutral-500 uppercase tracking-wider">{event.type === 'income' ? 'Ingreso' : (event.isRecurring ? 'Gasto Fijo' : 'Gasto Variable')}</span>
                                                                 </div>
                                                             </div>
-                                                            <span className={cn("font-mono font-bold text-sm", event.type === 'income' ? "text-emerald-400" : "text-red-400")}>
-                                                                {event.type === 'income' ? '+' : '-'}{fmtCur(event.amount)}
-                                                            </span>
+
+                                                            {/* Right: amount + quick recurring toggle */}
+                                                            <div className="flex items-center gap-2">
+                                                                {!event.isRecurring && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            updateTransaction(event.id, event.source, { isRecurring: true });
+                                                                        }}
+                                                                        title="Hacer fijo (se repite cada mes)"
+                                                                        className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[9px] font-bold hover:bg-violet-500/25 transition-all"
+                                                                    >
+                                                                        <Repeat size={9} /> Hacer fijo
+                                                                    </button>
+                                                                )}
+                                                                <span className={cn("font-mono font-bold text-sm", event.type === 'income' ? "text-emerald-400" : "text-red-400")}>
+                                                                    {event.type === 'income' ? '+' : '-'}{fmtCur(event.amount)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
