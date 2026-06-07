@@ -1,5 +1,6 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Tag } from 'lucide-react';
 
 interface CategoryData {
     name: string;
@@ -12,9 +13,10 @@ interface CategoryBreakdownWidgetProps {
     totalExpenses: number;
     categories: CategoryData[];
     monthLabel?: string;
+    onOpenBudgets?: () => void;
 }
 
-export function CategoryBreakdownWidget({ totalIncome, totalExpenses, categories, monthLabel = "Actual" }: CategoryBreakdownWidgetProps) {
+export function CategoryBreakdownWidget({ totalIncome, totalExpenses, categories, monthLabel = "Actual", onOpenBudgets }: CategoryBreakdownWidgetProps) {
     // Calculate percentages for the top bar
     const totalFlow = totalIncome + totalExpenses;
     const incomePct = totalFlow > 0 ? (totalIncome / totalFlow) * 100 : 50;
@@ -32,9 +34,16 @@ export function CategoryBreakdownWidget({ totalIncome, totalExpenses, categories
             {/* Header */}
             <div className="flex justify-between items-center mb-8 relative z-10">
                 <h3 className="text-xl font-bold text-white tracking-tight">Por categorías</h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                     <div className="px-3 py-1 rounded-lg bg-white/5 text-white text-xs font-bold border border-white/10 shadow-sm">{monthLabel}</div>
-                    <div className="px-3 py-1 rounded-lg bg-transparent text-neutral-500 text-xs font-bold border border-transparent hover:bg-white/5 transition-colors cursor-pointer">Pasado</div>
+                    {onOpenBudgets && (
+                        <button
+                            onClick={onOpenBudgets}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold hover:bg-amber-500/20 transition-all"
+                        >
+                            <Tag size={11} /> Techos
+                        </button>
+                    )}
                 </div>
             </div>
 

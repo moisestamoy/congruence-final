@@ -51,6 +51,7 @@ export default function FinancesPage() {
     const [dayDetailsDate, setDayDetailsDate] = useState<string | null>(null);
     const [editingBalance, setEditingBalance] = useState(false);
     const [draftBalance, setDraftBalance] = useState('');
+    const [isBudgetsOpen, setIsBudgetsOpen] = useState(false);
     const { fabActionTick } = useFabStore();
 
     // Saves "saldo actual de hoy" back-calculating the correct initialBalance
@@ -986,18 +987,13 @@ export default function FinancesPage() {
             <div className="w-full max-w-[1800px] mx-auto mt-12">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Category Budgets Panel (1/3) */}
-                    <CategoryBudgetsPanel
-                        currentMonthSpending={currentMonthSpending}
-                        fmtCur={fmtCur}
-                    />
-
                     {/* Categories Chart (2/3) */}
                     <CategoryBreakdownWidget
                         totalIncome={totalIncome}
                         totalExpenses={totalExpenses}
                         categories={categoryData}
                         monthLabel={format(currentDate, 'MMM yyyy', { locale: dateLocale })}
+                        onOpenBudgets={() => setIsBudgetsOpen(true)}
                     />
 
                     {/* Savings Summary Widget (1/3) */}
@@ -1063,6 +1059,20 @@ export default function FinancesPage() {
             </div>
 
             {/* MODALS */}
+            {isBudgetsOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+                            <span className="text-sm font-bold text-white">Techo por Categoría</span>
+                            <button onClick={() => setIsBudgetsOpen(false)} className="text-neutral-500 hover:text-white transition-colors text-lg leading-none">✕</button>
+                        </div>
+                        <div className="p-2 max-h-[70vh] overflow-y-auto">
+                            <CategoryBudgetsPanel currentMonthSpending={currentMonthSpending} fmtCur={fmtCur} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isRestartOpen && (
                 <RestartModal onClose={() => setIsRestartOpen(false)} />
             )}
