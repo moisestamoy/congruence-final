@@ -28,7 +28,7 @@ interface FinanceState {
     setDailyOverride: (override: DailyOverride) => void;
     addRealExpense: (expense: DailyRealExpense) => void;
     upsertEvent: (date: string, type: 'income' | 'expense', amount: number) => void;
-    addTransaction: (date: string, type: 'income' | 'expense', amount: number, category: string) => void;
+    addTransaction: (date: string, type: 'income' | 'expense', amount: number, category: string, isRecurring?: boolean) => void;
 
     // Savings Actions
     setSavingsGoal: (type: 'annual' | 'monthly', amount: number) => void;
@@ -189,9 +189,11 @@ export const useFinanceStore = create<FinanceState>()(
                     return { events: [...filtered, newEvent] };
                 }),
 
-            addTransaction: (date: string, type: 'income' | 'expense', amount: number, category: string) =>
+            addTransaction: (date: string, type: 'income' | 'expense', amount: number, category: string, isRecurring = false) =>
                 set((state) => {
-                    if (type === 'income') {
+                    // Recurring transactions (both income and expense) go to events
+                    // so DailyProjectionEngine can repeat them each month
+                    if (type === 'income' || isRecurring) {
                         return {
                             events: [
                                 ...state.events,
@@ -201,11 +203,12 @@ export const useFinanceStore = create<FinanceState>()(
                                     type,
                                     amount,
                                     category,
-                                    isRecurring: false
+                                    isRecurring
                                 }
                             ]
                         };
                     } else {
+                        // One-off expense → realExpenses (actual logged spend)
                         return {
                             realExpenses: [
                                 ...state.realExpenses,

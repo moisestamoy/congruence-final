@@ -1,5 +1,5 @@
 
-import { X, Check } from 'lucide-react';
+import { X, Check, Repeat } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { format, parseISO } from 'date-fns';
@@ -11,7 +11,7 @@ interface TransactionModalProps {
     type: 'income' | 'expense';
     date: string; // YYYY-MM-DD
     initialData?: { amount: number; category: string; description?: string };
-    onSave: (amount: number, category: string, description: string, finalDate?: string, finalType?: 'income' | 'expense') => void;
+    onSave: (amount: number, category: string, description: string, finalDate?: string, finalType?: 'income' | 'expense', isRecurring?: boolean) => void;
     onDelete?: () => void;
     isGlobal?: boolean;
 }
@@ -54,6 +54,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
     // Global toggle states
     const [globalType, setGlobalType] = useState<'income' | 'expense'>('income');
     const [globalDate, setGlobalDate] = useState<string>('');
+    const [isRecurring, setIsRecurring] = useState(false);
 
     // Sync form state when modal opens
     useEffect(() => {
@@ -61,6 +62,7 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
             setAmount(initialData ? initialData.amount.toString() : '');
             setCategory(initialData ? initialData.category : '');
             setDescription(initialData?.description || '');
+            setIsRecurring(false);
 
             // If opening in global mode, initialize the global states
             if (isGlobal) {
@@ -89,9 +91,9 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
         const finalAmount = Math.round(Number(amount) * 100) / 100;
 
         if (isGlobal) {
-            onSave(finalAmount, category || 'Otros', description, globalDate, globalType);
+            onSave(finalAmount, category || 'Otros', description, globalDate, globalType, isRecurring);
         } else {
-            onSave(finalAmount, category || 'Otros', description);
+            onSave(finalAmount, category || 'Otros', description, undefined, undefined, isRecurring);
         }
         // Only clear if adding; if editing, maybe keep? But onClose usually unmounts or hides.
         if (!isEditing) {
@@ -207,6 +209,47 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                             )}
                         />
                     </div>
+
+                    {/* Recurring Toggle — only when creating (not editing) */}
+                    {!isEditing && (
+                        <button
+                            type="button"
+                            onClick={() => setIsRecurring(r => !r)}
+                            className={cn(
+                                "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
+                                isRecurring
+                                    ? "bg-violet-500/10 border-violet-500/30"
+                                    : "bg-white/[0.03] border-white/5 hover:border-white/10"
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "p-1.5 rounded-lg transition-all",
+                                    isRecurring ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-neutral-500"
+                                )}>
+                                    <Repeat size={13} />
+                                </div>
+                                <div className="text-left">
+                                    <p className={cn("text-xs font-bold", isRecurring ? "text-violet-300" : "text-neutral-300")}>
+                                        Repetir cada mes
+                                    </p>
+                                    <p className="text-[10px] text-neutral-600">
+                                        {isRecurring ? `Se sumará el día ${displayDate ? displayDate.split('-')[2] : '—'} de cada mes` : 'Solo este mes'}
+                                    </p>
+                                </div>
+                            </div>
+                            {/* Toggle pill */}
+                            <div className={cn(
+                                "relative w-9 h-5 rounded-full transition-all shrink-0",
+                                isRecurring ? "bg-violet-500" : "bg-white/10"
+                            )}>
+                                <div className={cn(
+                                    "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
+                                    isRecurring ? "left-4" : "left-0.5"
+                                )} />
+                            </div>
+                        </button>
+                    )}
                 </div>
 
                 {/* Footer */}

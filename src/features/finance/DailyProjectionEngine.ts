@@ -72,9 +72,22 @@ export class DailyProjectionEngine {
         for (let i = 0; i < daysInMonth; i++) {
             const currentDate = addDays(startDate, i);
             const dateStr = format(currentDate, 'yyyy-MM-dd');
+            const dayOfMonth = i + 1;
 
             // 1. Calculate Incomes & Fixed Expenses (Bills) for this day
-            const dayEvents = events.filter(e => e.date === dateStr);
+            // Recurring events match by day-of-month across all future months
+            const dayEvents = events.filter(e => {
+                if (e.isRecurring) {
+                    const [eYearStr, eMonthStr, eDayStr] = e.date.split('-');
+                    const startYM = `${eYearStr}-${eMonthStr}`;
+                    // Only apply from the month the event was created
+                    if (targetYearMonth < startYM) return false;
+                    // Handle short months (e.g., recurring on 31st in Feb → last day)
+                    const effectiveDay = Math.min(parseInt(eDayStr), daysInMonth);
+                    return effectiveDay === dayOfMonth;
+                }
+                return e.date === dateStr;
+            });
             const income = dayEvents.filter(e => e.type === 'income').reduce((sum, e) => sum + e.amount, 0);
             const fixedExpenses = dayEvents.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0);
 

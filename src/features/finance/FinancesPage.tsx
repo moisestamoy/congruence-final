@@ -80,7 +80,7 @@ export default function FinancesPage() {
         }
     }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleAddTransaction = (amount: number, category: string, description: string, globalDate?: string, globalType?: 'income' | 'expense') => {
+    const handleAddTransaction = (amount: number, category: string, description: string, globalDate?: string, globalType?: 'income' | 'expense', isRecurring?: boolean) => {
         const targetDate = globalDate || txModal.date;
         const targetType = globalType || txModal.type;
         if (!targetDate) return;
@@ -88,8 +88,7 @@ export default function FinancesPage() {
         if (txModal.editingId && txModal.editingSource) {
             updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
         } else {
-            // Use addTransaction for distinct entries (additive)
-            addTransaction(targetDate, targetType, amount, category);
+            addTransaction(targetDate, targetType, amount, category, isRecurring);
         }
     };
 
