@@ -38,7 +38,7 @@ interface FinanceState {
     setRealDailyExpense: (date: string, amount: number) => void;
 
     // Edit/Delete support
-    updateTransaction: (id: string, source: 'event' | 'realExpense', updates: { amount?: number; category?: string; date?: string; note?: string; type?: 'income' | 'expense' }) => void;
+    updateTransaction: (id: string, source: 'event' | 'realExpense', updates: { amount?: number; category?: string; date?: string; note?: string; type?: 'income' | 'expense'; isRecurring?: boolean }) => void;
     deleteTransaction: (id: string, source: 'event' | 'realExpense') => void;
     categoryBudgets: Record<string, number>;
     setCategoryBudget: (category: string, amount: number) => void;
@@ -298,6 +298,24 @@ export const useFinanceStore = create<FinanceState>()(
                             events: state.events.map(e => e.id === id ? { ...e, ...updates } : e)
                         };
                     } else {
+                        // If making a realExpense recurring, migrate it to events
+                        if (updates.isRecurring) {
+                            const expense = state.realExpenses.find(e => e.id === id);
+                            if (expense) {
+                                const migratedEvent: FinancialEvent = {
+                                    id: expense.id,
+                                    date: updates.date ?? expense.date,
+                                    type: 'expense',
+                                    amount: updates.amount ?? expense.amount,
+                                    category: updates.category ?? expense.category ?? '📦 Otros',
+                                    isRecurring: true
+                                };
+                                return {
+                                    realExpenses: state.realExpenses.filter(e => e.id !== id),
+                                    events: [...state.events, migratedEvent]
+                                };
+                            }
+                        }
                         return {
                             realExpenses: state.realExpenses.map(e => e.id === id ? { ...e, ...updates } : e)
                         };

@@ -124,7 +124,47 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                 </div>
 
                 {/* Body */}
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-5">
+
+                    {/* RECURRING TOGGLE — always at top, most important decision */}
+                    <button
+                        type="button"
+                        onClick={() => setIsRecurring(r => !r)}
+                        className={cn(
+                            "w-full flex items-center justify-between px-4 py-4 rounded-2xl border-2 transition-all",
+                            isRecurring
+                                ? "bg-violet-500/15 border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
+                                : "bg-white/[0.03] border-white/10 hover:border-white/20"
+                        )}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={cn(
+                                "p-2 rounded-xl transition-all",
+                                isRecurring ? "bg-violet-500/30 text-violet-300" : "bg-white/5 text-neutral-500"
+                            )}>
+                                <Repeat size={16} />
+                            </div>
+                            <div className="text-left">
+                                <p className={cn("text-sm font-bold", isRecurring ? "text-violet-200" : "text-neutral-300")}>
+                                    {isRecurring ? "✓ Se repite cada mes" : "Repetir cada mes"}
+                                </p>
+                                <p className={cn("text-[10px]", isRecurring ? "text-violet-400" : "text-neutral-600")}>
+                                    {isRecurring
+                                        ? `Se sumará el día ${displayDate ? displayDate.split('-')[2] : '—'} de todos los meses`
+                                        : "Activá para gastos/ingresos fijos (alquiler, salario…)"}
+                                </p>
+                            </div>
+                        </div>
+                        <div className={cn(
+                            "relative w-11 h-6 rounded-full transition-all shrink-0",
+                            isRecurring ? "bg-violet-500" : "bg-white/10"
+                        )}>
+                            <div className={cn(
+                                "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200",
+                                isRecurring ? "left-6" : "left-1"
+                            )} />
+                        </div>
+                    </button>
 
                     {/* Global Overrides: Type and Date Selector */}
                     {isGlobal && (
@@ -211,46 +251,6 @@ export function TransactionModal({ isOpen, onClose, type, date, initialData, onS
                         />
                     </div>
 
-                    {/* Recurring Toggle — only when creating (not editing) */}
-                    {!isEditing && (
-                        <button
-                            type="button"
-                            onClick={() => setIsRecurring(r => !r)}
-                            className={cn(
-                                "w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all",
-                                isRecurring
-                                    ? "bg-violet-500/10 border-violet-500/30"
-                                    : "bg-white/[0.03] border-white/5 hover:border-white/10"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={cn(
-                                    "p-1.5 rounded-lg transition-all",
-                                    isRecurring ? "bg-violet-500/20 text-violet-400" : "bg-white/5 text-neutral-500"
-                                )}>
-                                    <Repeat size={13} />
-                                </div>
-                                <div className="text-left">
-                                    <p className={cn("text-xs font-bold", isRecurring ? "text-violet-300" : "text-neutral-300")}>
-                                        Repetir cada mes
-                                    </p>
-                                    <p className="text-[10px] text-neutral-600">
-                                        {isRecurring ? `Se sumará el día ${displayDate ? displayDate.split('-')[2] : '—'} de cada mes` : 'Solo este mes'}
-                                    </p>
-                                </div>
-                            </div>
-                            {/* Toggle pill */}
-                            <div className={cn(
-                                "relative w-9 h-5 rounded-full transition-all shrink-0",
-                                isRecurring ? "bg-violet-500" : "bg-white/10"
-                            )}>
-                                <div className={cn(
-                                    "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
-                                    isRecurring ? "left-4" : "left-0.5"
-                                )} />
-                            </div>
-                        </button>
-                    )}
                 </div>
 
                 {/* Footer */}
