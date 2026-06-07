@@ -15,7 +15,6 @@ import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
 import { RestartModal } from './RestartModal';
-import { FixedCommitmentsPanel } from './FixedCommitmentsPanel';
 import { CategoryBudgetsPanel } from './CategoryBudgetsPanel';
 import { AnnualChart } from './AnnualChart';
 import { useFabStore } from '../../hooks/useFabStore';
@@ -527,18 +526,6 @@ export default function FinancesPage() {
                             inline={true}
                         />
                     </div>
-
-                    {/* FIXED COMMITMENTS PANEL */}
-                    <FixedCommitmentsPanel
-                        fmtCur={fmtCur}
-                        onAddRecurring={() => setTxModal({
-                            isOpen: true,
-                            type: 'expense',
-                            date: format(today, 'yyyy-MM-dd'),
-                            isGlobal: true,
-                            defaultIsRecurring: true,
-                        })}
-                    />
 
                     {/* CONTROL BAR — simplified */}
                     <div className="sticky top-4 z-40 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 p-2 rounded-[24px] shadow-2xl flex items-center justify-between gap-4 w-full">
