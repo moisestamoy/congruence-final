@@ -339,34 +339,6 @@ export default function FinancesPage() {
                             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-1">Finanzas</h1>
                             <p className="text-emerald-400/60 text-sm font-medium">Realidad financiera · tú decides qué hacer con ella</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
-                                <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                                    <ChevronUp className="-rotate-90" size={16} />
-                                </button>
-                                <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
-                                    {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
-                                    {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
-                                </span>
-                                <button onClick={() => navigateMonth(1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
-                                    <ChevronUp className="rotate-90" size={16} />
-                                </button>
-                            </div>
-                            <div className="flex items-center bg-white/[0.04] rounded-2xl border border-white/[0.07] p-1 gap-1">
-                                {[1, 2, 3, 4, 12].map(m => (
-                                    <button
-                                        key={m}
-                                        onClick={() => setHorizon(m)}
-                                        className={cn(
-                                            "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest min-w-[32px]",
-                                            horizon === m ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "text-neutral-500 hover:text-white hover:bg-white/5"
-                                        )}
-                                    >
-                                        {m === 1 && '1M'}{m === 2 && '2M'}{m === 3 && '3M'}{m === 4 && '4M'}{m === 12 && '1A'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
                     </div>
 
                     {/* Metric Cards Row */}
@@ -701,6 +673,36 @@ export default function FinancesPage() {
                     </div>
                 </div>
 
+            </div>
+
+            {/* Month range + horizon selector — sits right above the month panels */}
+            <div className="hidden lg:flex w-full max-w-[1800px] mx-auto items-center justify-between gap-2 mb-4 px-1">
+                <div className="flex items-center bg-[#111] rounded-2xl border border-white/5 p-1">
+                    <button onClick={() => navigateMonth(-1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+                        <ChevronUp className="-rotate-90" size={16} />
+                    </button>
+                    <span className="px-4 text-xs font-bold uppercase tracking-wider min-w-[140px] text-center text-neutral-200">
+                        {format(currentDate, 'MMM yyyy', { locale: dateLocale })}
+                        {horizon > 1 && ` - ${format(addMonths(currentDate, horizon - 1), 'MMM yyyy', { locale: dateLocale })}`}
+                    </span>
+                    <button onClick={() => navigateMonth(1)} className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+                        <ChevronUp className="rotate-90" size={16} />
+                    </button>
+                </div>
+                <div className="flex items-center bg-white/[0.04] rounded-2xl border border-white/[0.07] p-1 gap-1">
+                    {[1, 2, 3, 4, 12].map(m => (
+                        <button
+                            key={m}
+                            onClick={() => setHorizon(m)}
+                            className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest min-w-[32px]",
+                                horizon === m ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "text-neutral-500 hover:text-white hover:bg-white/5"
+                            )}
+                        >
+                            {m === 1 && '1M'}{m === 2 && '2M'}{m === 3 && '3M'}{m === 4 && '4M'}{m === 12 && '1A'}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* DESKTOP: PRO SPREADSHEET (Hidden on Mobile) */}
