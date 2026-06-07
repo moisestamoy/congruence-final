@@ -12,6 +12,8 @@ const LOCAL_EDIT_KEY = 'finance_local_edit_at';
 // cloud copy. Persisted so they survive a reload before the change has synced —
 // otherwise the cloud merge would resurrect a just-deleted/migrated expense.
 const PENDING_DELETES_KEY = 'finance_pending_deletes';
+// Highest `_forceAdoptAt` marker this device has already force-adopted from the cloud.
+const FORCE_APPLIED_KEY = 'finance_force_applied';
 
 function loadPendingDeletes(): Set<string> {
     try {
@@ -141,16 +143,29 @@ export function SupabaseSync() {
                     //   localEditAt     = when this device last changed finance data
                     const remoteUpdatedAt = data.updated_at ? Date.parse(data.updated_at) : 0;
                     const localEditAt = Number(localStorage.getItem(LOCAL_EDIT_KEY) || '0');
+
+                    // Server-driven force-adopt: if the cloud copy carries a
+                    // `_forceAdoptAt` newer than what this device has already applied,
+                    // adopt it unconditionally (once). Lets a server-side data fix
+                    // break a sync deadlock WITHOUT any user action.
+                    const remoteForceAt = Number((remote as any)._forceAdoptAt || 0);
+                    const lastForceApplied = Number(localStorage.getItem(FORCE_APPLIED_KEY) || '0');
+                    const mustForce = remoteForceAt > lastForceApplied;
+
+                    const doForce = force || mustForce;
                     // Local is "ahead" if it has unsynced edits newer than the cloud copy.
                     // A forced pull overrides this and adopts the cloud copy unconditionally.
-                    const localAhead = !force && (hasPendingChangesRef.current || localEditAt > remoteUpdatedAt);
+                    const localAhead = !doForce && (hasPendingChangesRef.current || localEditAt > remoteUpdatedAt);
 
-                    if (force) {
+                    if (doForce) {
                         // Forced pull: discard any local-ahead state and tombstones,
                         // adopt the cloud copy verbatim. Used to break a sync deadlock.
                         hasPendingChangesRef.current = false;
                         pendingDeletionsRef.current.clear();
                         clearPendingDeletes();
+                        if (mustForce) {
+                            try { localStorage.setItem(FORCE_APPLIED_KEY, String(remoteForceAt)); } catch { /* ignore */ }
+                        }
                     }
 
                     if (localAhead) {
@@ -170,11 +185,13 @@ export function SupabaseSync() {
                     } else {
                         // Cloud copy is authoritative (newer or equal). Adopt it,
                         // honouring any pending local deletions of realExpenses.
-                        let financesData = remote;
-                        if (pendingDeletes.size > 0 && Array.isArray(remote.realExpenses)) {
+                        // Strip the sync-only `_forceAdoptAt` marker so it never lands in the store.
+                        const { _forceAdoptAt, ...remoteClean } = remote as any;
+                        let financesData: any = remoteClean;
+                        if (pendingDeletes.size > 0 && Array.isArray(remoteClean.realExpenses)) {
                             financesData = {
-                                ...remote,
-                                realExpenses: remote.realExpenses.filter((e: any) => !pendingDeletes.has(e.id)),
+                                ...remoteClean,
+                                realExpenses: remoteClean.realExpenses.filter((e: any) => !pendingDeletes.has(e.id)),
                             };
                         }
                         useFinanceStore.setState(financesData);
