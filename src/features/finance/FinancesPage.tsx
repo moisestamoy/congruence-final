@@ -19,6 +19,27 @@ import { CategoryBudgetsPanel } from './CategoryBudgetsPanel';
 import { AnnualChart } from './AnnualChart';
 import { useFabStore } from '../../hooks/useFabStore';
 
+// Returns the events that apply on a given date, RECURRING-AWARE — mirrors the
+// matching logic in DailyProjectionEngine. A recurring event repeats on its
+// day-of-month for every month from its start month onward. Non-recurring
+// events match only their exact date.
+function eventsOnDate(events: any[], dateStr: string) {
+    const [y, m, d] = dateStr.split('-');
+    const targetYM = `${y}-${m}`;
+    const dayOfMonth = parseInt(d, 10);
+    const daysInMonth = new Date(parseInt(y, 10), parseInt(m, 10), 0).getDate();
+    return events.filter((e: any) => {
+        if (e.isRecurring) {
+            const [eY, eM, eD] = e.date.split('-');
+            const startYM = `${eY}-${eM}`;
+            if (targetYM < startYM) return false;
+            const effectiveDay = Math.min(parseInt(eD, 10), daysInMonth);
+            return effectiveDay === dayOfMonth;
+        }
+        return e.date === dateStr;
+    });
+}
+
 export default function FinancesPage() {
     const { i18n } = useTranslation();
     const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, makeRecurring, savingsGoals, savingsEntries, updateConfig } = useFinanceStore();
@@ -194,8 +215,8 @@ export default function FinancesPage() {
         const catMap: Record<string, number> = {};
 
         displayedMonthData.forEach(day => {
-            // 1. Income (from Events)
-            const dayEvents = events.filter(e => e.date === day.date);
+            // 1. Income (from Events) — recurring-aware
+            const dayEvents = eventsOnDate(events, day.date);
 
             dayEvents.filter(e => e.type === 'income').forEach(e => {
                 inc += e.amount;
@@ -249,7 +270,7 @@ export default function FinancesPage() {
                 const cat = e.category || '📦 Otros';
                 map[cat] = (map[cat] || 0) + e.amount;
             });
-            events.filter(e => e.date === day.date && e.type === 'expense' && !e.isRecurring).forEach(e => {
+            eventsOnDate(events, day.date).filter(e => e.type === 'expense').forEach(e => {
                 const cat = e.category || '📦 Otros';
                 map[cat] = (map[cat] || 0) + e.amount;
             });
@@ -735,13 +756,13 @@ export default function FinancesPage() {
                                             </div>
                                         </div>
 
-                                        {/* EXPENSES (Salidas) */}
+                                        {/* EXPENSES (Salidas) — fixed expense events (incl. recurring) + logged variable */}
                                         <div className="text-right relative">
                                             <div
                                                 onClick={() => setDayDetailsDate(day.date)}
                                                 className="w-full text-right font-mono font-medium text-rose-400 cursor-pointer hover:bg-rose-500/10 rounded-sm px-1 py-0.5 transition-colors min-h-[1.5rem]"
                                             >
-                                                {day.realExpense > 0 ? Number(day.realExpense.toFixed(2)) : <span className="text-rose-500/20 text-[10px]">+</span>}
+                                                {(day.fixedExpense + day.realExpense) > 0 ? Number((day.fixedExpense + day.realExpense).toFixed(2)) : <span className="text-rose-500/20 text-[10px]">+</span>}
                                             </div>
                                         </div>
 
@@ -822,9 +843,10 @@ export default function FinancesPage() {
                                 // Calculate Daily Net for display
                                 const dailyNet = day.income - day.totalExpense;
 
-                                // Filter events for this day
+                                // Filter events for this day — recurring-aware, so fixed
+                                // income/expenses also appear in future months' day panels
                                 const dayEvents = [
-                                    ...events.filter(e => e.date === day.date).map(e => ({ ...e, source: 'event' as const })),
+                                    ...eventsOnDate(events, day.date).map(e => ({ ...e, source: 'event' as const })),
                                     ...realExpenses.filter(e => e.date === day.date).map(e => ({ ...e, type: 'expense' as const, source: 'realExpense' as const, isRecurring: false }))
                                 ];
 

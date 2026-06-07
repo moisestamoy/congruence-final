@@ -5,9 +5,10 @@ export interface DayProjection {
     date: string; // YYYY-MM-DD
     dayName: string; // "Lun", "Mar"
     income: number;
+    fixedExpense: number; // Sum of expense EVENTS for the day (incl. recurring), e.g. rent
     plannedExpense: number; // From fixed budget or overrides
     realExpense: number; // Actual input
-    totalExpense: number; // Real takes precedence? Or additive? Spec says "sustituyen/conviven". Usually Real replaces Plan for that category/day if tracked. 
+    totalExpense: number; // Real takes precedence? Or additive? Spec says "sustituyen/conviven". Usually Real replaces Plan for that category/day if tracked.
     // Simplified strategy: Total Expense = Sum(Events) + (RealExpenses > 0 ? RealExpenses : DailyBudget)
     // Actually spec says: "DailyRealExpense... sustituyen/conviven".
     // Let's assume:
@@ -126,6 +127,7 @@ export class DailyProjectionEngine {
                 date: dateStr,
                 dayName: format(currentDate, 'EEE'),
                 income,
+                fixedExpense: fixedExpenses,
                 plannedExpense: Math.round(plannedVariable), // Ensure display is round
                 realExpense: realVariable,
                 totalExpense: totalOutgoing,
