@@ -112,7 +112,7 @@ export function SupabaseSync() {
         }
     }, [user]);
 
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (force = false) => {
         if (!user) return;
         setStatus('saving');
         try {
@@ -142,7 +142,16 @@ export function SupabaseSync() {
                     const remoteUpdatedAt = data.updated_at ? Date.parse(data.updated_at) : 0;
                     const localEditAt = Number(localStorage.getItem(LOCAL_EDIT_KEY) || '0');
                     // Local is "ahead" if it has unsynced edits newer than the cloud copy.
-                    const localAhead = hasPendingChangesRef.current || localEditAt > remoteUpdatedAt;
+                    // A forced pull overrides this and adopts the cloud copy unconditionally.
+                    const localAhead = !force && (hasPendingChangesRef.current || localEditAt > remoteUpdatedAt);
+
+                    if (force) {
+                        // Forced pull: discard any local-ahead state and tombstones,
+                        // adopt the cloud copy verbatim. Used to break a sync deadlock.
+                        hasPendingChangesRef.current = false;
+                        pendingDeletionsRef.current.clear();
+                        clearPendingDeletes();
+                    }
 
                     if (localAhead) {
                         // Don't clobber fresh local edits. Only pull in remote-only
@@ -257,13 +266,14 @@ export function SupabaseSync() {
                     <span className="text-red-400">Offline</span>
                 </>
             )}
-            {isHovered && status !== 'saving' && (
+            {status !== 'saving' && (
                 <button
-                    onClick={loadData}
-                    className="pointer-events-auto ml-1 text-neutral-500 hover:text-cyan-400 transition-colors"
-                    title="Sincronizar ahora"
+                    onClick={() => loadData(true)}
+                    className="pointer-events-auto ml-1 flex items-center gap-1 text-neutral-400 hover:text-cyan-400 transition-colors"
+                    title="Forzar bajar de la nube (descarta cambios locales sin sincronizar)"
                 >
-                    <RefreshCw size={10} />
+                    <RefreshCw size={11} />
+                    {isHovered && <span className="text-[10px]">Bajar de nube</span>}
                 </button>
             )}
         </div>
