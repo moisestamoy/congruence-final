@@ -5,7 +5,7 @@ import { es, enUS, pt } from 'date-fns/locale';
 import { useFinanceStore } from './useFinanceStore';
 import { DailyProjectionEngine } from './DailyProjectionEngine';
 import { cn } from '../../utils/cn';
-import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check } from 'lucide-react';
+import { Info, Target, Plus, Minus, ChevronUp, Calculator, RotateCcw, TrendingDown, TrendingUp, Minus as MinusIcon, AlertCircle, Edit3, Check, Trophy } from 'lucide-react';
 import { SavingsGoalsModal } from './SavingsGoalsModal';
 import { TransactionModal } from './TransactionModal';
 import { CashFlowChart } from './CashFlowChart';
@@ -15,7 +15,7 @@ import { DayDetailsModal } from './DayDetailsModal';
 import { BudgetModal } from './BudgetModal';
 import { AlertsModal } from './AlertsModal';
 import { RestartModal } from './RestartModal';
-import { SafeToSpendWidget } from './SafeToSpendWidget';
+// SafeToSpendWidget removed — replaced by AnnualGoalVelocityCard
 import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
@@ -266,13 +266,11 @@ export default function FinancesPage() {
         })}`;
     };
 
-    // Days remaining in current month (for SafeToSpendWidget)
-    const daysRemainingInMonth = (() => {
-        const t = new Date();
-        const endOfMonth = new Date(t.getFullYear(), t.getMonth() + 1, 0);
-        return Math.max(0, endOfMonth.getDate() - t.getDate() + 1);
-    })();
-    const dailyBaseBudget = Math.round((config.budgetChanges?.[format(today, 'yyyy-MM')] ?? config.monthlyFixedBudget) / 30);
+    // Annual goal velocity: how many months until reaching the annual goal
+    const monthsToGoal = netFlow > 0 && currentSaved < annualGoal
+        ? Math.ceil((annualGoal - currentSaved) / netFlow)
+        : null;
+    const goalTargetDate = monthsToGoal != null ? addMonths(today, monthsToGoal) : null;
 
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-emerald-500/30 pb-24">
@@ -452,13 +450,48 @@ export default function FinancesPage() {
                                 </div>
                             </div>
 
-                            {/* Card 4: Safe to Spend */}
-                            <SafeToSpendWidget
-                                dailyBaseBudget={dailyBaseBudget}
-                                projectedEndBalance={safemetric_projectedEnd}
-                                savingsGoal={savingsGoals?.monthly || 0}
-                                daysRemaining={daysRemainingInMonth}
-                            />
+                            {/* Card 4: Velocidad a Meta Anual */}
+                            <div className="rounded-2xl border border-white/[0.07] bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-6 flex flex-col gap-3 hover:border-white/[0.12] transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Velocidad meta anual</span>
+                                    <Trophy size={16} className="text-violet-400" />
+                                </div>
+
+                                {currentSaved >= annualGoal ? (
+                                    <>
+                                        <div className="text-3xl font-black text-emerald-400">¡Meta cumplida!</div>
+                                        <p className="text-xs text-emerald-500/60">Alcanzaste {fmtCur(annualGoal)} este año</p>
+                                    </>
+                                ) : goalTargetDate ? (
+                                    <>
+                                        <div className="text-4xl font-black font-mono tracking-tight text-white capitalize">
+                                            {format(goalTargetDate, 'MMM yy', { locale: dateLocale })}
+                                        </div>
+                                        <p className="text-xs text-neutral-500">
+                                            en {monthsToGoal}m · al ritmo de {fmtCur(netFlow)}/mes
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-2xl font-black text-neutral-600">—</div>
+                                        <p className="text-xs text-neutral-600">Registra ingresos para proyectar</p>
+                                    </>
+                                )}
+
+                                <div className="flex flex-col gap-1.5 mt-auto">
+                                    <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                        <span className="text-neutral-600">{fmtCur(currentSaved)}</span>
+                                        <span className="text-violet-400">{Math.round(savingsProgress)}%</span>
+                                    </div>
+                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-violet-500 transition-all duration-1000"
+                                            style={{ width: `${savingsProgress}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[9px] text-neutral-600 text-right">meta: {fmtCur(annualGoal)}</span>
+                                </div>
+                            </div>
                         </div>
                     )}
 
