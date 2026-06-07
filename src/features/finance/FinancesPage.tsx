@@ -21,7 +21,7 @@ import { useFabStore } from '../../hooks/useFabStore';
 
 export default function FinancesPage() {
     const { i18n } = useTranslation();
-    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, savingsGoals, savingsEntries, updateConfig } = useFinanceStore();
+    const { config, events, overrides, realExpenses, setDailyOverride, addTransaction, updateTransaction, deleteTransaction, makeRecurring, savingsGoals, savingsEntries, updateConfig } = useFinanceStore();
 
     // Force 2 months view for this specific "Dashboard" requirement
     const [horizon, setHorizon] = useState<number>(2);
@@ -89,7 +89,14 @@ export default function FinancesPage() {
         if (!targetDate) return;
 
         if (txModal.editingId && txModal.editingSource) {
-            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description, isRecurring });
+            // First update amount/category/date
+            updateTransaction(txModal.editingId, txModal.editingSource, { amount, category, date: targetDate, type: targetType, note: description });
+            // Then handle recurring separately with dedicated action to guarantee it saves
+            const currentEvent = events.find(e => e.id === txModal.editingId);
+            const currentIsRecurring = currentEvent?.isRecurring ?? false;
+            if (isRecurring !== undefined && isRecurring !== currentIsRecurring) {
+                makeRecurring(txModal.editingId, txModal.editingSource);
+            }
         } else {
             addTransaction(targetDate, targetType, amount, category, isRecurring);
         }
@@ -954,7 +961,7 @@ export default function FinancesPage() {
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            updateTransaction(event.id, event.source, { isRecurring: true });
+                                                                            makeRecurring(event.id, event.source);
                                                                         }}
                                                                         title="Hacer fijo (se repite cada mes)"
                                                                         className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[9px] font-bold hover:bg-violet-500/25 transition-all"
