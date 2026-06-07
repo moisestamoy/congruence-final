@@ -102,16 +102,39 @@ export function SupabaseSync() {
                 }
                 if (data.finances_data && Object.keys(data.finances_data).length > 0) {
                     const pendingDeletes = pendingDeletionsRef.current;
-                    let financesData = data.finances_data;
-                    if (pendingDeletes.size > 0 && Array.isArray(financesData.realExpenses)) {
-                        financesData = {
-                            ...financesData,
-                            realExpenses: financesData.realExpenses.filter(
-                                (e: any) => !pendingDeletes.has(e.id)
-                            )
-                        };
-                    }
-                    useFinanceStore.setState(financesData);
+                    const remote = data.finances_data;
+                    const local = useFinanceStore.getState();
+                    const isInitial = !initialLoadDoneRef.current;
+
+                    // Merge arrays by key with LOCAL priority (consistent with saveToCloud):
+                    // local edits win on conflict, remote-only items get added.
+                    // This prevents a focus/visibility-triggered load from clobbering a
+                    // just-made local edit (e.g. toggling isRecurring) that hasn't synced yet.
+                    const mergeByKey = (localArr: any[], remoteArr: any[], key = 'id') => {
+                        const localKeys = new Set((localArr || []).map((x: any) => x[key]));
+                        return [
+                            ...(localArr || []),
+                            ...(remoteArr || []).filter((x: any) => !localKeys.has(x[key])),
+                        ];
+                    };
+
+                    const merged: any = {
+                        // Array data: always merge with local priority
+                        events: mergeByKey(local.events as any[], remote.events),
+                        overrides: mergeByKey(local.overrides as any[], remote.overrides, 'date'),
+                        realExpenses: mergeByKey(
+                            local.realExpenses as any[],
+                            (remote.realExpenses || []).filter((e: any) => !pendingDeletes.has(e.id))
+                        ),
+                        savingsEntries: mergeByKey(local.savingsEntries as any[], remote.savingsEntries),
+                        // Scalar/config data: only adopt remote on the very first load,
+                        // otherwise keep local so we don't revert balance/goal/budget edits.
+                        config: isInitial ? (remote.config ?? local.config) : local.config,
+                        savingsGoals: isInitial ? (remote.savingsGoals ?? local.savingsGoals) : local.savingsGoals,
+                        categoryBudgets: isInitial ? (remote.categoryBudgets ?? local.categoryBudgets) : local.categoryBudgets,
+                    };
+
+                    useFinanceStore.setState(merged);
                 }
                 setStatus('synced');
             } else {
