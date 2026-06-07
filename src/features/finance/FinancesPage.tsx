@@ -468,7 +468,7 @@ export default function FinancesPage() {
                                             {format(goalTargetDate, 'MMM yy', { locale: dateLocale })}
                                         </div>
                                         <p className="text-xs text-neutral-500">
-                                            en {monthsToGoal}m · {fmtCur(totalIncome)} ingresos/mes
+                                            en {monthsToGoal} meses · {fmtCur(totalIncome)}/mes
                                         </p>
                                     </>
                                 ) : (
