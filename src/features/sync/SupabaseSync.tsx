@@ -5,6 +5,10 @@ import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 
+// Tracks when this device last edited finance data (client epoch ms).
+// Used for last-write-wins against the cloud copy's updated_at.
+const LOCAL_EDIT_KEY = 'finance_local_edit_at';
+
 export function SupabaseSync() {
     const { user } = useAuth();
     const [status, setStatus] = useState<'idle' | 'saving' | 'synced' | 'error'>('idle');
@@ -55,12 +59,13 @@ export function SupabaseSync() {
                 ...remoteExpenses.filter((e: any) => !localIds.has(e.id) && !pendingDeletes.has(e.id)),
             ];
 
+            const nowIso = new Date().toISOString();
             const { error } = await supabase
                 .from('user_data')
                 .update({
                     habits_data: { habits, manifesto },
                     finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
-                    updated_at: new Date().toISOString()
+                    updated_at: nowIso
                 })
                 .eq('id', user.id);
             if (error) throw error;
@@ -69,6 +74,9 @@ export function SupabaseSync() {
             if (mergedExpenses.length !== (realExpenses as any[]).length) {
                 useFinanceStore.setState({ realExpenses: mergedExpenses });
             }
+
+            // Mark local as synced up to this remote timestamp (last-write-wins anchor)
+            try { localStorage.setItem(LOCAL_EDIT_KEY, String(Date.parse(nowIso))); } catch { /* ignore */ }
 
             setStatus('synced');
             lastSavedRef.current = Date.now();
@@ -83,12 +91,11 @@ export function SupabaseSync() {
 
     const loadData = useCallback(async () => {
         if (!user) return;
-        if (hasPendingChangesRef.current) return;
         setStatus('saving');
         try {
             const { data, error } = await supabase
                 .from('user_data')
-                .select('habits_data, finances_data')
+                .select('habits_data, finances_data, updated_at')
                 .eq('id', user.id)
                 .single();
             if (error && error.code !== 'PGRST116') {
@@ -104,37 +111,43 @@ export function SupabaseSync() {
                     const pendingDeletes = pendingDeletionsRef.current;
                     const remote = data.finances_data;
                     const local = useFinanceStore.getState();
-                    const isInitial = !initialLoadDoneRef.current;
 
-                    // Merge arrays by key with LOCAL priority (consistent with saveToCloud):
-                    // local edits win on conflict, remote-only items get added.
-                    // This prevents a focus/visibility-triggered load from clobbering a
-                    // just-made local edit (e.g. toggling isRecurring) that hasn't synced yet.
-                    const mergeByKey = (localArr: any[], remoteArr: any[], key = 'id') => {
-                        const localKeys = new Set((localArr || []).map((x: any) => x[key]));
-                        return [
-                            ...(localArr || []),
-                            ...(remoteArr || []).filter((x: any) => !localKeys.has(x[key])),
-                        ];
-                    };
+                    // LAST-WRITE-WINS via timestamps (both stamps are client-generated,
+                    // so no clock-skew on the same device):
+                    //   remoteUpdatedAt = when the cloud copy was last written
+                    //   localEditAt     = when this device last changed finance data
+                    const remoteUpdatedAt = data.updated_at ? Date.parse(data.updated_at) : 0;
+                    const localEditAt = Number(localStorage.getItem(LOCAL_EDIT_KEY) || '0');
+                    // Local is "ahead" if it has unsynced edits newer than the cloud copy.
+                    const localAhead = hasPendingChangesRef.current || localEditAt > remoteUpdatedAt;
 
-                    const merged: any = {
-                        // Array data: always merge with local priority
-                        events: mergeByKey(local.events as any[], remote.events),
-                        overrides: mergeByKey(local.overrides as any[], remote.overrides, 'date'),
-                        realExpenses: mergeByKey(
-                            local.realExpenses as any[],
-                            (remote.realExpenses || []).filter((e: any) => !pendingDeletes.has(e.id))
-                        ),
-                        savingsEntries: mergeByKey(local.savingsEntries as any[], remote.savingsEntries),
-                        // Scalar/config data: only adopt remote on the very first load,
-                        // otherwise keep local so we don't revert balance/goal/budget edits.
-                        config: isInitial ? (remote.config ?? local.config) : local.config,
-                        savingsGoals: isInitial ? (remote.savingsGoals ?? local.savingsGoals) : local.savingsGoals,
-                        categoryBudgets: isInitial ? (remote.categoryBudgets ?? local.categoryBudgets) : local.categoryBudgets,
-                    };
-
-                    useFinanceStore.setState(merged);
+                    if (localAhead) {
+                        // Don't clobber fresh local edits. Only pull in remote-only
+                        // realExpenses (e.g. iOS Shortcut additions) we don't already have.
+                        const localExpenseIds = new Set((local.realExpenses as any[]).map((e: any) => e.id));
+                        const extraRemote = (remote.realExpenses || []).filter(
+                            (e: any) => !localExpenseIds.has(e.id) && !pendingDeletes.has(e.id)
+                        );
+                        if (extraRemote.length > 0) {
+                            useFinanceStore.setState({
+                                realExpenses: [...(local.realExpenses as any[]), ...extraRemote],
+                            });
+                        }
+                        // Make sure our newer local state eventually reaches the cloud.
+                        hasPendingChangesRef.current = true;
+                    } else {
+                        // Cloud copy is authoritative (newer or equal). Adopt it,
+                        // honouring any pending local deletions of realExpenses.
+                        let financesData = remote;
+                        if (pendingDeletes.size > 0 && Array.isArray(remote.realExpenses)) {
+                            financesData = {
+                                ...remote,
+                                realExpenses: remote.realExpenses.filter((e: any) => !pendingDeletes.has(e.id)),
+                            };
+                        }
+                        useFinanceStore.setState(financesData);
+                        try { localStorage.setItem(LOCAL_EDIT_KEY, String(remoteUpdatedAt)); } catch { /* ignore */ }
+                    }
                 }
                 setStatus('synced');
             } else {
@@ -173,6 +186,8 @@ export function SupabaseSync() {
         if (!user) return;
         if (!initialLoadDoneRef.current) return;
         hasPendingChangesRef.current = true;
+        // Stamp this edit so a reload/focus before the cloud save still wins (LWW).
+        try { localStorage.setItem(LOCAL_EDIT_KEY, String(Date.now())); } catch { /* ignore */ }
         if (isSavingRef.current) return;
         const timeout = setTimeout(saveToCloud, 2000);
         return () => clearTimeout(timeout);
