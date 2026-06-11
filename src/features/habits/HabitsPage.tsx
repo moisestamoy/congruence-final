@@ -14,7 +14,6 @@ import { cn } from '../../utils/cn';
 
 import { IdentityProtocolWizard } from './IdentityProtocolWizard';
 import { Habit } from '../../types';
-import { useGameStore } from '../gamification/useGameStore'; // Import GameStore
 import { useFabStore } from '../../hooks/useFabStore';
 import { useAuth } from '../../context/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
@@ -148,19 +147,9 @@ export default function HabitsPage() {
         }
     }, [fabActionTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Handler for toggling habit (+ Points Logic)
     const handleToggleHabit = (habitId: string) => {
         const habit = habits.find(h => h.id === habitId);
         if (!habit) return;
-
-        const isCompleted = !!habit.logs[selectedDate]?.completed;
-
-        // If it was NOT completed, and we are toggling -> It becomes completed -> Award Points
-        if (!isCompleted) {
-            useGameStore.getState().addPoints(10, `Hábito completado: ${habit.title}`);
-            // Optional: Trigger a sound or confetti here later
-        }
-
         toggleHabit(habitId, selectedDate);
     };
 
