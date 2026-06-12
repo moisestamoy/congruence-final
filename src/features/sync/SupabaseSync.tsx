@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
+import { useTaskStore } from '../tasks/useTaskStore';
+import { useHolisticStore } from '../stats/useHolisticStore';
 import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 
 // Tracks when this device last edited finance data (client epoch ms).
@@ -42,6 +44,8 @@ export function SupabaseSync() {
 
     const habitsState = useHabitStore();
     const financeState = useFinanceStore();
+    const taskState = useTaskStore();
+    const holisticState = useHolisticStore();
 
     useEffect(() => {
         if (!initialLoadDoneRef.current) return;
@@ -62,6 +66,8 @@ export function SupabaseSync() {
         try {
             const { habits, manifesto } = useHabitStore.getState();
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
+            const { tasks, groups, notes, soundEnabled } = useTaskStore.getState();
+            const { checkIns } = useHolisticStore.getState();
 
             // Fetch remote expenses BEFORE saving to preserve any iOS Shortcut additions
             // that may have been added to Supabase without going through local state
@@ -87,6 +93,8 @@ export function SupabaseSync() {
                 .update({
                     habits_data: { habits, manifesto },
                     finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
+                    tasks_data: { tasks, groups, notes, soundEnabled },
+                    stats_data: { checkIns },
                     updated_at: nowIso
                 })
                 .eq('id', user.id);
@@ -120,7 +128,7 @@ export function SupabaseSync() {
         try {
             const { data, error } = await supabase
                 .from('user_data')
-                .select('habits_data, finances_data, updated_at')
+                .select('habits_data, finances_data, tasks_data, stats_data, updated_at')
                 .eq('id', user.id)
                 .single();
             if (error && error.code !== 'PGRST116') {
@@ -129,44 +137,63 @@ export function SupabaseSync() {
                 return;
             }
             if (data) {
+                // LAST-WRITE-WINS via timestamps (both stamps are client-generated,
+                // so no clock-skew on the same device):
+                //   remoteUpdatedAt = when the cloud copy was last written
+                //   localEditAt     = when this device last changed synced data
+                const remoteUpdatedAt = data.updated_at ? Date.parse(data.updated_at) : 0;
+                const localEditAt = Number(localStorage.getItem(LOCAL_EDIT_KEY) || '0');
+
+                // Server-driven force-adopt: if the cloud copy carries a
+                // `_forceAdoptAt` newer than what this device has already applied,
+                // adopt it unconditionally (once). Lets a server-side data fix
+                // break a sync deadlock WITHOUT any user action.
+                const remoteForceAt = Number((data.finances_data as any)?._forceAdoptAt || 0);
+                const lastForceApplied = Number(localStorage.getItem(FORCE_APPLIED_KEY) || '0');
+                const mustForce = remoteForceAt > lastForceApplied;
+
+                const doForce = force || mustForce;
+                // Local is "ahead" if it has unsynced edits newer than the cloud copy.
+                // A forced pull overrides this and adopts the cloud copy unconditionally.
+                const localAhead = !doForce && (hasPendingChangesRef.current || localEditAt > remoteUpdatedAt);
+
+                if (doForce) {
+                    // Forced pull: discard any local-ahead state and tombstones,
+                    // adopt the cloud copy verbatim. Used to break a sync deadlock.
+                    hasPendingChangesRef.current = false;
+                    pendingDeletionsRef.current.clear();
+                    clearPendingDeletes();
+                    if (mustForce) {
+                        try { localStorage.setItem(FORCE_APPLIED_KEY, String(remoteForceAt)); } catch { /* ignore */ }
+                    }
+                }
+
                 if (data.habits_data && Object.keys(data.habits_data).length > 0) {
                     useHabitStore.setState(data.habits_data);
                 }
+
+                // Tasks + holistic check-ins: adopt the cloud copy only when it's
+                // authoritative (not when this device has fresher unsynced edits).
+                if (!localAhead) {
+                    const t: any = data.tasks_data;
+                    if (t && Array.isArray(t.tasks)) {
+                        useTaskStore.setState({
+                            tasks: t.tasks,
+                            groups: Array.isArray(t.groups) ? t.groups : useTaskStore.getState().groups,
+                            notes: Array.isArray(t.notes) ? t.notes : [],
+                            ...(typeof t.soundEnabled === 'boolean' ? { soundEnabled: t.soundEnabled } : {}),
+                        });
+                    }
+                    const s: any = data.stats_data;
+                    if (s && Array.isArray(s.checkIns)) {
+                        useHolisticStore.setState({ checkIns: s.checkIns });
+                    }
+                }
+
                 if (data.finances_data && Object.keys(data.finances_data).length > 0) {
                     const pendingDeletes = pendingDeletionsRef.current;
                     const remote = data.finances_data;
                     const local = useFinanceStore.getState();
-
-                    // LAST-WRITE-WINS via timestamps (both stamps are client-generated,
-                    // so no clock-skew on the same device):
-                    //   remoteUpdatedAt = when the cloud copy was last written
-                    //   localEditAt     = when this device last changed finance data
-                    const remoteUpdatedAt = data.updated_at ? Date.parse(data.updated_at) : 0;
-                    const localEditAt = Number(localStorage.getItem(LOCAL_EDIT_KEY) || '0');
-
-                    // Server-driven force-adopt: if the cloud copy carries a
-                    // `_forceAdoptAt` newer than what this device has already applied,
-                    // adopt it unconditionally (once). Lets a server-side data fix
-                    // break a sync deadlock WITHOUT any user action.
-                    const remoteForceAt = Number((remote as any)._forceAdoptAt || 0);
-                    const lastForceApplied = Number(localStorage.getItem(FORCE_APPLIED_KEY) || '0');
-                    const mustForce = remoteForceAt > lastForceApplied;
-
-                    const doForce = force || mustForce;
-                    // Local is "ahead" if it has unsynced edits newer than the cloud copy.
-                    // A forced pull overrides this and adopts the cloud copy unconditionally.
-                    const localAhead = !doForce && (hasPendingChangesRef.current || localEditAt > remoteUpdatedAt);
-
-                    if (doForce) {
-                        // Forced pull: discard any local-ahead state and tombstones,
-                        // adopt the cloud copy verbatim. Used to break a sync deadlock.
-                        hasPendingChangesRef.current = false;
-                        pendingDeletionsRef.current.clear();
-                        clearPendingDeletes();
-                        if (mustForce) {
-                            try { localStorage.setItem(FORCE_APPLIED_KEY, String(remoteForceAt)); } catch { /* ignore */ }
-                        }
-                    }
 
                     if (localAhead) {
                         // Don't clobber fresh local edits. Only pull in remote-only
@@ -246,6 +273,8 @@ export function SupabaseSync() {
         financeState.config, financeState.events, financeState.overrides,
         financeState.realExpenses, financeState.savingsGoals,
         financeState.savingsEntries, financeState.categoryBudgets,
+        taskState.tasks, taskState.groups, taskState.notes, taskState.soundEnabled,
+        holisticState.checkIns,
     ]);
 
     useEffect(() => {
