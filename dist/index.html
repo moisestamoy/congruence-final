@@ -4,12 +4,20 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/icon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- PWA / installable app -->
+  <meta name="theme-color" content="#050505" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Congruence" />
+  <link rel="apple-touch-icon" href="/icon_192.png" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <title>Congruence</title>
   <script type="module" crossorigin src="/assets/index-nULfYmEB.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-DuLiSdqT.css">
-</head>
+<link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
 
 <body class="bg-black text-white">
   <div id="root"></div>
