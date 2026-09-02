@@ -5,6 +5,7 @@ import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { useTaskStore } from '../tasks/useTaskStore';
 import { useHolisticStore } from '../stats/useHolisticStore';
+import { useMemoStore } from '../memo/useMemoStore';
 import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 
 // Tracks when this device last edited finance data (client epoch ms).
@@ -46,6 +47,7 @@ export function SupabaseSync() {
     const financeState = useFinanceStore();
     const taskState = useTaskStore();
     const holisticState = useHolisticStore();
+    const memoState = useMemoStore();
 
     useEffect(() => {
         if (!initialLoadDoneRef.current) return;
@@ -68,6 +70,7 @@ export function SupabaseSync() {
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
             const { tasks, groups, notes, soundEnabled } = useTaskStore.getState();
             const { checkIns } = useHolisticStore.getState();
+            const memo = useMemoStore.getState();
 
             // Fetch remote expenses BEFORE saving to preserve any iOS Shortcut additions
             // that may have been added to Supabase without going through local state
@@ -93,7 +96,8 @@ export function SupabaseSync() {
                 .update({
                     habits_data: { habits, manifesto },
                     finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
-                    tasks_data: { tasks, groups, notes, soundEnabled },
+                    // Memo (reading queue) rides inside tasks_data so no schema migration is needed.
+                    tasks_data: { tasks, groups, notes, soundEnabled, reading: { items: memo.items, settings: memo.settings, tonight: memo.tonight } },
                     stats_data: { checkIns },
                     updated_at: nowIso
                 })
@@ -182,6 +186,14 @@ export function SupabaseSync() {
                             groups: Array.isArray(t.groups) ? t.groups : useTaskStore.getState().groups,
                             notes: Array.isArray(t.notes) ? t.notes : [],
                             ...(typeof t.soundEnabled === 'boolean' ? { soundEnabled: t.soundEnabled } : {}),
+                        });
+                    }
+                    const r: any = t?.reading;
+                    if (r && Array.isArray(r.items)) {
+                        useMemoStore.setState({
+                            items: r.items,
+                            ...(r.settings && typeof r.settings.hour === 'number' ? { settings: r.settings } : {}),
+                            tonight: r.tonight ?? null,
                         });
                     }
                     const s: any = data.stats_data;
@@ -275,6 +287,7 @@ export function SupabaseSync() {
         financeState.savingsEntries, financeState.categoryBudgets,
         taskState.tasks, taskState.groups, taskState.notes, taskState.soundEnabled,
         holisticState.checkIns,
+        memoState.items, memoState.settings, memoState.tonight,
     ]);
 
     useEffect(() => {

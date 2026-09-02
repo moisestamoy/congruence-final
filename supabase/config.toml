@@ -36,3 +36,10 @@ verify_jwt = true
 
 [functions.ai-coach]
 verify_jwt = true
+
+[functions.memo-tldr]
+verify_jwt = true
+
+[functions.add-reading]
+# Custom auth: static shortcut key (iOS Shortcut) OR Bearer JWT — see index.ts
+verify_jwt = false

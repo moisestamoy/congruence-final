@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Reorder } from 'framer-motion';
-import { LucideIcon, LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, CheckSquare, GripVertical } from 'lucide-react';
+import { LucideIcon, LayoutDashboard, Wallet, PieChart, LogIn, LogOut, Plus, CheckSquare, GripVertical, BookOpen } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { AuthModal } from '../features/auth/AuthModal';
 import { useAuth } from '../context/AuthContext';
@@ -16,15 +16,17 @@ const featureColors: Record<string, { icon: string; activeBg: string; mobileActi
     '/finances': { icon: 'text-emerald-400', activeBg: 'bg-emerald-500/[0.10]', mobileActiveBg: 'bg-emerald-500/15', dot: 'bg-emerald-400' },
     '/stats':    { icon: 'text-violet-400',  activeBg: 'bg-violet-500/[0.10]',  mobileActiveBg: 'bg-violet-500/15',  dot: 'bg-violet-400'  },
     '/tasks':    { icon: 'text-indigo-400',  activeBg: 'bg-indigo-500/[0.10]',  mobileActiveBg: 'bg-indigo-500/15',  dot: 'bg-indigo-400'  },
+    '/memo':     { icon: 'text-amber-400',   activeBg: 'bg-amber-500/[0.10]',   mobileActiveBg: 'bg-amber-500/15',   dot: 'bg-amber-400'   },
 };
 
-type NavItem = { path: string; icon: LucideIcon; label: string };
+type NavItem = { path: string; icon: LucideIcon; label: string; shortLabel?: string };
 
 const DEFAULT_ITEMS: NavItem[] = [
     { path: '/',         icon: LayoutDashboard, label: 'Tracker'     },
     { path: '/finances', icon: Wallet,          label: 'Finanzas'    },
-    { path: '/stats',    icon: PieChart,        label: 'Esta Semana' },
+    { path: '/stats',    icon: PieChart,        label: 'Esta Semana', shortLabel: 'Semana' },
     { path: '/tasks',    icon: CheckSquare,     label: 'Tareas'      },
+    { path: '/memo',     icon: BookOpen,        label: 'Memo'        },
 ];
 
 // Reconstruct full item list from saved path order
@@ -95,7 +97,7 @@ export default function MainLayout() {
     }, [location.pathname, setNavVisible]);
 
     const getColors = (path: string) => featureColors[path] ?? featureColors['/'];
-    const showFab = ['/', '/finances', '/tasks'].includes(location.pathname) && !isEditingOrder;
+    const showFab = ['/', '/finances', '/tasks', '/memo'].includes(location.pathname) && !isEditingOrder;
     // Cycle: dark → accion → ocean → sakura → dark
     const THEME_CYCLE = ['dark', 'accion', 'ocean', 'sakura'] as const;
     const THEME_DOTS: Record<string, string> = { dark: '#22d3ee', accion: '#ef4444', ocean: '#818cf8', sakura: '#f472b6' };
@@ -105,8 +107,9 @@ export default function MainLayout() {
         setTheme(THEME_CYCLE[(idx + 1) % THEME_CYCLE.length]);
     };
 
-    // Mobile always shows first 4 from the current order
-    const mobileNavItems = sidebarItems.slice(0, 4);
+    // Mobile shows the first 5 from the current order (compact labels when 5)
+    const mobileNavItems = sidebarItems.slice(0, 5);
+    const compactMobile = mobileNavItems.length > 4;
 
     const handleReorder = (newOrder: NavItem[]) => {
         setSidebarItems(newOrder);
@@ -305,7 +308,8 @@ export default function MainLayout() {
                                     key={item.path}
                                     onClick={() => navigate(item.path)}
                                     className={cn(
-                                        "relative flex flex-col items-center justify-center flex-1 h-14 min-w-[58px] rounded-[1.5rem] transition-all duration-300",
+                                        "relative flex flex-col items-center justify-center flex-1 h-14 rounded-[1.5rem] transition-all duration-300 overflow-hidden",
+                                        compactMobile ? "min-w-0 px-0.5" : "min-w-[58px]",
                                         isActive ? cn(colors.mobileActiveBg, "text-white") : "text-neutral-500 active:bg-white/5"
                                     )}
                                 >
@@ -315,10 +319,11 @@ export default function MainLayout() {
                                         strokeWidth={isActive ? 2.5 : 2}
                                     />
                                     <span className={cn(
-                                        "text-[11px] font-semibold tracking-wide transition-colors leading-none",
+                                        "font-semibold transition-colors leading-none max-w-full truncate",
+                                        compactMobile ? "text-[9.5px] tracking-normal" : "text-[11px] tracking-wide",
                                         isActive ? "text-white" : "text-neutral-500"
                                     )}>
-                                        {item.label}
+                                        {compactMobile ? (item.shortLabel ?? item.label) : item.label}
                                     </span>
                                 </button>
                             );

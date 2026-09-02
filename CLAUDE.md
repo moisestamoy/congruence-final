@@ -22,6 +22,7 @@ src/features/
   gamification/ — XP, levels, streaks
   habits/     — habit tracking
   identity/   — user identity/values
+  memo/       — "Memo": one saved link per night with an AI TLDR (X bookmarks replacement)
   stats/      — analytics & charts
   sync/       — Supabase data sync
   tasks/      — task management

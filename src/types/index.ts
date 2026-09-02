@@ -92,3 +92,39 @@ export interface Note {
 // Shared
 export type Theme = 'dark' | 'light';
 export type Language = 'es' | 'en' | 'pt';
+
+// Memo — "uno por noche" reading queue
+export type ReadingStatus = 'queue' | 'read' | 'archived';
+export type ReadingSource = 'x' | 'web';
+
+export interface ReadingTldr {
+    title: string;
+    author?: string;
+    lines: string[];   // 3–5 short lines
+    why?: string;      // one line: why it is worth reading
+    generatedAt: number;
+}
+
+export interface ReadingItem {
+    id: string;
+    url: string;
+    label: string;            // "@handle" for X posts, hostname for the web
+    note?: string;            // optional reason it was saved
+    source: ReadingSource;
+    status: ReadingStatus;
+    addedAt: number;
+    servedDates: string[];    // nights (YYYY-MM-DD) it was offered
+    openedAt: number | null;
+    readAt: number | null;
+    tldr?: ReadingTldr;
+}
+
+export interface ReadingSettings {
+    hour: number;    // 0–23, local time
+    minute: number;  // 0–59
+}
+
+export interface ReadingTonight {
+    date: string;    // YYYY-MM-DD night key
+    itemId: string;
+}
