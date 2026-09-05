@@ -19,6 +19,7 @@ src/features/
   auth/       — authentication (Supabase)
   coach/      — AI coaching
   finance/    — budgeting, transactions, savings goals
+  flights/    — cheap flight search with max-stops filter (Edge Function `flight-search` + deep links)
   gamification/ — XP, levels, streaks
   habits/     — habit tracking
   identity/   — user identity/values

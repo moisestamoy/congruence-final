@@ -11,6 +11,7 @@ import StatsPage from './features/stats/StatsPage';
 import IdentityPage from './features/identity/IdentityPage';
 import CoachPage from './features/coach/CoachPage';
 import ToDoPage from './features/tasks/ToDoPage';
+import FlightsPage from './features/flights/FlightsPage';
 import OnboardingPage from './features/onboarding/OnboardingPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ function App() {
                             </ProtectedRoute>
                         } />
                         <Route path="/tasks" element={<ToDoPage />} />
+                        <Route path="/flights" element={<FlightsPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>
