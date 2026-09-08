@@ -1,6 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = "AIzaSyAFaCWwil2BEX_J3KXho51Q37-MesMM5o8";
+// Never hardcode the key. Run with:  GEMINI_API_KEY=... node test_models.mjs
+const API_KEY = process.env.GEMINI_API_KEY;
+if (!API_KEY) {
+    console.error("Falta GEMINI_API_KEY. Uso: GEMINI_API_KEY=tu_key node test_models.mjs");
+    process.exit(1);
+}
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 const models = [
