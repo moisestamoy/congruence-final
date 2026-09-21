@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct CongruenceApp: App {
     @State private var store: HabitStore
+    @State private var finances: FinanceStore
     @State private var auth: AuthService
     @State private var sync: SyncService
 
@@ -10,16 +11,19 @@ struct CongruenceApp: App {
 
     init() {
         let store = HabitStore()
+        let finances = FinanceStore()
         let auth = AuthService()
         _store = State(initialValue: store)
+        _finances = State(initialValue: finances)
         _auth = State(initialValue: auth)
-        _sync = State(initialValue: SyncService(store: store, auth: auth))
+        _sync = State(initialValue: SyncService(habits: store, finances: finances, auth: auth))
     }
 
     var body: some Scene {
         WindowGroup {
-            TodayView()
+            RootView()
                 .environment(store)
+                .environment(finances)
                 .environment(auth)
                 .environment(sync)
                 .preferredColorScheme(.dark)

@@ -20,12 +20,10 @@ struct TodayView: View {
     @AppStorage("ring_layout") private var layoutRaw = RingLayout.central.rawValue
 
     @State private var selectedDate: Date = HabitDay.current()
-    @State private var section: AppSection = .habits
     @State private var isAddingHabit = false
     @State private var isEditingIdentity = false
     @State private var editingHabit: Habit?
     @State private var deletingHabit: Habit?
-    @State private var isLoggingIn = false
 
     private var layout: RingLayout { RingLayout(rawValue: layoutRaw) ?? .central }
 
@@ -42,9 +40,7 @@ struct TodayView: View {
     }()
 
     var body: some View {
-        HStack(spacing: 0) {
-            Sidebar(selection: $section, onLogin: { isLoggingIn = true })
-
+        Group {
             GeometryReader { geo in
                 let w = geo.size.width
                 // Las tarjetas laterales sólo entran en vista central y con lugar.
@@ -62,9 +58,7 @@ struct TodayView: View {
                 let ringW = max(220, w - 48 - sideW - habitsW - 24)
                 let ringSize = ringDiameter(width: ringW, height: geo.size.height - 48)
 
-                if section != .habits {
-                    notBuiltYet
-                } else if showTwoColumns {
+                if showTwoColumns {
                     HStack(alignment: .center, spacing: 24) {
                         if showSidePanels {
                             leftColumn
@@ -109,7 +103,6 @@ struct TodayView: View {
             }
         }
         #endif
-        .sheet(isPresented: $isLoggingIn) { LoginSheet() }
         .sheet(isPresented: $isAddingHabit) {
             HabitEditorSheet(onSave: { store.add($0) })
         }
@@ -139,27 +132,6 @@ struct TodayView: View {
             @Bindable var store = store
             IdentityEditSheet(manifesto: $store.manifesto) {}
         }
-    }
-
-    /// Las otras secciones todavía viven sólo en la app web. Mejor decirlo que
-    /// dejar un botón que no hace nada.
-    private var notBuiltYet: some View {
-        VStack(spacing: 10) {
-            Image(systemName: section.symbol)
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(Palette.textFaint)
-            Text(section.label)
-                .font(.system(size: 15, weight: .bold))
-                .tracking(1.4)
-                .textCase(.uppercase)
-                .foregroundStyle(Palette.textMuted)
-            Text("Todavía no está en la app nativa.\nPor ahora vive en la versión web.")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.textFaint)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - El anillo, sin caja, tan grande como entre
