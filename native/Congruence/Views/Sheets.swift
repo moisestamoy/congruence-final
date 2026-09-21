@@ -240,6 +240,8 @@ struct SheetShell<Content: View>: View {
                     .background(
                         Capsule().fill(canSave ? Palette.accent : Color.white.opacity(0.06))
                     )
+                    .shadow(color: canSave ? Palette.accent.opacity(0.35) : .clear,
+                            radius: 14, y: 3)
                     .disabled(!canSave)
             }
         }

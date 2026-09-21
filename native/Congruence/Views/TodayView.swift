@@ -201,7 +201,7 @@ struct TodayView: View {
                                 habit: habit,
                                 day: dayKey,
                                 weekDots: store.weekDots(for: habit),
-                                onToggle: { store.toggle(habit.id, on: dayKey) },
+                                onToggle: { toggle(habit) },
                                 onSetValue: { store.setValue($0, for: habit.id, on: dayKey) },
                                 onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) }
                             )
@@ -300,6 +300,17 @@ struct TodayView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    /// Marcar un hábito numérico desde la fila lo lleva a la meta (o a cero si
+    /// ya estaba cumplido); los botones +/- siguen sirviendo para el detalle.
+    private func toggle(_ habit: Habit) {
+        guard habit.type == .numeric else {
+            store.toggle(habit.id, on: dayKey)
+            return
+        }
+        let done = habit.log(on: dayKey)?.completed == true
+        store.setValue(done ? 0 : habit.goal, for: habit.id, on: dayKey)
     }
 
     private var isToday: Bool {

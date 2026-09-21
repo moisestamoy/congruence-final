@@ -43,17 +43,45 @@ struct HabitRow: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 56)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        .background(rowSurface)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isDone ? tint.opacity(0.22) : Palette.hairlineFaint, lineWidth: 1)
+                .stroke(isDone ? tint.opacity(0.45) : Palette.hairlineFaint, lineWidth: 1)
         )
+        // El resplandor sólo aparece al completar. Es la única recompensa
+        // visual de la fila: si brillara siempre, no significaría nada.
+        .shadow(color: isDone ? tint.opacity(0.20) : .clear, radius: 14, y: 3)
         .opacity(isPaused ? 0.5 : 1)
+        .animation(.smooth(duration: 0.3), value: isDone)
+        // Toda la fila marca el hábito, no sólo el círculo. Los botones de
+        // adentro (el propio círculo, el +/-) se comen el toque antes.
+        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .onTapGesture { if !isPaused { onToggle() } }
         .contextMenu {
             Button("Marcar descanso") { onSkip(.rest) }
             Button("Marcar imprevisto") { onSkip(.emergency) }
         }
         .help(isPaused ? pauseLabel : (habit.subtitle ?? habit.title))
+    }
+
+    /// Completado = lavado tintado del color del hábito, más fuerte arriba.
+    /// No es vidrio: sobre negro plano el vidrio no refracta nada. Es el color
+    /// del propio hábito tiñendo su fila.
+    private var rowSurface: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Palette.surfaceRaised)
+            .overlay {
+                if isDone {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [tint.opacity(0.16), tint.opacity(0.03)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+            }
     }
 
     private var statusColor: Color {
