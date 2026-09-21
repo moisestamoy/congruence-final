@@ -17,3 +17,9 @@ dist/
 
 # PWA dev service worker output
 dev-dist/
+
+# Xcode
+native/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
