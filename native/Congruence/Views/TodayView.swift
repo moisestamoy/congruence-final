@@ -49,28 +49,42 @@ struct TodayView: View {
                 let showSidePanels = layout == .central && w >= 1180
                 let showTwoColumns = w >= 860
 
+                // El tamaño del anillo se calcula acá, fuera de cualquier
+                // GeometryReader anidado: así depende de `layout` (un estado) y
+                // la animación del botón lo alcanza. Si dependiera de la
+                // geometría interna, el cambio llegaría en otra pasada y saltaría.
+                let habitsW: CGFloat = layout == .split
+                    ? max(380, min(w * 0.44, 720))
+                    : 380
+                let sideW: CGFloat = showSidePanels ? 344 : 0
+                let ringW = max(220, w - 48 - sideW - habitsW - 24)
+                let ringSize = ringDiameter(width: ringW, height: geo.size.height - 48)
+
                 if section != .habits {
                     notBuiltYet
                 } else if showTwoColumns {
-                    HStack(alignment: .top, spacing: 24) {
+                    HStack(alignment: .center, spacing: 24) {
                         if showSidePanels {
-                            leftColumn.frame(width: 320)
+                            leftColumn
+                                .frame(width: 320)
+                                .transition(
+                                    .move(edge: .leading).combined(with: .opacity)
+                                )
                         }
 
-                        ringHero
+                        ringHero(size: ringSize)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         // En vista dividida el panel respira más; en central se
                         // mantiene angosto para no comerle lugar al anillo.
-                        habitsColumn.frame(
-                            width: layout == .split ? max(380, min(w * 0.44, 720)) : 380
-                        )
+                        habitsColumn.frame(width: habitsW)
                     }
                     .padding(24)
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {
-                            ringHero.frame(height: 520)
+                            ringHero(size: ringDiameter(width: w - 40, height: 560))
+                                .frame(height: 560)
                             habitsColumn
                             leftColumn
                         }
@@ -112,45 +126,44 @@ struct TodayView: View {
 
     // MARK: - El anillo, sin caja, tan grande como entre
 
-    private var ringHero: some View {
-        GeometryReader { geo in
-            // Ojo: `size` es la caja, no el anillo. El anillo dibujado mide
-            // 0.858 de esa caja (radio exterior 0.4 + el grosor del trazo), así
-            // que para un diámetro visual dado hay que agrandar la caja.
-            let byWidth = geo.size.width * 0.92 / 0.858
-            // A lo alto compiten el anillo (0.858) y el bloque de abajo
-            // (%, ESTABILIDAD y frase ≈ 0.32) más un piso fijo para la racha.
-            let byHeight = (geo.size.height - 124) / 1.18
-            let size = max(200, min(byWidth, byHeight, 1000))
+    /// Ojo: lo que recibe `CongruenceDial` es la caja, no el anillo. El anillo
+    /// dibujado mide 0.858 de esa caja (radio exterior 0.4 más medio trazo a
+    /// cada lado), así que para un diámetro visual dado hay que agrandar la caja.
+    private func ringDiameter(width: CGFloat, height: CGFloat) -> CGFloat {
+        let byWidth = width * 0.92 / 0.858
+        // A lo alto el anillo se lleva lo que sobra después del bloque de abajo
+        // (%, ESTABILIDAD y la frase) y de la racha, que ya no escalan.
+        let byHeight = (height - 270) / 0.858
+        return max(200, min(byWidth, byHeight, 1000))
+    }
 
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
+    private func ringHero(size: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-                CongruenceDial(
-                    percentage: congruence,
-                    level: level,
-                    size: size,
-                    phrase: "La consistencia no es perfección. Es simplemente no rendirse nunca."
-                )
+            CongruenceDial(
+                percentage: congruence,
+                level: level,
+                size: size,
+                phrase: "La consistencia no es perfección. Es simplemente no rendirse nunca."
+            )
 
-                Spacer(minLength: 0)
+            Spacer(minLength: 0)
 
-                if streak > 0 {
-                    HStack(spacing: 6) {
-                        Text("Racha")
-                            .microLabelStyle(Palette.textFaint, size: 9)
-                        Text("\(streak)")
-                            .font(.system(size: 11, weight: .bold))
-                            .monospacedDigit()
-                            .foregroundStyle(Palette.textMuted)
-                        Text(streak == 1 ? "día" : "días")
-                            .microLabelStyle(Palette.textFaint, size: 9)
-                    }
-                    .padding(.top, 20)
-                    .padding(.bottom, 8)
+            if streak > 0 {
+                HStack(spacing: 6) {
+                    Text("Racha")
+                        .microLabelStyle(Palette.textFaint, size: 9)
+                    Text("\(streak)")
+                        .font(.system(size: 11, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textMuted)
+                    Text(streak == 1 ? "día" : "días")
+                        .microLabelStyle(Palette.textFaint, size: 9)
                 }
+                .padding(.top, 20)
+                .padding(.bottom, 8)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
@@ -164,7 +177,6 @@ struct TodayView: View {
                 congruentDays: store.ninetyDayCongruentDays(),
                 weekDots: store.congruenceWeekDots()
             )
-            Spacer(minLength: 0)
         }
     }
 
@@ -251,13 +263,14 @@ struct TodayView: View {
 
     private var layoutToggle: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(.smooth(duration: 0.45)) {
                 layoutRaw = layout.toggled.rawValue
             }
         } label: {
             Image(systemName: layout.symbol)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textMuted)
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: 28, height: 26)
                 .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(

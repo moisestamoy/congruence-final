@@ -46,11 +46,18 @@ private struct RingTrack: Shape {
 struct CongruenceRing: View {
     let percentage: Int
     var size: CGFloat = 160
-    var strokeWidth: CGFloat = 10
     var level: Int = 1
 
-    private var baseRadius: CGFloat { size * 0.4 }
-    private var step: CGFloat { size * 0.09 }
+    /// Siempre se dibuja a este tamaño y después se escala. Los radios y los
+    /// grosores de trazo no son animables por su cuenta, así que si cambiara
+    /// `size` directamente el anillo saltaría al cambiar de vista en vez de
+    /// crecer. Escalar una figura vectorial además no pierde nitidez.
+    private static let nominal: CGFloat = 400
+
+    private static let baseRadius = nominal * 0.4
+    private static let step = nominal * 0.09
+    private static let stroke = nominal * 0.058
+
     private var colors: LevelColors { LevelColors.forLevel(level) }
 
     /// Un día entero en pausa (-1) no llena nada: no es 0%, es "no aplica".
@@ -60,9 +67,9 @@ struct CongruenceRing: View {
 
     private var ringSpecs: [(radius: CGFloat, opacity: Double)] {
         [
-            (baseRadius, level == 1 ? 0.2 : 0.3),
-            (baseRadius - step, level == 1 ? 0.5 : 0.6),
-            (baseRadius - step * 2, 1.0)
+            (Self.baseRadius, level == 1 ? 0.2 : 0.3),
+            (Self.baseRadius - Self.step, level == 1 ? 0.5 : 0.6),
+            (Self.baseRadius - Self.step * 2, 1.0)
         ]
     }
 
@@ -71,26 +78,28 @@ struct CongruenceRing: View {
             // Resplandor ambiental detrás del anillo — crece con el nivel.
             Circle()
                 .fill(colors.primary.opacity(level >= 3 ? 0.18 : 0.08))
-                .frame(width: size * (level >= 3 ? 1.0 : 0.55),
-                       height: size * (level >= 3 ? 1.0 : 0.55))
-                .blur(radius: size * (level >= 3 ? 0.25 : 0.14))
+                .frame(width: Self.nominal * (level >= 3 ? 1.0 : 0.55),
+                       height: Self.nominal * (level >= 3 ? 1.0 : 0.55))
+                .blur(radius: Self.nominal * (level >= 3 ? 0.25 : 0.14))
 
             ForEach(Array(ringSpecs.enumerated()), id: \.offset) { _, spec in
                 if spec.radius > 0 {
                     ZStack {
                         RingTrack(radius: spec.radius)
-                            .stroke(Color.white.opacity(0.055), lineWidth: strokeWidth)
+                            .stroke(Color.white.opacity(0.055), lineWidth: Self.stroke)
 
                         RingArc(radius: spec.radius, progress: progress)
                             .stroke(
                                 colors.primary.opacity(spec.opacity),
-                                style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round)
+                                style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round)
                             )
                             .shadow(color: colors.glow, radius: colors.glowRadius)
                     }
                 }
             }
         }
+        .frame(width: Self.nominal, height: Self.nominal)
+        .scaleEffect(size / Self.nominal)
         .frame(width: size, height: size)
         .animation(.easeOut(duration: 0.6), value: progress)
     }
@@ -106,26 +115,27 @@ struct CongruenceDial: View {
     private var isPaused: Bool { percentage == -1 }
     private var colors: LevelColors { LevelColors.forLevel(level) }
 
+    /// El porcentaje tiene tamaño propio, no atado al anillo. Así no pega un
+    /// salto de tipografía cada vez que el anillo cambia de tamaño — y es lo
+    /// mismo que hace la web.
+    private var percentSize: CGFloat { min(88, size * 0.2) }
+
     var body: some View {
         VStack(spacing: 0) {
-            CongruenceRing(
-                percentage: percentage,
-                size: size,
-                strokeWidth: max(10, size * 0.058),
-                level: level
-            )
+            CongruenceRing(percentage: percentage, size: size, level: level)
 
             VStack(spacing: 8) {
                 Text(isPaused ? "—" : "\(max(percentage, 0))%")
-                    .font(.system(size: size * 0.16, weight: .bold))
+                    .font(.system(size: percentSize, weight: .bold))
                     .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(isPaused ? Palette.textMuted : colors.primary)
                     .shadow(color: colors.primary.opacity(0.35), radius: 18)
 
                 Text(isPaused ? "En pausa" : "Estabilidad")
                     .microLabelStyle(isPaused ? Palette.textFaint : colors.primary, size: 11)
             }
-            .padding(.top, size * 0.06)
+            .padding(.top, 28)
 
             if let phrase {
                 Text("“\(phrase)”")
@@ -134,8 +144,8 @@ struct CongruenceDial: View {
                     .foregroundStyle(Palette.textFaint)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
-                    .frame(maxWidth: min(size * 0.85, 420))
-                    .padding(.top, size * 0.07)
+                    .frame(maxWidth: 420)
+                    .padding(.top, 36)
             }
         }
     }
