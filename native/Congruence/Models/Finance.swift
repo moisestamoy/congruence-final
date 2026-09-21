@@ -96,7 +96,10 @@ struct FinancialConfig: JSONRecord {
         }
         set { set("budgetChanges", .object(newValue.mapValues(JSONValue.number))) }
     }
-    var cycleStartYearMonth: String? { string("cycleStartYearMonth") }
+    var cycleStartYearMonth: String? {
+        get { string("cycleStartYearMonth") }
+        set { set("cycleStartYearMonth", .from(newValue)) }
+    }
     var currency: String? { string("currency") }
     var currencyLocale: String? { string("currencyLocale") }
 }

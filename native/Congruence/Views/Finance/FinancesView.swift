@@ -10,6 +10,7 @@ struct FinancesView: View {
     @State private var dayDetails: String?
     @State private var newTransaction = false
     @State private var editingBudget = false
+    @State private var restarting = false
 
     init() {
         let c = FinanceEngine.calendar.dateComponents([.year, .month], from: Date())
@@ -56,6 +57,9 @@ struct FinancesView: View {
         .sheet(isPresented: $editingBudget) {
             BudgetSheet(year: viewYear, month: viewMonth)
         }
+        .sheet(isPresented: $restarting) {
+            RestartSheet(budget: doc.config.monthlyFixedBudget)
+        }
     }
 
     // MARK: - Encabezado
@@ -93,6 +97,18 @@ struct FinancesView: View {
 
     private var controlBar: some View {
         HStack(spacing: 10) {
+            Button { restarting = true } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(FinPalette.expense)
+                    .frame(width: 34, height: 34)
+                    .background(FinPalette.expense.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.expense.opacity(0.2), lineWidth: 1))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Reiniciar: nuevo ciclo o borrado total")
+
             HStack(spacing: 4) {
                 ForEach([1, 2, 3, 4, 12], id: \.self) { m in
                     Button { withAnimation(.smooth(duration: 0.3)) { horizon = m } } label: {

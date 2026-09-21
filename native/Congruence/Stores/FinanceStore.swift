@@ -204,6 +204,75 @@ final class FinanceStore {
         commit()
     }
 
+    // MARK: - Reinicio (RestartModal.tsx)
+
+    /// Nuevo ciclo (setBudgetFromMonth): un presupuesto desde `year/month` sin
+    /// tocar los meses anteriores. Con `clearFuture` borra los gastos reales y
+    /// los ajustes diarios desde ese mes; los fijos recurrentes se mantienen.
+    func startNewCycle(year: Int, month: Int, budget: Double, initialBalance: Double?,
+                       clearFuture: Bool) {
+        let ym = String(format: "%04d-%02d", year, month)
+        var config = document.config
+        var changes = config.budgetChanges
+        changes[ym] = budget
+        config.budgetChanges = changes
+        if changes.count == 1 { config.monthlyFixedBudget = budget }
+        // Como la web: un 0 cuenta como "no cambiar el saldo".
+        if let initialBalance, initialBalance != 0 { config.initialBalance = initialBalance }
+        document.config = config
+
+        if clearFuture {
+            let cutoff = ym + "-01"
+            let removed = document.realExpenses.filter { $0.date >= cutoff }
+            document.realExpenses = document.realExpenses.filter { $0.date < cutoff }
+            document.overrides = document.overrides.filter { $0.date < cutoff }
+            // Marcados, o la próxima sincronización los traería de vuelta de la nube.
+            deletedExpenseIds.formUnion(removed.map(\.id))
+        }
+        commit()
+    }
+
+    /// Borrado total (resetAll + updateConfig). Antes guarda una copia de todo
+    /// en backups/, por si fue sin querer.
+    func resetAll(year: Int, month: Int, budget: Double, initialBalance: Double) {
+        backupBeforeReset()
+        let ym = String(format: "%04d-%02d", year, month)
+        let old = document
+
+        var fresh = old
+        var config = FinancialConfig(raw: [:])
+        config.initialBalance = initialBalance
+        config.monthlyFixedBudget = budget
+        config.set("cycleStartDate", .number(1))
+        config.set("monthlyIncomeGoal", .number(3000))
+        config.budgetChanges = [ym: budget]
+        config.cycleStartYearMonth = ym
+        // La moneda se conserva, como en la web.
+        config.set("currency", old.config.raw["currency"])
+        config.set("currencyLocale", old.config.raw["currencyLocale"])
+        fresh.config = config
+        fresh.events = []
+        fresh.overrides = []
+        fresh.realExpenses = []
+        fresh.raw["savingsGoals"] = .object(["annual": .number(20000), "monthly": .number(1500)])
+        fresh.raw["savingsEntries"] = .array([])
+        fresh.raw["categoryBudgets"] = .object([:])
+        document = fresh
+        deletedExpenseIds.formUnion(old.realExpenses.map(\.id))
+        commit()
+    }
+
+    private func backupBeforeReset() {
+        let dir = fileURL.deletingLastPathComponent().appendingPathComponent("backups", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        if let data = try? JSONEncoder().encode(document) {
+            try? data.write(to: dir.appendingPathComponent("finances-antes-de-reiniciar-\(f.string(from: Date())).json"))
+        }
+    }
+
     /// El presupuesto mensual desde un mes en adelante (setMonthlyDailyBudget):
     /// borra los ajustes diarios de ese mes para que rija el nuevo promedio.
     func setMonthlyBudget(_ total: Double, year: Int, month: Int) {
