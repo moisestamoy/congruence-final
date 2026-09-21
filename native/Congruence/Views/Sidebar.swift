@@ -63,16 +63,6 @@ struct Sidebar: View {
 
             Spacer()
 
-            Text("Orden")
-                .microLabelStyle(Palette.textFaint, size: 8)
-                .padding(.vertical, 5)
-                .padding(.horizontal, 8)
-                .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6).stroke(Palette.hairlineFaint, lineWidth: 1)
-                )
-                .padding(.bottom, 10)
-
             Image(systemName: "arrow.right.square")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Palette.positive)

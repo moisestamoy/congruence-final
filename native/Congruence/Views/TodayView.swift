@@ -24,6 +24,8 @@ struct TodayView: View {
     @State private var section: AppSection = .habits
     @State private var isAddingHabit = false
     @State private var isEditingIdentity = false
+    @State private var editingHabit: Habit?
+    @State private var deletingHabit: Habit?
 
     private var layout: RingLayout { RingLayout(rawValue: layoutRaw) ?? .central }
 
@@ -101,10 +103,36 @@ struct TodayView: View {
             if UserDefaults.standard.bool(forKey: "debugOpenAddHabit") {
                 isAddingHabit = true
             }
+            // open Congruence.app --args -debugEditFirstHabit YES
+            if UserDefaults.standard.bool(forKey: "debugEditFirstHabit") {
+                editingHabit = store.habits.first
+            }
         }
         #endif
         .sheet(isPresented: $isAddingHabit) {
-            AddHabitSheet { store.add($0) }
+            HabitEditorSheet(onSave: { store.add($0) })
+        }
+        .sheet(item: $editingHabit) { habit in
+            HabitEditorSheet(
+                existing: habit,
+                onSave: { store.update($0) },
+                onDelete: { store.remove(habit.id) }
+            )
+        }
+        .confirmationDialog(
+            "¿Borrar \(deletingHabit?.title ?? "este hábito")?",
+            isPresented: Binding(
+                get: { deletingHabit != nil },
+                set: { if !$0 { deletingHabit = nil } }
+            )
+        ) {
+            Button("Borrar hábito y su historial", role: .destructive) {
+                if let h = deletingHabit { store.remove(h.id) }
+                deletingHabit = nil
+            }
+            Button("Cancelar", role: .cancel) { deletingHabit = nil }
+        } message: {
+            Text("Se pierden todos los días registrados. No se puede deshacer.")
         }
         .sheet(isPresented: $isEditingIdentity) {
             @Bindable var identity = identity
@@ -212,8 +240,24 @@ struct TodayView: View {
                                 weekDots: store.weekDots(for: habit),
                                 onToggle: { toggle(habit) },
                                 onSetValue: { store.setValue($0, for: habit.id, on: dayKey) },
-                                onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) }
+                                onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) },
+                                onEdit: { editingHabit = habit },
+                                onMove: { offset in
+                                    withAnimation(.smooth(duration: 0.3)) {
+                                        store.move(habit.id, by: offset)
+                                    }
+                                },
+                                onDelete: { deletingHabit = habit }
                             )
+                            // Arrastrar una fila sobre otra la pone en su lugar.
+                            .draggable(habit.id)
+                            .dropDestination(for: String.self) { ids, _ in
+                                guard let dragged = ids.first else { return false }
+                                withAnimation(.smooth(duration: 0.3)) {
+                                    store.move(dragged, onto: habit.id)
+                                }
+                                return true
+                            }
                         }
                     }
                 }

@@ -8,6 +8,9 @@ struct HabitRow: View {
     let onToggle: () -> Void
     let onSetValue: (Double) -> Void
     let onSkip: (LogStatus) -> Void
+    var onEdit: () -> Void = {}
+    var onMove: (Int) -> Void = { _ in }
+    var onDelete: () -> Void = {}
 
     private var log: HabitLog? { habit.log(on: day) }
     private var isDone: Bool { log?.completed == true }
@@ -58,8 +61,15 @@ struct HabitRow: View {
         .contentShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { if !isPaused { onToggle() } }
         .contextMenu {
+            Button("Editar…", action: onEdit)
+            Divider()
             Button("Marcar descanso") { onSkip(.rest) }
             Button("Marcar imprevisto") { onSkip(.emergency) }
+            Divider()
+            Button("Subir") { onMove(-1) }
+            Button("Bajar") { onMove(1) }
+            Divider()
+            Button("Borrar…", role: .destructive, action: onDelete)
         }
         .help(isPaused ? pauseLabel : (habit.subtitle ?? habit.title))
     }

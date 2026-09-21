@@ -84,6 +84,36 @@ final class HabitStore {
         save()
     }
 
+    /// Cambia nombre, ícono, color, eje o tipo. El historial no se toca: editar
+    /// un hábito nunca puede borrar días ya registrados.
+    func update(_ edited: Habit) {
+        guard let i = habits.firstIndex(where: { $0.id == edited.id }) else { return }
+        var merged = edited
+        merged.logs = habits[i].logs
+        merged.isDemo = false
+        habits[i] = merged
+        save()
+    }
+
+    /// Mueve un hábito una posición arriba (-1) o abajo (+1).
+    func move(_ habitId: String, by offset: Int) {
+        guard let i = habits.firstIndex(where: { $0.id == habitId }) else { return }
+        let j = i + offset
+        guard habits.indices.contains(j) else { return }
+        habits.swapAt(i, j)
+        save()
+    }
+
+    /// Suelta un hábito arrastrado en el lugar de otro.
+    func move(_ habitId: String, onto targetId: String) {
+        guard habitId != targetId,
+              let from = habits.firstIndex(where: { $0.id == habitId }),
+              let to = habits.firstIndex(where: { $0.id == targetId }) else { return }
+        let habit = habits.remove(at: from)
+        habits.insert(habit, at: to)
+        save()
+    }
+
     // MARK: - Congruencia
 
     /// Porcentaje de congruencia del día. Devuelve -1 cuando el día entero está

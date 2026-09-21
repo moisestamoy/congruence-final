@@ -4,18 +4,38 @@ import SwiftUI
 private let habitColors = ["#fbbf24", "#34d399", "#60a5fa", "#f472b6", "#a78bfa", "#fb7185", "#2dd4bf"]
 private let habitIcons = ["💪", "⭐", "📚", "🥑", "🧠", "🌱", "🎸", "🏃", "💧", "🧘"]
 
-struct AddHabitSheet: View {
+/// Crear y editar usan la misma hoja: si `existing` viene, se precarga y se
+/// guarda sobre el mismo id (el historial lo conserva el store).
+struct HabitEditorSheet: View {
+    let existing: Habit?
     let onSave: (Habit) -> Void
+    var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var title = ""
-    @State private var icon = "💪"
-    @State private var color = habitColors[0]
-    @State private var isNumeric = false
-    @State private var goalText = "30"
-    @State private var unit = "min"
-    @State private var axis: IdentityAxis = .physical
+    @State private var title: String
+    @State private var icon: String
+    @State private var color: String
+    @State private var isNumeric: Bool
+    @State private var goalText: String
+    @State private var unit: String
+    @State private var axis: IdentityAxis
+    @State private var confirmingDelete = false
+
+    init(existing: Habit? = nil,
+         onSave: @escaping (Habit) -> Void,
+         onDelete: (() -> Void)? = nil) {
+        self.existing = existing
+        self.onSave = onSave
+        self.onDelete = onDelete
+        _title = State(initialValue: existing?.title ?? "")
+        _icon = State(initialValue: existing?.icon ?? "💪")
+        _color = State(initialValue: existing?.color ?? habitColors[0])
+        _isNumeric = State(initialValue: existing?.type == .numeric)
+        _goalText = State(initialValue: existing.map { String(Int($0.goal)) } ?? "30")
+        _unit = State(initialValue: existing?.unit ?? "min")
+        _axis = State(initialValue: existing?.identityAxis ?? .physical)
+    }
 
     private var trimmed: String {
         title.trimmingCharacters(in: .whitespaces)
@@ -44,9 +64,13 @@ struct AddHabitSheet: View {
     }
 
     var body: some View {
-        SheetShell(title: "Nuevo objetivo", canSave: canSave, onCancel: { dismiss() }) {
-            save()
-        } content: {
+        SheetShell(
+            title: existing == nil ? "Nuevo objetivo" : "Editar objetivo",
+            canSave: canSave,
+            onCancel: { dismiss() },
+            onSave: save,
+            onDelete: onDelete == nil ? nil : { confirmingDelete = true }
+        ) {
             VStack(alignment: .leading, spacing: 22) {
                 preview
 
@@ -142,6 +166,18 @@ struct AddHabitSheet: View {
             }
             .animation(.smooth(duration: 0.25), value: isNumeric)
         }
+        .confirmationDialog(
+            "¿Borrar \(existing?.title ?? "este hábito")?",
+            isPresented: $confirmingDelete
+        ) {
+            Button("Borrar hábito y su historial", role: .destructive) {
+                onDelete?()
+                dismiss()
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Se pierden todos los días registrados. No se puede deshacer.")
+        }
     }
 
     /// La fila real, con el componente real, mostrada como se verá al cumplirla.
@@ -164,7 +200,7 @@ struct AddHabitSheet: View {
     private func save() {
         let goal = isNumeric ? (Double(goalText) ?? 1) : 1
         onSave(Habit(
-            id: UUID().uuidString,
+            id: existing?.id ?? UUID().uuidString,
             title: trimmed.uppercased(),
             subtitle: nil,
             type: isNumeric ? .numeric : .boolean,
@@ -240,6 +276,7 @@ struct SheetShell<Content: View>: View {
     let canSave: Bool
     let onCancel: () -> Void
     let onSave: () -> Void
+    var onDelete: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -254,6 +291,15 @@ struct SheetShell<Content: View>: View {
             Spacer(minLength: 26)
 
             HStack(spacing: 10) {
+                if let onDelete {
+                    Button("Borrar", action: onDelete)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.negative)
+                        .frame(height: 34)
+                        .contentShape(Rectangle())
+                }
+
                 Spacer()
 
                 Button("Cancelar", action: onCancel)
