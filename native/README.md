@@ -30,10 +30,25 @@ xcrun swiftc -typecheck -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
 
 ## Dónde vive la data
 
-Por ahora, local: `~/Library/Application Support/Congruence/habits.json`.
+En tu cuenta de Supabase, la misma que usa la web (tabla `user_data`,
+columnas `habits_data` y `finances_data`). Entrás con tu mail y contraseña
+desde el botón de abajo de la barra lateral; la sesión queda en el llavero
+de macOS.
 
-La sincronización con Supabase (misma tabla `user_data` que usa la web) es el
-siguiente paso — hasta entonces la app nativa y la web no comparten datos.
+Copia local y respaldos en `~/Library/Application Support/Congruence/`
+(`backups/` guarda las últimas 20 versiones distintas que bajaron de la nube).
+
+Las reglas de sincronización están explicadas arriba de `SyncService.swift`.
+Lo más importante: nunca escribe sin haber leído antes, sólo toca
+`habits_data` y `finances_data`, y respeta los gastos que tu Atajo de iPhone
+escribe directo en la base.
+
+## Pendiente conocido
+
+La web calcula el saldo empezando un mes antes en zonas horarias al oeste de
+Greenwich (ver el comentario de `FinanceEngine.walkStart`). La nativa lo
+replica a propósito para que los saldos coincidan; hay que arreglarlo en las
+dos apps a la vez y volver a cargar el "saldo actual".
 
 ## Estructura
 
@@ -41,9 +56,10 @@ siguiente paso — hasta entonces la app nativa y la web no comparten datos.
 Congruence/
   CongruenceApp.swift     punto de entrada
   Design/Theme.swift      colores y tipografía (espejo de src/index.css)
-  Models/Habit.swift      Habit, HabitLog, el día que arranca a las 5 AM
-  Stores/HabitStore.swift congruencia, racha, nivel, guardado en disco
-  Views/                  anillo, fila de hábito, pantalla de hoy
+  Models/                 hábitos, finanzas, y el motor de proyección
+  Stores/                 HabitStore, FinanceStore
+  Services/               login, llavero, sincronización con Supabase
+  Views/                  hoy (anillo y hábitos), Finance/ (planillas y hojas)
 ```
 
 Las reglas de negocio son un port directo de `src/features/habits/useHabitStore.ts`
