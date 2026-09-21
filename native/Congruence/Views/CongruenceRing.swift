@@ -68,11 +68,18 @@ struct CongruenceRing: View {
 
     var body: some View {
         ZStack {
+            // Resplandor ambiental detrás del anillo — crece con el nivel.
+            Circle()
+                .fill(colors.primary.opacity(level >= 3 ? 0.18 : 0.08))
+                .frame(width: size * (level >= 3 ? 1.0 : 0.55),
+                       height: size * (level >= 3 ? 1.0 : 0.55))
+                .blur(radius: size * (level >= 3 ? 0.25 : 0.14))
+
             ForEach(Array(ringSpecs.enumerated()), id: \.offset) { _, spec in
                 if spec.radius > 0 {
                     ZStack {
                         RingTrack(radius: spec.radius)
-                            .stroke(Color.white.opacity(0.05), lineWidth: strokeWidth)
+                            .stroke(Color.white.opacity(0.055), lineWidth: strokeWidth)
 
                         RingArc(radius: spec.radius, progress: progress)
                             .stroke(
@@ -108,26 +115,27 @@ struct CongruenceDial: View {
                 level: level
             )
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text(isPaused ? "—" : "\(max(percentage, 0))%")
-                    .font(.system(size: size * 0.22, weight: .bold))
+                    .font(.system(size: size * 0.16, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(isPaused ? Palette.textMuted : colors.primary)
+                    .shadow(color: colors.primary.opacity(0.35), radius: 18)
 
                 Text(isPaused ? "En pausa" : "Estabilidad")
-                    .microLabelStyle(Palette.textFaint, size: 10)
+                    .microLabelStyle(isPaused ? Palette.textFaint : colors.primary, size: 11)
             }
-            .padding(.top, size * 0.12)
+            .padding(.top, size * 0.06)
 
             if let phrase {
-                Text(phrase)
-                    .font(.system(size: 12, weight: .light, design: .serif))
+                Text("“\(phrase)”")
+                    .font(.system(size: 13, weight: .light, design: .serif))
                     .italic()
                     .foregroundStyle(Palette.textFaint)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .frame(maxWidth: size * 1.15)
-                    .padding(.top, size * 0.11)
+                    .lineSpacing(5)
+                    .frame(maxWidth: min(size * 0.85, 420))
+                    .padding(.top, size * 0.07)
             }
         }
     }

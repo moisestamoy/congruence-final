@@ -139,17 +139,31 @@ final class HabitStore {
         }
     }
 
+    /// Los últimos 7 días de un hábito, del más viejo al más reciente.
+    func weekDots(for habit: Habit, endingOn day: Date = HabitDay.current()) -> [Bool] {
+        (0..<7).reversed().map { i in
+            habit.logs[HabitDay.key(HabitDay.adding(-i, to: day))]?.completed == true
+        }
+    }
+
+    /// Los últimos 7 días del día completo: hubo congruencia o no.
+    func congruenceWeekDots(endingOn day: Date = HabitDay.current()) -> [Bool] {
+        (0..<7).reversed().map { i in
+            congruence(on: HabitDay.key(HabitDay.adding(-i, to: day))) > 0
+        }
+    }
+
     // MARK: - Datos de ejemplo (sólo en el primer arranque)
 
     static let seed: [Habit] = [
         Habit(id: "1", title: "ENTRENAR", subtitle: "Ejemplo: hábito físico diario",
-              type: .boolean, goal: 1, unit: nil, color: "#fbbf24", icon: nil,
+              type: .boolean, goal: 1, unit: nil, color: "#fbbf24", icon: "💪",
               identityAxis: .physical, logs: [:], isDemo: true),
         Habit(id: "2", title: "ALIMENTACIÓN IDEAL", subtitle: "Ejemplo: hábito de salud",
-              type: .boolean, goal: 1, unit: nil, color: "#34d399", icon: nil,
+              type: .boolean, goal: 1, unit: nil, color: "#34d399", icon: "⭐",
               identityAxis: .physical, logs: [:], isDemo: true),
         Habit(id: "3", title: "LECTURA", subtitle: "Ejemplo: hábito de crecimiento",
-              type: .numeric, goal: 30, unit: "min", color: "#60a5fa", icon: nil,
+              type: .numeric, goal: 30, unit: "min", color: "#60a5fa", icon: "📚",
               identityAxis: .growth, logs: [:], isDemo: true)
     ]
 }
