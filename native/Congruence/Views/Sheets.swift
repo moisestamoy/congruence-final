@@ -17,48 +17,69 @@ struct AddHabitSheet: View {
     @State private var unit = "min"
     @State private var axis: IdentityAxis = .physical
 
-    private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
+    private var trimmed: String {
+        title.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var canSave: Bool { !trimmed.isEmpty }
+    private var tint: Color { Color(hex: color) }
+
+    /// El hábito tal como quedará. Se arma con los mismos datos que se guardan,
+    /// así que la vista previa no puede mentir.
+    private var draft: Habit {
+        Habit(
+            id: "preview",
+            title: trimmed.isEmpty ? "Tu hábito" : trimmed.uppercased(),
+            subtitle: nil,
+            type: isNumeric ? .numeric : .boolean,
+            goal: max(Double(goalText) ?? 1, 1),
+            unit: isNumeric ? unit : nil,
+            color: color,
+            icon: icon,
+            identityAxis: axis,
+            logs: ["preview": HabitLog(date: "preview", completed: true,
+                                       value: isNumeric ? (Double(goalText) ?? 1) : nil)],
+            isDemo: false
+        )
     }
 
     var body: some View {
         SheetShell(title: "Nuevo objetivo", canSave: canSave, onCancel: { dismiss() }) {
             save()
         } content: {
-            VStack(alignment: .leading, spacing: 20) {
-                field("Nombre") {
-                    TextField("Entrenar", text: $title)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.text)
-                        .padding(.horizontal, 12)
-                        .frame(height: 38)
-                        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 9)
-                                .stroke(Palette.hairlineFaint, lineWidth: 1)
-                        )
+            VStack(alignment: .leading, spacing: 22) {
+                preview
+
+                section("Nombre") {
+                    DarkField(placeholder: "Entrenar", text: $title)
                 }
 
-                field("Ícono") {
-                    HStack(spacing: 6) {
+                section("Ícono") {
+                    HStack(spacing: 4) {
                         ForEach(habitIcons, id: \.self) { option in
                             Button { icon = option } label: {
                                 Text(option)
-                                    .font(.system(size: 15))
-                                    .frame(width: 32, height: 32)
+                                    .font(.system(size: 16))
+                                    .frame(width: 34, height: 34)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(icon == option ? Color.white.opacity(0.08) : .clear)
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(icon == option ? tint.opacity(0.14) : .clear)
                                     )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .stroke(icon == option ? tint.opacity(0.5) : .clear,
+                                                    lineWidth: 1)
+                                    )
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
                     }
+                    .animation(.smooth(duration: 0.2), value: icon)
                 }
 
-                field("Color") {
-                    HStack(spacing: 8) {
+                section("Color") {
+                    HStack(spacing: 10) {
                         ForEach(habitColors, id: \.self) { option in
                             Button { color = option } label: {
                                 Circle()
@@ -66,67 +87,77 @@ struct AddHabitSheet: View {
                                     .frame(width: 20, height: 20)
                                     .overlay(
                                         Circle()
-                                            .stroke(Color.white, lineWidth: color == option ? 2 : 0)
-                                            .padding(-3)
+                                            .stroke(Color(hex: option).opacity(0.5),
+                                                    lineWidth: color == option ? 2 : 0)
+                                            .padding(-4)
                                     )
+                                    .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
                         }
+                        Spacer()
                     }
+                    .animation(.smooth(duration: 0.2), value: color)
                 }
 
-                field("Eje de identidad") {
-                    Picker("", selection: $axis) {
-                        ForEach(IdentityAxis.allCases, id: \.self) { a in
-                            Text(a.label).tag(a)
+                section("Eje de identidad") {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                        spacing: 8
+                    ) {
+                        ForEach(IdentityAxis.allCases, id: \.self) { option in
+                            Chip(label: option.label,
+                                 isSelected: axis == option,
+                                 tint: tint,
+                                 fillsWidth: true) { axis = option }
                         }
                     }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(Palette.accent)
                 }
 
-                Toggle(isOn: $isNumeric) {
-                    Text("Medir una cantidad")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.textMuted)
+                Divider().overlay(Palette.hairlineFaint)
+
+                section("Cómo se cumple") {
+                    HStack(spacing: 8) {
+                        Chip(label: "Sí o no", isSelected: !isNumeric, tint: tint) {
+                            isNumeric = false
+                        }
+                        Chip(label: "Una cantidad", isSelected: isNumeric, tint: tint) {
+                            isNumeric = true
+                        }
+                        Spacer()
+                    }
                 }
-                .toggleStyle(.switch)
-                .tint(Palette.accent)
 
                 if isNumeric {
-                    HStack(spacing: 12) {
-                        field("Meta") {
-                            TextField("30", text: $goalText)
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 14, weight: .semibold))
-                                .monospacedDigit()
-                                .foregroundStyle(Palette.text)
-                                .padding(.horizontal, 12)
-                                .frame(width: 80, height: 38)
-                                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .stroke(Palette.hairlineFaint, lineWidth: 1)
-                                )
+                    HStack(alignment: .bottom, spacing: 12) {
+                        section("Meta") {
+                            DarkField(placeholder: "30", text: $goalText, width: 80)
                         }
-                        field("Unidad") {
-                            TextField("min", text: $unit)
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Palette.text)
-                                .padding(.horizontal, 12)
-                                .frame(width: 100, height: 38)
-                                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .stroke(Palette.hairlineFaint, lineWidth: 1)
-                                )
+                        section("Unidad") {
+                            DarkField(placeholder: "min", text: $unit, width: 110)
                         }
                         Spacer()
                     }
                 }
             }
+            .animation(.smooth(duration: 0.25), value: isNumeric)
+        }
+    }
+
+    /// La fila real, con el componente real, mostrada como se verá al cumplirla.
+    private var preview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Así se va a ver").microLabelStyle(Palette.textFaint, size: 9)
+
+            HabitRow(
+                habit: draft,
+                day: "preview",
+                weekDots: Array(repeating: false, count: 7),
+                onToggle: {},
+                onSetValue: { _ in },
+                onSkip: { _ in }
+            )
+            .allowsHitTesting(false)
         }
     }
 
@@ -134,7 +165,7 @@ struct AddHabitSheet: View {
         let goal = isNumeric ? (Double(goalText) ?? 1) : 1
         onSave(Habit(
             id: UUID().uuidString,
-            title: title.trimmingCharacters(in: .whitespaces).uppercased(),
+            title: trimmed.uppercased(),
             subtitle: nil,
             type: isNumeric ? .numeric : .boolean,
             goal: max(goal, 1),
@@ -149,8 +180,8 @@ struct AddHabitSheet: View {
     }
 
     @ViewBuilder
-    private func field<C: View>(_ label: String, @ViewBuilder content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func section<C: View>(_ label: String, @ViewBuilder content: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
             Text(label).microLabelStyle(Palette.textFaint, size: 9)
             content()
         }
@@ -172,12 +203,12 @@ struct IdentityEditSheet: View {
             onSave()
             dismiss()
         } content: {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 9) {
                     Text("Soy una persona que…").microLabelStyle(Palette.textFaint, size: 9)
                     editor(text: $statement, height: 88)
                 }
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 9) {
                     Text("En 90 días").microLabelStyle(Palette.textFaint, size: 9)
                     editor(text: $goal, height: 66)
                 }
@@ -220,33 +251,37 @@ struct SheetShell<Content: View>: View {
 
             content
 
-            Spacer(minLength: 24)
+            Spacer(minLength: 26)
 
             HStack(spacing: 10) {
                 Spacer()
+
                 Button("Cancelar", action: onCancel)
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .padding(.horizontal, 14)
-                    .frame(height: 32)
+                    .frame(height: 34)
+                    .contentShape(Rectangle())
 
                 Button("Guardar", action: onSave)
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(canSave ? Color.black : Palette.textFaint)
-                    .padding(.horizontal, 18)
-                    .frame(height: 32)
+                    .padding(.horizontal, 20)
+                    .frame(height: 34)
                     .background(
                         Capsule().fill(canSave ? Palette.accent : Color.white.opacity(0.06))
                     )
                     .shadow(color: canSave ? Palette.accent.opacity(0.35) : .clear,
                             radius: 14, y: 3)
+                    .contentShape(Capsule())
                     .disabled(!canSave)
+                    .animation(.smooth(duration: 0.25), value: canSave)
             }
         }
         .padding(26)
-        .frame(width: 460)
+        .frame(width: 480)
         .background(Palette.base)
     }
 }

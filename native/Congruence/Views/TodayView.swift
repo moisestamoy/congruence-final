@@ -94,6 +94,15 @@ struct TodayView: View {
             }
         }
         .background(Palette.base)
+        #if DEBUG
+        // Para revisar la hoja sin tener que hacer clic:
+        // open Congruence.app --args -debugOpenAddHabit YES
+        .onAppear {
+            if UserDefaults.standard.bool(forKey: "debugOpenAddHabit") {
+                isAddingHabit = true
+            }
+        }
+        #endif
         .sheet(isPresented: $isAddingHabit) {
             AddHabitSheet { store.add($0) }
         }

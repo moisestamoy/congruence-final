@@ -94,28 +94,26 @@ struct HabitRow: View {
         return log?.status == .rest ? "Descanso" : "Imprevisto"
     }
 
+    /// Sólo indicador. El que marca es el gesto de la fila entera — tener acá
+    /// un botón además del gesto era dos controles para la misma acción, y dos
+    /// formas de dispararla sin querer.
     private var marker: some View {
-        Button(action: onToggle) {
-            ZStack {
-                Circle()
-                    .stroke(isDone ? tint : Palette.hairline, lineWidth: 1.5)
-                    .frame(width: 20, height: 20)
+        ZStack {
+            Circle()
+                .stroke(isDone ? tint : Palette.hairline, lineWidth: 1.5)
+                .frame(width: 20, height: 20)
 
-                if isDone {
-                    Circle()
-                        .fill(tint)
-                        .frame(width: 10, height: 10)
-                        .shadow(color: tint.opacity(0.6), radius: 6)
-                } else if isPaused {
-                    Rectangle()
-                        .fill(Palette.textFaint)
-                        .frame(width: 9, height: 1.5)
-                }
+            if isDone {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: tint.opacity(0.6), radius: 6)
+            } else if isPaused {
+                Rectangle()
+                    .fill(Palette.textFaint)
+                    .frame(width: 9, height: 1.5)
             }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .disabled(isPaused)
     }
 
     private var weekStrip: some View {
