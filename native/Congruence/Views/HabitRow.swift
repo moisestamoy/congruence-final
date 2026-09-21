@@ -3,6 +3,8 @@ import SwiftUI
 struct HabitRow: View {
     let habit: Habit
     let day: String
+    /// Los últimos 7 días, del más viejo al más reciente.
+    let weekDots: [Bool]
     let onToggle: () -> Void
     let onSetValue: (Double) -> Void
     let onSkip: (LogStatus) -> Void
@@ -13,42 +15,45 @@ struct HabitRow: View {
     private var tint: Color { Color(hex: habit.color) }
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 0) {
             marker
+                .padding(.trailing, 14)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(habit.title)
-                    .font(.system(size: 12, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(statusColor)
-                    .strikethrough(isPaused, color: Palette.textFaint)
-
-                if let subtitle = habit.subtitle, !subtitle.isEmpty {
-                    Text(isPaused ? pauseLabel : subtitle)
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.textFaint)
-                        .lineLimit(1)
-                }
+            if let icon = habit.icon, !icon.isEmpty {
+                Text(icon)
+                    .font(.system(size: 14))
+                    .padding(.trailing, 10)
             }
 
-            Spacer(minLength: 8)
+            Text(habit.title)
+                .font(.system(size: 12, weight: .bold))
+                .tracking(1.1)
+                .foregroundStyle(statusColor)
+                .strikethrough(isPaused, color: Palette.textFaint)
+                .lineLimit(1)
 
+            Spacer(minLength: 10)
+
+            // Los hábitos numéricos muestran el contador; el resto, la semana.
             if habit.type == .numeric {
                 numericControl
+            } else {
+                weekStrip
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .frame(height: 56)
         .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isDone ? tint.opacity(0.25) : Palette.hairlineFaint, lineWidth: 1)
+                .stroke(isDone ? tint.opacity(0.22) : Palette.hairlineFaint, lineWidth: 1)
         )
         .opacity(isPaused ? 0.5 : 1)
         .contextMenu {
             Button("Marcar descanso") { onSkip(.rest) }
             Button("Marcar imprevisto") { onSkip(.emergency) }
         }
+        .help(isPaused ? pauseLabel : (habit.subtitle ?? habit.title))
     }
 
     private var statusColor: Color {
@@ -79,9 +84,20 @@ struct HabitRow: View {
                         .frame(width: 9, height: 1.5)
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(isPaused)
+    }
+
+    private var weekStrip: some View {
+        HStack(spacing: 5) {
+            ForEach(Array(weekDots.enumerated()), id: \.offset) { _, done in
+                Circle()
+                    .fill(done ? tint.opacity(0.85) : Color.white.opacity(0.10))
+                    .frame(width: 4, height: 4)
+            }
+        }
     }
 
     private var numericControl: some View {
@@ -100,7 +116,7 @@ struct HabitRow: View {
                     .monospacedDigit()
                     .foregroundStyle(Palette.textFaint)
             }
-            .frame(minWidth: 72, alignment: .trailing)
+            .frame(minWidth: 70, alignment: .trailing)
 
             stepButton("plus") {
                 onSetValue((log?.value ?? 0) + stepSize)
@@ -109,7 +125,7 @@ struct HabitRow: View {
         .disabled(isPaused)
     }
 
-    /// Pasos redondos según la meta: 5 en 5 para metas grandes, de a 1 si es chica.
+    /// Pasos redondos según la meta: de a 5 para metas grandes, de a 1 si es chica.
     private var stepSize: Double {
         habit.goal >= 30 ? 5 : 1
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum Section: String, CaseIterable, Identifiable {
+enum AppSection: String, CaseIterable, Identifiable {
     case habits, finances, tasks, stats
 
     var id: String { rawValue }
@@ -47,7 +47,7 @@ struct RingMark: View {
 }
 
 struct Sidebar: View {
-    @Binding var selection: Section
+    @Binding var selection: AppSection
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,7 +56,7 @@ struct Sidebar: View {
                 .padding(.bottom, 26)
 
             VStack(spacing: 6) {
-                ForEach(Section.allCases) { section in
+                ForEach(AppSection.allCases) { section in
                     navButton(section)
                 }
             }
@@ -90,7 +90,7 @@ struct Sidebar: View {
         }
     }
 
-    private func navButton(_ section: Section) -> some View {
+    private func navButton(_ section: AppSection) -> some View {
         let isActive = selection == section
         return Button {
             selection = section
