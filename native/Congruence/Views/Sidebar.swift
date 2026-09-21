@@ -48,6 +48,10 @@ struct RingMark: View {
 
 struct Sidebar: View {
     @Binding var selection: AppSection
+    var onLogin: () -> Void = {}
+
+    @Environment(AuthService.self) private var auth
+    @Environment(SyncService.self) private var sync
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,11 +67,7 @@ struct Sidebar: View {
 
             Spacer()
 
-            Image(systemName: "arrow.right.square")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Palette.positive)
-                .frame(width: 30, height: 30)
-                .background(Palette.positive.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+            accountButton
                 .padding(.bottom, 18)
         }
         .frame(width: 72)
@@ -77,6 +77,71 @@ struct Sidebar: View {
             Rectangle()
                 .fill(Palette.hairlineFaint)
                 .frame(width: 1)
+        }
+    }
+
+    // MARK: - Cuenta y estado de sincronización
+
+    @ViewBuilder
+    private var accountButton: some View {
+        if let session = auth.session {
+            Menu {
+                Text(session.email)
+                Text(statusText)
+                Divider()
+                Button("Sincronizar ahora") { Task { await sync.refresh() } }
+                Button("Cerrar sesión", role: .destructive) { sync.signOut() }
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    Text(String(session.email.prefix(1)).uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: 30, height: 30)
+                        .background(Palette.accent.opacity(0.10), in: Circle())
+                        .overlay(Circle().stroke(Palette.accent.opacity(0.25), lineWidth: 1))
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Palette.surface, lineWidth: 2))
+                }
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(statusText)
+        } else {
+            Button(action: onLogin) {
+                Image(systemName: "arrow.right.square")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.positive)
+                    .frame(width: 30, height: 30)
+                    .background(Palette.positive.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Entrar con tu cuenta")
+        }
+    }
+
+    private var statusColor: Color {
+        switch sync.status {
+        case .synced:    return Palette.positive
+        case .syncing:   return Palette.accent
+        case .error:     return Palette.negative
+        case .signedOut: return Palette.textFaint
+        }
+    }
+
+    private var statusText: String {
+        switch sync.status {
+        case .synced(let date):
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "es")
+            f.timeStyle = .short
+            return "Sincronizado · \(f.string(from: date))"
+        case .syncing:          return "Sincronizando…"
+        case .error(let msg):   return "Sin sincronizar · \(msg)"
+        case .signedOut:        return "Sin cuenta"
         }
     }
 

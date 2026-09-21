@@ -16,7 +16,6 @@ enum RingLayout: String {
 
 struct TodayView: View {
     @Environment(HabitStore.self) private var store
-    @Environment(IdentityStore.self) private var identity
 
     @AppStorage("ring_layout") private var layoutRaw = RingLayout.central.rawValue
 
@@ -26,6 +25,7 @@ struct TodayView: View {
     @State private var isEditingIdentity = false
     @State private var editingHabit: Habit?
     @State private var deletingHabit: Habit?
+    @State private var isLoggingIn = false
 
     private var layout: RingLayout { RingLayout(rawValue: layoutRaw) ?? .central }
 
@@ -43,7 +43,7 @@ struct TodayView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Sidebar(selection: $section)
+            Sidebar(selection: $section, onLogin: { isLoggingIn = true })
 
             GeometryReader { geo in
                 let w = geo.size.width
@@ -109,6 +109,7 @@ struct TodayView: View {
             }
         }
         #endif
+        .sheet(isPresented: $isLoggingIn) { LoginSheet() }
         .sheet(isPresented: $isAddingHabit) {
             HabitEditorSheet(onSave: { store.add($0) })
         }
@@ -135,8 +136,8 @@ struct TodayView: View {
             Text("Se pierden todos los días registrados. No se puede deshacer.")
         }
         .sheet(isPresented: $isEditingIdentity) {
-            @Bindable var identity = identity
-            IdentityEditSheet(manifesto: $identity.manifesto) { identity.save() }
+            @Bindable var store = store
+            IdentityEditSheet(manifesto: $store.manifesto) {}
         }
     }
 
@@ -208,7 +209,7 @@ struct TodayView: View {
 
     private var leftColumn: some View {
         VStack(spacing: 20) {
-            IdentityCard(manifesto: identity.manifesto)
+            IdentityCard(manifesto: store.manifesto)
                 .onTapGesture { isEditingIdentity = true }
             NinetyDayCard(
                 congruentDays: store.ninetyDayCongruentDays(),

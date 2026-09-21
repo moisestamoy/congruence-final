@@ -3,16 +3,29 @@ import Observation
 
 @Observable
 final class HabitStore {
-    private(set) var habits: [Habit] = []
+    /// Todo lo que vive en `habits_data`: hábitos, manifiesto y lo que la web
+    /// agregue. Se guarda y se sube entero, sin perder campos.
+    private(set) var document: HabitsDocument
+
+    var habits: [Habit] { document.habits }
+
+    var manifesto: IdentityManifesto {
+        get { document.identity }
+        set { document.identity = newValue; commit() }
+    }
+
+    /// Se llama después de cada cambio hecho acá (no de los que llegan de la
+    /// nube). La sincronización se engancha acá para subir.
+    @ObservationIgnored var onLocalChange: (() -> Void)?
 
     private let fileURL: URL
 
     init(fileURL: URL? = nil) {
         self.fileURL = fileURL ?? HabitStore.defaultFileURL()
-        load()
+        self.document = HabitStore.load(from: self.fileURL)
     }
 
-    // MARK: - Persistencia
+    // MARK: - Persistencia local
 
     private static func defaultFileURL() -> URL {
         let dir = FileManager.default
@@ -22,96 +35,120 @@ final class HabitStore {
         return dir.appendingPathComponent("habits.json")
     }
 
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let decoded = try? JSONDecoder().decode([Habit].self, from: data) else {
-            habits = HabitStore.seed
-            return
+    private static func load(from url: URL) -> HabitsDocument {
+        guard let data = try? Data(contentsOf: url) else {
+            return HabitsDocument(habits: seed)
         }
-        habits = decoded
+        if let doc = try? JSONDecoder().decode(HabitsDocument.self, from: data) {
+            return doc
+        }
+        // Formato anterior: sólo el arreglo de hábitos.
+        if let habits = try? JSONDecoder().decode([Habit].self, from: data) {
+            return HabitsDocument(habits: habits)
+        }
+        return HabitsDocument(habits: seed)
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder().encode(habits) else { return }
+    private func writeToDisk() {
+        guard let data = try? JSONEncoder().encode(document) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    /// Cambio local: se guarda y se avisa para subirlo.
+    private func commit() {
+        writeToDisk()
+        onLocalChange?()
+    }
+
+    /// Versión que llega de la nube: reemplaza todo, se guarda, y NO avisa —
+    /// si avisara, volvería a subir lo mismo que acaba de bajar.
+    func adoptRemote(_ remote: HabitsDocument) {
+        document = remote
+        writeToDisk()
     }
 
     // MARK: - Mutaciones
 
+    private func index(of id: String) -> Int? {
+        document.habits.firstIndex { $0.id == id }
+    }
+
     func toggle(_ habitId: String, on day: String) {
-        guard let i = habits.firstIndex(where: { $0.id == habitId }) else { return }
-        if habits[i].logs[day]?.completed == true {
-            habits[i].logs.removeValue(forKey: day)
+        guard let i = index(of: habitId) else { return }
+        if document.habits[i].logs[day]?.completed == true {
+            document.habits[i].logs.removeValue(forKey: day)
         } else {
-            habits[i].logs[day] = HabitLog(date: day, completed: true)
+            document.habits[i].logs[day] = HabitLog(date: day, completed: true)
         }
-        save()
+        commit()
     }
 
     func setValue(_ value: Double, for habitId: String, on day: String) {
-        guard let i = habits.firstIndex(where: { $0.id == habitId }) else { return }
+        guard let i = index(of: habitId) else { return }
         if value <= 0 {
-            habits[i].logs.removeValue(forKey: day)
+            document.habits[i].logs.removeValue(forKey: day)
         } else {
-            habits[i].logs[day] = HabitLog(
+            document.habits[i].logs[day] = HabitLog(
                 date: day,
-                completed: value >= habits[i].goal,
+                completed: value >= document.habits[i].goal,
                 value: value
             )
         }
-        save()
+        commit()
     }
 
     func markSkip(_ habitId: String, on day: String, status: LogStatus, reason: String? = nil) {
-        guard let i = habits.firstIndex(where: { $0.id == habitId }) else { return }
+        guard let i = index(of: habitId) else { return }
         let trimmed = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
-        habits[i].logs[day] = HabitLog(
+        document.habits[i].logs[day] = HabitLog(
             date: day,
             completed: false,
             status: status,
             pauseReason: (trimmed?.isEmpty == false) ? trimmed : nil
         )
-        save()
+        commit()
     }
 
     func add(_ habit: Habit) {
-        habits.append(habit)
-        save()
+        document.habits.append(habit)
+        commit()
     }
 
     func remove(_ habitId: String) {
-        habits.removeAll { $0.id == habitId }
-        save()
+        document.habits.removeAll { $0.id == habitId }
+        commit()
     }
 
-    /// Cambia nombre, ícono, color, eje o tipo. El historial no se toca: editar
-    /// un hábito nunca puede borrar días ya registrados.
+    /// Cambia nombre, ícono, color, eje o tipo. El historial y los campos que
+    /// la nativa no conoce no se tocan: editar nunca borra nada.
     func update(_ edited: Habit) {
-        guard let i = habits.firstIndex(where: { $0.id == edited.id }) else { return }
+        guard let i = index(of: edited.id) else { return }
         var merged = edited
-        merged.logs = habits[i].logs
+        merged.logs = document.habits[i].logs
+        merged.extras = document.habits[i].extras
+        merged.archived = document.habits[i].archived
         merged.isDemo = false
-        habits[i] = merged
-        save()
+        document.habits[i] = merged
+        commit()
     }
 
     /// Mueve un hábito una posición arriba (-1) o abajo (+1).
     func move(_ habitId: String, by offset: Int) {
-        guard let i = habits.firstIndex(where: { $0.id == habitId }) else { return }
+        guard let i = index(of: habitId) else { return }
         let j = i + offset
-        guard habits.indices.contains(j) else { return }
-        habits.swapAt(i, j)
-        save()
+        guard document.habits.indices.contains(j) else { return }
+        document.habits.swapAt(i, j)
+        commit()
     }
 
     /// Suelta un hábito arrastrado en el lugar de otro.
     func move(_ habitId: String, onto targetId: String) {
         guard habitId != targetId,
-              let from = habits.firstIndex(where: { $0.id == habitId }),
-              let to = habits.firstIndex(where: { $0.id == targetId }) else { return }
-        let habit = habits.remove(at: from)
-        habits.insert(habit, at: to)
-        save()
+              let from = index(of: habitId),
+              let to = index(of: targetId) else { return }
+        let habit = document.habits.remove(at: from)
+        document.habits.insert(habit, at: to)
+        commit()
     }
 
     // MARK: - Congruencia
@@ -183,7 +220,7 @@ final class HabitStore {
         }
     }
 
-    // MARK: - Datos de ejemplo (sólo en el primer arranque)
+    // MARK: - Datos de ejemplo (sólo en el primer arranque, sin cuenta)
 
     static let seed: [Habit] = [
         Habit(id: "1", title: "ENTRENAR", subtitle: "Ejemplo: hábito físico diario",

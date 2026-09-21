@@ -29,6 +29,7 @@ struct HabitRow: View {
             }
 
             Text(habit.title)
+                .textCase(.uppercase)
                 .font(.system(size: 12, weight: .bold))
                 .tracking(1.1)
                 .foregroundStyle(statusColor)
