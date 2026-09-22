@@ -46,7 +46,6 @@ struct FinancesView: View {
             .frame(maxWidth: 1800)
             .frame(maxWidth: .infinity)
         }
-        .background(Palette.base)
         .sheet(item: Binding(get: { dayDetails.map(DayKey.init) },
                              set: { dayDetails = $0?.id })) { key in
             DayDetailsSheet(date: key.id)

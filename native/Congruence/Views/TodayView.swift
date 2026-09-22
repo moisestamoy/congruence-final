@@ -90,7 +90,6 @@ struct TodayView: View {
                 }
             }
         }
-        .background(Palette.base)
         #if DEBUG
         // Para revisar la hoja sin tener que hacer clic:
         // open Congruence.app --args -debugOpenAddHabit YES

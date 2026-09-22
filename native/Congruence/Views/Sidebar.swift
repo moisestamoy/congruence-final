@@ -53,6 +53,11 @@ struct Sidebar: View {
     @AppStorage("appearance") private var appearanceRaw = Appearance.system.rawValue
     @Environment(AuthService.self) private var auth
     @Environment(SyncService.self) private var sync
+    @AppStorage("translucency") private var translucencyRaw = Translucency.medium.rawValue
+
+    private var translucency: Translucency {
+        Translucency(rawValue: translucencyRaw) ?? .medium
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,7 +74,12 @@ struct Sidebar: View {
             Spacer()
 
             appearanceButton
+                .padding(.bottom, 6)
+
+            #if os(macOS)
+            translucencyButton
                 .padding(.bottom, 10)
+            #endif
 
             accountButton
                 .padding(.bottom, 18)
@@ -87,6 +97,25 @@ struct Sidebar: View {
     // MARK: - Apariencia
 
     private var appearance: Appearance { Appearance(rawValue: appearanceRaw) ?? .system }
+
+    #if os(macOS)
+    private var translucencyButton: some View {
+        Button {
+            withAnimation(.smooth(duration: 0.3)) { translucencyRaw = translucency.next.rawValue }
+        } label: {
+            Image(systemName: translucency.symbol)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
+                .frame(width: 30, height: 30)
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1))
+                .contentTransition(.symbolEffect(.replace))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Fondo: \(translucency.label) · clic para cambiar")
+    }
+    #endif
 
     private var appearanceButton: some View {
         Button {

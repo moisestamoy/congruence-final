@@ -65,7 +65,6 @@ struct TasksView: View {
                 }
             }
         }
-        .background(Palette.base)
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
         }

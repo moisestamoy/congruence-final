@@ -48,7 +48,9 @@ struct MonthTable: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(Palette.base)
+            // Tapa las filas que pasan por debajo al hacer scroll. No puede
+            // ser el color base opaco o abre un agujero en lo translúcido.
+            .background(.regularMaterial)
 
             Divider().overlay(Palette.hairlineFaint)
 

@@ -208,6 +208,48 @@ extension View {
 
 // MARK: - Apariencia elegida por vos
 
+/// Cuánto deja pasar la ventana.
+///
+/// El material del sistema mezcla lo que hay detrás con un velo del color
+/// base; esto decide el espesor del velo. En claro pide más que en oscuro:
+/// un fondo de escritorio brillante atravesando la ventana se come el texto,
+/// y sobre uno pálido el efecto se nota poco por mucho que se abra.
+enum Translucency: String, CaseIterable {
+    case solid, medium, glass
+
+    var label: String {
+        switch self {
+        case .solid:  return "Sólido"
+        case .medium: return "Translúcido"
+        case .glass:  return "Vidrio"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .solid:  return "square.fill"
+        case .medium: return "square.lefthalf.filled"
+        case .glass:  return "square.on.square.dashed"
+        }
+    }
+
+    func veil(dark: Bool) -> Double {
+        switch self {
+        case .solid:  return 1
+        case .medium: return dark ? 0.32 : 0.38
+        case .glass:  return dark ? 0.10 : 0.16
+        }
+    }
+
+    var next: Translucency {
+        switch self {
+        case .solid:  return .medium
+        case .medium: return .glass
+        case .glass:  return .solid
+        }
+    }
+}
+
 enum Appearance: String, CaseIterable {
     case system, dark, light
 

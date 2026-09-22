@@ -7,7 +7,10 @@ import AppKit
 /// escritorio, otras ventanas— y lo pinta acá. No es una imagen ni una
 /// opacidad nuestra; es el mismo material que usan Finder o Notas.
 struct WindowMaterial: NSViewRepresentable {
-    var material: NSVisualEffectView.Material = .underWindowBackground
+    /// `.underWindowBackground` es de los materiales más opacos que trae
+    /// macOS: deja pasar tan poco que el efecto no se nota. `.sidebar` es el
+    /// que usan las apps translúcidas del sistema para el fondo de ventana.
+    var material: NSVisualEffectView.Material = .sidebar
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -65,12 +68,15 @@ private struct TransparentWindow: NSViewRepresentable {
 /// más velo: un fondo brillante atravesando la ventana se come el texto.
 struct AppBackground: View {
     @Environment(\.colorScheme) private var scheme
+    @AppStorage("translucency") private var levelRaw = Translucency.medium.rawValue
+
+    private var level: Translucency { Translucency(rawValue: levelRaw) ?? .medium }
 
     var body: some View {
         #if os(macOS)
         ZStack {
             WindowMaterial()
-            Palette.base.opacity(scheme == .dark ? 0.45 : 0.55)
+            Palette.base.opacity(level.veil(dark: scheme == .dark))
             TransparentWindow().frame(width: 0, height: 0)
         }
         .ignoresSafeArea()
