@@ -77,7 +77,7 @@ struct CongruenceRing: View {
         ZStack {
             // Resplandor ambiental detrás del anillo — crece con el nivel.
             Circle()
-                .fill(Palette.glow(colors.primary, level >= 3 ? 0.18 : 0.08))
+                .fill(Palette.nightGlow(colors.primary, level >= 3 ? 0.18 : 0.08))
                 .frame(width: Self.nominal * (level >= 3 ? 1.0 : 0.55),
                        height: Self.nominal * (level >= 3 ? 1.0 : 0.55))
                 .blur(radius: Self.nominal * (level >= 3 ? 0.25 : 0.14))
@@ -86,7 +86,7 @@ struct CongruenceRing: View {
                 if spec.radius > 0 {
                     ZStack {
                         RingTrack(radius: spec.radius)
-                            .stroke(Palette.ringTrack, lineWidth: Self.stroke)
+                            .stroke(colors.track, lineWidth: Self.stroke)
 
                         RingArc(radius: spec.radius, progress: progress)
                             .stroke(
@@ -130,7 +130,7 @@ struct CongruenceDial: View {
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(isPaused ? Palette.textMuted : colors.primary)
-                    .shadow(color: Palette.glow(colors.primary, 0.35), radius: 18)
+                    .shadow(color: Palette.nightGlow(colors.primary, 0.35), radius: 18)
 
                 Text(isPaused ? "En pausa" : "Estabilidad")
                     .microLabelStyle(isPaused ? Palette.textFaint : colors.primary, size: 11)

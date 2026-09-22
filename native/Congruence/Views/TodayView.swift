@@ -73,7 +73,8 @@ struct TodayView: View {
 
                         // En vista dividida el panel respira más; en central se
                         // mantiene angosto para no comerle lugar al anillo.
-                        habitsColumn.frame(width: habitsW)
+                        habitsColumn(maxListHeight: max(180, geo.size.height - 260))
+                            .frame(width: habitsW)
                     }
                     .padding(24)
                 } else {
@@ -81,7 +82,7 @@ struct TodayView: View {
                         VStack(spacing: 24) {
                             ringHero(size: ringDiameter(width: w - 40, height: 560))
                                 .frame(height: 560)
-                            habitsColumn
+                            habitsColumn(maxListHeight: 4000)
                             leftColumn
                         }
                         .padding(20)
@@ -192,7 +193,15 @@ struct TodayView: View {
 
     // MARK: - Columna de hábitos
 
-    private var habitsColumn: some View {
+    /// Alto exacto de la lista: 56 de fila más 8 de separación. Sin esto el
+    /// `ScrollView` se estira a toda la altura disponible y la tarjeta queda
+    /// con media pantalla de blanco debajo de tres hábitos.
+    private var listContentHeight: CGFloat {
+        let n = CGFloat(store.habits.count)
+        return n * 56 + max(0, n - 1) * 8
+    }
+
+    private func habitsColumn(maxListHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             habitsHeader
                 .padding(.bottom, 16)
@@ -235,19 +244,17 @@ struct TodayView: View {
                     }
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: min(listContentHeight, maxListHeight))
             }
 
             addButton
-                .padding(.top, 8)
-
-            Spacer(minLength: 0)
+                .padding(.top, 10)
         }
         .padding(20)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18).stroke(Palette.hairlineFaint, lineWidth: 1)
-        )
+        // La tarjeta se ajusta a lo que tiene dentro. Cuando se estiraba a
+        // toda la altura, tres hábitos dejaban media pantalla de blanco y el
+        // botón de abajo quedaba desterrado al otro extremo.
+        .cardSurface(18)
     }
 
     private var habitsHeader: some View {

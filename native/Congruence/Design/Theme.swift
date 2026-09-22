@@ -134,6 +134,13 @@ enum Palette {
     static func glow(_ color: Color, _ opacity: Double) -> Color {
         Color(light: color.opacity(opacity * 0.22), dark: color.opacity(opacity))
     }
+
+    /// Un resplandor que en claro directamente no existe. Sobre blanco una
+    /// sombra de color no ilumina: deja un manchón rectangular alrededor del
+    /// texto o de la fila, que es justo lo que se veía detrás del "33%".
+    static func nightGlow(_ color: Color, _ opacity: Double) -> Color {
+        Color(light: .clear, dark: color.opacity(opacity))
+    }
 }
 
 extension View {
@@ -155,6 +162,10 @@ struct LevelColors {
     let primary: Color
     let glow: Color
     let glowRadius: CGFloat
+    /// El riel vacío del anillo. Lleva el color del propio anillo, muy
+    /// diluido: en claro un gris neutro terminaba siendo lo más oscuro de
+    /// la pantalla — tres aros enormes que no dicen nada tapando al que sí.
+    let track: Color
 
     static func forLevel(_ level: Int) -> LevelColors {
         let (hex, strength, radius): (String, Double, CGFloat) = {
@@ -170,8 +181,10 @@ struct LevelColors {
         let base = Color(hex: hex)
         return LevelColors(
             primary: .tint(hex),
-            glow: Palette.glow(base, strength),
-            glowRadius: radius
+            glow: Palette.nightGlow(base, strength),
+            glowRadius: radius,
+            track: Color(light: base.darkened(0.3).opacity(0.12),
+                         dark: .white.opacity(0.055))
         )
     }
 }

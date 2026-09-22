@@ -54,7 +54,7 @@ struct HabitRow: View {
         )
         // El resplandor sólo aparece al completar. Es la única recompensa
         // visual de la fila: si brillara siempre, no significaría nada.
-        .shadow(color: isDone ? Palette.glow(tint, 0.20) : .clear, radius: 14, y: 3)
+        .shadow(color: isDone ? Palette.nightGlow(tint, 0.20) : .clear, radius: 14, y: 3)
         .opacity(isPaused ? 0.5 : 1)
         .animation(.smooth(duration: 0.3), value: isDone)
         // Toda la fila marca el hábito, no sólo el círculo. Los botones de
@@ -118,7 +118,7 @@ struct HabitRow: View {
                 Circle()
                     .fill(tint)
                     .frame(width: 10, height: 10)
-                    .shadow(color: Palette.glow(tint, 0.6), radius: 6)
+                    .shadow(color: Palette.nightGlow(tint, 0.6), radius: 6)
             } else if isPaused {
                 Rectangle()
                     .fill(Palette.textFaint)
