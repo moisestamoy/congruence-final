@@ -7,23 +7,30 @@ import AppKit
 /// escritorio, otras ventanas— y lo pinta acá. No es una imagen ni una
 /// opacidad nuestra; es el mismo material que usan Finder o Notas.
 struct WindowMaterial: NSViewRepresentable {
-    /// `.underWindowBackground` es de los materiales más opacos que trae
-    /// macOS: deja pasar tan poco que el efecto no se nota. `.sidebar` es el
-    /// que usan las apps translúcidas del sistema para el fondo de ventana.
     var material: NSVisualEffectView.Material = .sidebar
+    /// La apariencia con la que se dibuja el material. Hay que fijarla a mano:
+    /// `NSVisualEffectView` hereda la de la ventana, no la de SwiftUI, así que
+    /// si eliges modo oscuro con el sistema en claro el fondo sale claro
+    /// detrás de una interfaz oscura.
+    var dark: Bool = false
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = material
         view.blendingMode = .behindWindow
         // Sin esto el material se apaga al perder el foco y la app parece
         // desactivada aunque estés escribiendo en ella.
         view.state = .active
+        apply(to: view)
         return view
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        apply(to: view)
+    }
+
+    private func apply(to view: NSVisualEffectView) {
         view.material = material
+        view.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     }
 }
 
@@ -75,7 +82,7 @@ struct AppBackground: View {
     var body: some View {
         #if os(macOS)
         ZStack {
-            WindowMaterial()
+            WindowMaterial(material: level.material, dark: scheme == .dark)
             Palette.base.opacity(level.veil(dark: scheme == .dark))
             TransparentWindow().frame(width: 0, height: 0)
         }

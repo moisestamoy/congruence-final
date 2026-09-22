@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 #if os(macOS)
 import AppKit
@@ -232,6 +235,15 @@ enum Translucency: String, CaseIterable {
         case .glass:  return "square.on.square.dashed"
         }
     }
+
+    #if os(macOS)
+    /// `.sidebar` es el material de fondo de ventana del sistema. `.hudWindow`
+    /// es el que más deja pasar, y es el único que en apariencia clara se nota
+    /// de verdad: los materiales claros de macOS son casi opacos por diseño.
+    var material: NSVisualEffectView.Material {
+        self == .glass ? .hudWindow : .sidebar
+    }
+    #endif
 
     func veil(dark: Bool) -> Double {
         switch self {
