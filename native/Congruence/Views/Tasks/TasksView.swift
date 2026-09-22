@@ -72,10 +72,22 @@ struct TasksView: View {
             Text(DateFormatter.es("EEEE, d 'de' MMMM 'de' yyyy").string(from: Date()).sentenceCased)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Palette.textMuted)
-            Text("Tareas")
-                .font(.system(size: 34, weight: .black))
-                .tracking(-0.8)
-                .foregroundStyle(Palette.text)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Tareas")
+                    .font(.system(size: 34, weight: .black))
+                    .tracking(-0.8)
+                    .foregroundStyle(Palette.text)
+                Spacer()
+                Button { store.toggleSound() } label: {
+                    Text(store.document.soundEnabled ? "♪" : "♩")
+                        .font(.system(size: 15))
+                        .foregroundStyle(store.document.soundEnabled ? Palette.accent : Palette.textFaint)
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(store.document.soundEnabled ? "Silenciar" : "Activar sonido")
+            }
         }
         .frame(maxWidth: 672, alignment: .leading)
         .frame(maxWidth: .infinity)
@@ -148,6 +160,7 @@ struct TasksView: View {
                         if !collapsed {
                             ForEach(entry.tasks) { task in
                                 TaskRow(task: task, group: store.group(task.groupId),
+                                        sound: store.document.soundEnabled,
                                         onToggle: { store.toggleTask(task.id) },
                                         onEdit: { editing = task },
                                         onDelete: { store.removeTask(task.id) })
@@ -206,7 +219,10 @@ struct TasksView: View {
                             .strikethrough(color: Palette.textFaint)
                             .foregroundStyle(Palette.textFaint)
                         Spacer(minLength: 8)
-                        Button("Deshacer") { store.toggleTask(task.id) }
+                        Button("Deshacer") {
+                            SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                            withAnimation(.smooth(duration: 0.25)) { store.toggleTask(task.id) }
+                        }
                             .buttonStyle(.plain)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Palette.accent)
@@ -229,6 +245,12 @@ struct TasksView: View {
                     .foregroundStyle(Palette.text)
                     .focused($inputFocused)
                     .onSubmit(addTask)
+                    .onChange(of: draft) { old, new in
+                        // Sólo al escribir, no al vaciar el campo tras guardar.
+                        if new.count > old.count {
+                            SoundEffects.shared.play(.key, enabled: store.document.soundEnabled)
+                        }
+                    }
             }
             .padding(.horizontal, 14)
             .frame(height: 46)
@@ -266,8 +288,12 @@ struct TasksView: View {
     }
 
     private func addTask() {
-        store.addTask(text: draft, priority: draftPriority,
-                      deadline: draftDeadline.map(HabitDay.key), groupId: draftGroupId)
+        guard !draft.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        withAnimation(.smooth(duration: 0.25)) {
+            store.addTask(text: draft, priority: draftPriority,
+                          deadline: draftDeadline.map(HabitDay.key), groupId: draftGroupId)
+        }
         draft = ""
         draftPriority = .normal
         draftDeadline = nil
@@ -306,6 +332,7 @@ struct TasksView: View {
             } else {
                 ForEach(list) { task in
                     TaskRow(task: task, group: store.group(task.groupId),
+                            sound: store.document.soundEnabled,
                             onToggle: { store.toggleTask(task.id) },
                             onEdit: { editing = task },
                             onDelete: { store.removeTask(task.id) })
@@ -342,7 +369,10 @@ struct TasksView: View {
                     Button { editingNote = note } label: { noteCard(note) }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Borrar", role: .destructive) { store.removeNote(note.id) }
+                            Button("Borrar", role: .destructive) {
+                                SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                                withAnimation(.smooth(duration: 0.25)) { store.removeNote(note.id) }
+                            }
                         }
                 }
             }
@@ -390,30 +420,61 @@ struct TasksView: View {
 struct TaskRow: View {
     let task: TodoTask
     let group: TaskGroup?
+    let sound: Bool
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
 
     @State private var hovering = false
+    /// Al completar, la tarea desaparece de la lista. Este instante deja ver
+    /// el círculo llenarse antes de que se vaya; sin él el clic no tiene
+    /// respuesta, sólo una fila que se esfuma.
+    @State private var completing = false
 
     private var isOverdue: Bool {
         guard let d = task.deadline else { return false }
         return d < HabitDay.key(HabitDay.current())
     }
 
+    private var accent: Color {
+        task.priority == .high ? Palette.negative
+            : task.priority == .medium ? Palette.warning : Palette.accent
+    }
+
+    private func complete() {
+        guard !completing else { return }
+        SoundEffects.shared.play(.bell, enabled: sound)
+        withAnimation(.spring(duration: 0.25)) { completing = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+            withAnimation(.smooth(duration: 0.28)) { onToggle() }
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: onToggle) {
-                Circle()
-                    .stroke(Palette.hairline, lineWidth: 1.5)
-                    .frame(width: 17, height: 17)
-                    .contentShape(Rectangle())
+            Button(action: complete) {
+                ZStack {
+                    Circle()
+                        .stroke(completing ? accent : Palette.hairline, lineWidth: 1.5)
+                        .frame(width: 17, height: 17)
+                    Circle()
+                        .fill(accent)
+                        .frame(width: 17, height: 17)
+                        .scaleEffect(completing ? 1 : 0.01)
+                        .opacity(completing ? 1 : 0)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 8, weight: .black))
+                        .foregroundStyle(Palette.onAccent)
+                        .opacity(completing ? 1 : 0)
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             Text(task.text)
                 .font(.system(size: 14))
-                .foregroundStyle(Palette.text)
+                .foregroundStyle(completing ? Palette.textFaint : Palette.text)
+                .strikethrough(completing, color: Palette.textFaint)
 
             if task.priority != .normal {
                 Text(task.priority.rawValue)
@@ -450,10 +511,18 @@ struct TaskRow: View {
         .onTapGesture(count: 2, perform: onEdit)
         .contextMenu {
             Button("Editar…", action: onEdit)
-            Button("Completar", action: onToggle)
+            Button("Completar", action: complete)
             Divider()
-            Button("Borrar", role: .destructive, action: onDelete)
+            Button("Borrar", role: .destructive) {
+                SoundEffects.shared.play(.pop, enabled: sound)
+                withAnimation(.smooth(duration: 0.25)) { onDelete() }
+            }
         }
+        // Entra desde arriba y sale hacia la derecha, como en la web.
+        .transition(.asymmetric(
+            insertion: .opacity.combined(with: .offset(y: -6)),
+            removal: .opacity.combined(with: .offset(x: 30))
+        ))
     }
 
     static func deadlineLabel(_ key: String) -> String {

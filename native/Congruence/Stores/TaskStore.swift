@@ -141,6 +141,11 @@ final class TaskStore {
         commit()
     }
 
+    func toggleSound() {
+        document.soundEnabled.toggle()
+        commit()
+    }
+
     // MARK: - Grupos
 
     func addGroup(name: String, color: String) -> String? {
