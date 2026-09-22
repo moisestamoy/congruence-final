@@ -76,7 +76,7 @@ struct Sidebar: View {
         }
         .frame(width: 72)
         .frame(maxHeight: .infinity)
-        .background(Palette.surface)
+        .background(Palette.surface.opacity(0.55))
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Palette.hairlineFaint)

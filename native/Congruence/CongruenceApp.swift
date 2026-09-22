@@ -32,7 +32,7 @@ struct CongruenceApp: App {
                 .environment(auth)
                 .environment(sync)
                 .preferredColorScheme(Appearance(rawValue: appearanceRaw)?.colorScheme)
-                .background(Palette.base)
+                .background(AppBackground())
                 .task { await sync.refresh() }
                 // Igual que la web al volver a la pestaña: al volver a la app, baja.
                 .onChange(of: scenePhase) { _, phase in

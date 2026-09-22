@@ -26,7 +26,6 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(Palette.base)
         .sheet(isPresented: $isLoggingIn) { LoginSheet() }
     }
 }
