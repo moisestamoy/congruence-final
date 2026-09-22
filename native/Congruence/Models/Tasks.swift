@@ -1,0 +1,155 @@
+import Foundation
+
+/// `TaskPriority` de la web: `null`, `"!"` o `"!!"`.
+enum TaskPriority: String, CaseIterable, Hashable {
+    case normal = ""
+    case medium = "!"
+    case high = "!!"
+
+    var weight: Int {
+        switch self {
+        case .high: return 2
+        case .medium: return 1
+        case .normal: return 0
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .normal: return "Sin prioridad"
+        case .medium: return "!"
+        case .high: return "!!"
+        }
+    }
+}
+
+/// Una tarea. Se llama `TodoTask` y no `Task` porque `Task` ya existe en Swift
+/// (el de la concurrencia) y chocaría en todos lados.
+struct TodoTask: JSONRecord, Identifiable {
+    var raw: [String: JSONValue]
+    init(raw: [String: JSONValue]) { self.raw = raw }
+
+    init(text: String, priority: TaskPriority, deadline: String?, groupId: String?) {
+        raw = [:]
+        id = UUID().uuidString
+        self.text = text
+        self.priority = priority
+        self.deadline = deadline
+        self.groupId = groupId
+        completed = false
+        set("completedAt", .null)
+        set("createdAt", .number(Date().timeIntervalSince1970 * 1000))
+    }
+
+    var id: String { get { string("id") ?? "" } set { set("id", .string(newValue)) } }
+    var text: String { get { string("text") ?? "" } set { set("text", .string(newValue)) } }
+
+    var priority: TaskPriority {
+        get { TaskPriority(rawValue: string("priority") ?? "") ?? .normal }
+        set { set("priority", newValue == .normal ? .null : .string(newValue.rawValue)) }
+    }
+    var deadline: String? {
+        get { string("deadline") }
+        set { set("deadline", newValue.map(JSONValue.string) ?? .null) }
+    }
+    var groupId: String? {
+        get { string("groupId") }
+        set { set("groupId", newValue.map(JSONValue.string) ?? .null) }
+    }
+    var completed: Bool { get { bool("completed") ?? false } set { set("completed", .bool(newValue)) } }
+    /// Milisegundos, como `Date.now()` en la web.
+    var completedAt: Double? {
+        get { double("completedAt") }
+        set { set("completedAt", newValue.map(JSONValue.number) ?? .null) }
+    }
+    var createdAt: Double { double("createdAt") ?? 0 }
+}
+
+struct TaskGroup: JSONRecord, Identifiable {
+    var raw: [String: JSONValue]
+    init(raw: [String: JSONValue]) { self.raw = raw }
+
+    init(name: String, color: String) {
+        raw = [:]
+        id = UUID().uuidString
+        self.name = name
+        self.color = color
+    }
+
+    var id: String { get { string("id") ?? "" } set { set("id", .string(newValue)) } }
+    var name: String { get { string("name") ?? "" } set { set("name", .string(newValue)) } }
+    var color: String { get { string("color") ?? "#3aada8" } set { set("color", .string(newValue)) } }
+}
+
+/// Una nota del diario.
+struct DiaryNote: JSONRecord, Identifiable {
+    var raw: [String: JSONValue]
+    init(raw: [String: JSONValue]) { self.raw = raw }
+
+    init(title: String, content: String) {
+        raw = [:]
+        let now = Date().timeIntervalSince1970 * 1000
+        id = UUID().uuidString
+        self.title = title
+        self.content = content
+        set("createdAt", .number(now))
+        set("updatedAt", .number(now))
+    }
+
+    var id: String { get { string("id") ?? "" } set { set("id", .string(newValue)) } }
+    var title: String { get { string("title") ?? "" } set { set("title", .string(newValue)) } }
+    var content: String { get { string("content") ?? "" } set { set("content", .string(newValue)) } }
+    var createdAt: Double { double("createdAt") ?? 0 }
+    var updatedAt: Double { get { double("updatedAt") ?? 0 } set { set("updatedAt", .number(newValue)) } }
+
+    var date: Date { Date(timeIntervalSince1970: createdAt / 1000) }
+}
+
+/// Exactamente lo que guarda la columna `tasks_data`.
+struct TasksDocument: JSONRecord {
+    var raw: [String: JSONValue]
+    init(raw: [String: JSONValue]) { self.raw = raw }
+
+    var tasks: [TodoTask] {
+        get { [TodoTask](json: raw["tasks"]) }
+        set { raw["tasks"] = newValue.json }
+    }
+    var groups: [TaskGroup] {
+        get { [TaskGroup](json: raw["groups"]) }
+        set { raw["groups"] = newValue.json }
+    }
+    var notes: [DiaryNote] {
+        get { [DiaryNote](json: raw["notes"]) }
+        set { raw["notes"] = newValue.json }
+    }
+    var soundEnabled: Bool {
+        get { bool("soundEnabled") ?? true }
+        set { set("soundEnabled", .bool(newValue)) }
+    }
+
+    /// Los grupos con los que arranca la web.
+    static let defaultGroups: [(String, String, String)] = [
+        ("personal", "Personal", "#3aada8"),
+        ("trabajo", "Trabajo", "#5b8dd9"),
+        ("salud", "Salud", "#8fbb5a"),
+        ("proyectos", "Proyectos", "#c8920a")
+    ]
+
+    static let groupPalette = [
+        "#e05252", "#e07d3c", "#c8920a", "#8fbb5a", "#4caf7d",
+        "#3aada8", "#5b8dd9", "#7c6fcd", "#d95b8a", "#7a8fa6"
+    ]
+
+    static var empty: TasksDocument {
+        var doc = TasksDocument(raw: [:])
+        doc.tasks = []
+        doc.groups = defaultGroups.map { id, name, color in
+            var g = TaskGroup(name: name, color: color)
+            g.id = id
+            return g
+        }
+        doc.notes = []
+        doc.soundEnabled = true
+        return doc
+    }
+}

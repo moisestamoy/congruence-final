@@ -16,7 +16,8 @@ import CryptoKit
 /// 5. Antes de subir finanzas se vuelve a leer la nube y se suman los gastos
 ///    que no conocemos — los que tu Atajo de iPhone escribe directo en la base —
 ///    salvo los que borraste acá.
-/// 6. Nunca se tocan `tasks_data` ni `stats_data`.
+/// 6. Tareas y notas (`tasks_data`) van como los hábitos: sin tocar
+///    `updated_at`. `stats_data` no se toca nunca.
 /// 7. Cada versión distinta que baja se guarda en
 ///    Application Support/Congruence/backups (las últimas 20 de cada una).
 @MainActor
@@ -33,6 +34,7 @@ final class SyncService {
 
     private let habits: HabitStore
     private let finances: FinanceStore
+    private let tasks: TaskStore
     private let auth: AuthService
 
     private var hasPulled = false
@@ -51,6 +53,14 @@ final class SyncService {
         get { defaults.string(forKey: "sync.lastHash") }
         set { defaults.set(newValue, forKey: "sync.lastHash") }
     }
+    private var tasksPending: Bool {
+        get { defaults.bool(forKey: "sync.tasks.pending") }
+        set { defaults.set(newValue, forKey: "sync.tasks.pending") }
+    }
+    private var tasksLastHash: String? {
+        get { defaults.string(forKey: "sync.tasks.lastHash") }
+        set { defaults.set(newValue, forKey: "sync.tasks.lastHash") }
+    }
     private var financesPending: Bool {
         get { defaults.bool(forKey: "sync.fin.pending") }
         set { defaults.set(newValue, forKey: "sync.fin.pending") }
@@ -65,9 +75,10 @@ final class SyncService {
         set { defaults.set(newValue, forKey: "sync.fin.forceApplied") }
     }
 
-    init(habits: HabitStore, finances: FinanceStore, auth: AuthService) {
+    init(habits: HabitStore, finances: FinanceStore, tasks: TaskStore, auth: AuthService) {
         self.habits = habits
         self.finances = finances
+        self.tasks = tasks
         self.auth = auth
         self.status = auth.isSignedIn ? .syncing : .signedOut
         habits.onLocalChange = { [weak self] in
@@ -75,6 +86,9 @@ final class SyncService {
         }
         finances.onLocalChange = { [weak self] in
             Task { @MainActor in self?.financesChanged() }
+        }
+        tasks.onLocalChange = { [weak self] in
+            Task { @MainActor in self?.tasksChanged() }
         }
     }
 
@@ -90,6 +104,8 @@ final class SyncService {
         habitsLastHash = nil
         financesPending = false
         financesLocalEditAt = 0
+        tasksPending = false
+        tasksLastHash = nil
         finances.clearTombstones()
         hasPulled = false
         await pull(adoptUnconditionally: true)
@@ -101,12 +117,19 @@ final class SyncService {
         hasPulled = false
         habitsPending = false
         financesPending = false
+        tasksPending = false
         status = .signedOut
     }
 
     private func habitsChanged() {
         guard auth.isSignedIn else { return }
         habitsPending = true
+        schedulePush()
+    }
+
+    private func tasksChanged() {
+        guard auth.isSignedIn else { return }
+        tasksPending = true
         schedulePush()
     }
 
@@ -133,19 +156,21 @@ final class SyncService {
     private func pull(adoptUnconditionally force: Bool) async {
         status = .syncing
         do {
-            guard let row = try await fetchRow(columns: "habits_data,finances_data,updated_at") else {
+            guard let row = try await fetchRow(columns: "habits_data,finances_data,tasks_data,updated_at") else {
                 try await insertEmptyRow()
                 hasPulled = true
                 habitsPending = true
                 financesPending = true
+                tasksPending = true
                 await push()
                 return
             }
             hasPulled = true
             applyHabits(row, force: force)
             applyFinances(row, force: force)
+            applyTasks(row, force: force)
 
-            if habitsPending || financesPending {
+            if habitsPending || financesPending || tasksPending {
                 await push()
             } else {
                 status = .synced(Date())
@@ -165,6 +190,19 @@ final class SyncService {
             if force || hash != habitsLastHash { habits.adoptRemote(remote) }
             habitsLastHash = hash
             habitsPending = false
+        }
+    }
+
+    private func applyTasks(_ row: Row, force: Bool) {
+        guard let remote = row.tasks else {
+            tasksPending = true   // la nube no tiene tareas: subimos las locales
+            return
+        }
+        let hash = Self.hash(remote)
+        if force || !tasksPending {
+            if force || hash != tasksLastHash { tasks.adoptRemote(remote) }
+            tasksLastHash = hash
+            tasksPending = false
         }
     }
 
@@ -205,19 +243,25 @@ final class SyncService {
     // MARK: - Subir
 
     private func push() async {
-        guard auth.isSignedIn, hasPulled, habitsPending || financesPending, !isPushing else { return }
+        guard auth.isSignedIn, hasPulled,
+              habitsPending || financesPending || tasksPending, !isPushing else { return }
         isPushing = true
         defer { isPushing = false }
         status = .syncing
 
         let sendHabits = habitsPending
         let sendFinances = financesPending
+        let sendTasks = tasksPending
         let habitsDoc = habits.document
+        let tasksDoc = tasks.document
 
         do {
             var body: [String: JSONValue] = [:]
             if sendHabits {
                 body["habits_data"] = try Self.jsonValue(habitsDoc)
+            }
+            if sendTasks {
+                body["tasks_data"] = tasksDoc.json
             }
 
             let financesBefore = finances.document
@@ -241,6 +285,10 @@ final class SyncService {
                 habitsLastHash = Self.hash(habitsDoc)
                 if habits.document == habitsDoc { habitsPending = false }
             }
+            if sendTasks {
+                tasksLastHash = Self.hash(tasksDoc)
+                if tasks.document == tasksDoc { tasksPending = false }
+            }
             if sendFinances {
                 // Si editaste algo mientras subía, eso queda pendiente y no se pisa.
                 if finances.document == financesBefore {
@@ -251,7 +299,7 @@ final class SyncService {
                 financesLocalEditAt = stamp.timeIntervalSince1970 * 1000
             }
             status = .synced(Date())
-            if habitsPending || financesPending { schedulePush() }
+            if habitsPending || financesPending || tasksPending { schedulePush() }
         } catch {
             status = .error(Self.describe(error))
         }
@@ -274,6 +322,7 @@ final class SyncService {
     private struct Row {
         var habits: HabitsDocument?
         var finances: FinancesDocument?
+        var tasks: TasksDocument?
         /// `updated_at` en milisegundos (0 si no hay).
         var updatedAt: Double
     }
@@ -283,7 +332,7 @@ final class SyncService {
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let row = rows.first else { return nil }
 
-        var out = Row(habits: nil, finances: nil, updatedAt: 0)
+        var out = Row(habits: nil, finances: nil, tasks: nil, updatedAt: 0)
 
         if let raw = row["habits_data"] as? [String: Any], !raw.isEmpty {
             let json = try JSONSerialization.data(withJSONObject: raw)
@@ -296,6 +345,12 @@ final class SyncService {
             let doc = try JSONDecoder().decode(FinancesDocument.self, from: json)
             backup(json, name: "finances", hash: Self.hash(doc))
             out.finances = doc
+        }
+        if let raw = row["tasks_data"] as? [String: Any], !raw.isEmpty {
+            let json = try JSONSerialization.data(withJSONObject: raw)
+            let doc = try JSONDecoder().decode(TasksDocument.self, from: json)
+            backup(json, name: "tasks", hash: Self.hash(doc))
+            out.tasks = doc
         }
         if let stamp = row["updated_at"] as? String {
             out.updatedAt = (Self.parseISO(stamp)?.timeIntervalSince1970 ?? 0) * 1000

@@ -20,6 +20,7 @@ struct RootView: View {
                 switch section.wrappedValue {
                 case .habits:   TodayView()
                 case .finances: FinancesView()
+                case .tasks:    TasksView()
                 default:        NotBuiltYet(section: section.wrappedValue)
                 }
             }

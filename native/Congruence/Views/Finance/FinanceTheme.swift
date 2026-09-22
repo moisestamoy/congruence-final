@@ -69,6 +69,15 @@ extension DateFormatter {
     }
 }
 
+extension String {
+    /// Mayúscula sólo en la primera letra. `capitalized` pone en mayúscula cada
+    /// palabra y deja cosas como "22 De Septiembre De 2026".
+    var sentenceCased: String {
+        guard let f = first else { return self }
+        return f.uppercased() + dropFirst()
+    }
+}
+
 enum FinDate {
     static func date(_ key: String) -> Date {
         HabitDay.formatter.date(from: key) ?? Date()
@@ -80,6 +89,6 @@ enum FinDate {
 
     static func monthTitle(_ y: Int, _ m: Int) -> String {
         let d = FinanceEngine.calendar.date(from: DateComponents(year: y, month: m, day: 1))!
-        return DateFormatter.es("LLLL yyyy").string(from: d).capitalized
+        return DateFormatter.es("LLLL yyyy").string(from: d).sentenceCased
     }
 }
