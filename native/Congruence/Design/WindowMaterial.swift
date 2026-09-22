@@ -84,6 +84,18 @@ struct AppBackground: View {
         ZStack {
             WindowMaterial(material: level.material, dark: scheme == .dark)
             Palette.base.opacity(level.veil(dark: scheme == .dark))
+
+            // Arriba va un velo extra que se desvanece. Es la banda donde
+            // cada pantalla pone su título, y es justo donde una mancha del
+            // fondo hace más daño.
+            if level != .solid {
+                LinearGradient(
+                    colors: [Palette.base.opacity(scheme == .dark ? 0.5 : 0.55), .clear],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .frame(height: 280)
+                .frame(maxHeight: .infinity, alignment: .top)
+            }
             TransparentWindow().frame(width: 0, height: 0)
         }
         .ignoresSafeArea()

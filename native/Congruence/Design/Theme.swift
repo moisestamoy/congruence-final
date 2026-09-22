@@ -245,11 +245,15 @@ enum Translucency: String, CaseIterable {
     }
     #endif
 
+    /// El velo no es sólo identidad: es lo que aplana las manchas. El
+    /// material trae los claros y oscuros de lo que haya detrás —otra
+    /// ventana, una zona brillante del fondo— y sin suficiente velo esas
+    /// manchas caen justo detrás del texto.
     func veil(dark: Bool) -> Double {
         switch self {
         case .solid:  return 1
-        case .medium: return dark ? 0.32 : 0.38
-        case .glass:  return dark ? 0.10 : 0.16
+        case .medium: return dark ? 0.55 : 0.62
+        case .glass:  return dark ? 0.34 : 0.42
         }
     }
 
