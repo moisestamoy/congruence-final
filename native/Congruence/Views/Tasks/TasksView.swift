@@ -25,6 +25,8 @@ struct TasksView: View {
     @State private var filterGroupId: String?
     @State private var onlyPriority = false
     @State private var showingDoneToday = false
+    /// Lista o tablero. Es una segunda vista de lo mismo, no otra sección.
+    @AppStorage("tasksLayout") private var layoutRaw = TaskLayout.list.rawValue
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -39,17 +41,28 @@ struct TasksView: View {
             tabs
             Divider().overlay(Palette.hairlineFaint)
 
-            ScrollView {
+            if tab == .tareas && layout == .board {
+                // El tablero se queda con todo el ancho: tres columnas en 672
+                // puntos serían tres cintas.
                 VStack(alignment: .leading, spacing: 0) {
-                    switch tab {
-                    case .tareas: tareasView
-                    case .hoy:    hoyView
-                    case .diario: diarioView
-                    }
+                    boardControls
+                    KanbanBoard(filterGroupId: filterGroupId,
+                                onlyPriority: onlyPriority,
+                                onEdit: { editing = $0 })
                 }
-                .padding(.vertical, 28)
-                .frame(maxWidth: 672, alignment: .leading)
-                .frame(maxWidth: .infinity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        switch tab {
+                        case .tareas: tareasView
+                        case .hoy:    hoyView
+                        case .diario: diarioView
+                        }
+                    }
+                    .padding(.vertical, 28)
+                    .frame(maxWidth: 672, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+                }
             }
         }
         .background(Palette.base)
@@ -78,6 +91,11 @@ struct TasksView: View {
                     .tracking(-0.8)
                     .foregroundStyle(Palette.text)
                 Spacer()
+                #if os(macOS)
+                layoutSwitch
+                    .opacity(tab == .tareas ? 1 : 0)
+                    .disabled(tab != .tareas)
+                #endif
                 Button { store.toggleSound() } label: {
                     Text(store.document.soundEnabled ? "♪" : "♩")
                         .font(.system(size: 15))
@@ -93,6 +111,46 @@ struct TasksView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 28)
         .padding(.bottom, 18)
+    }
+
+    private var layout: TaskLayout { TaskLayout(rawValue: layoutRaw) ?? .list }
+
+    /// Lista o tablero. Dos iconos, no dos palabras: es un cambio de forma,
+    /// no una sección nueva.
+    private var layoutSwitch: some View {
+        HStack(spacing: 2) {
+            ForEach(TaskLayout.allCases, id: \.self) { option in
+                Button {
+                    withAnimation(.smooth(duration: 0.25)) { layoutRaw = option.rawValue }
+                } label: {
+                    Image(systemName: option.symbol)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(layout == option ? Palette.accent : Palette.textFaint)
+                        .frame(width: 26, height: 22)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(layout == option ? Palette.accent.opacity(0.11) : .clear)
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(option.label)
+            }
+        }
+        .padding(2)
+        .background(Capsule().fill(Palette.fill(0.03)))
+        .animation(.smooth(duration: 0.2), value: layout)
+    }
+
+    /// Arriba del tablero van el campo de escribir y los filtros, igual que
+    /// en la lista: cambiar de vista no debería cambiar dónde se crea algo.
+    private var boardControls: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            newTaskField.frame(maxWidth: 560)
+            if !store.document.groups.isEmpty { filters }
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 22)
     }
 
     private var tabs: some View {
@@ -439,7 +497,12 @@ struct TaskRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
+    @Environment(TaskStore.self) private var store
     @State private var hovering = false
+    /// Abierta para escribir dentro, igual que una tarjeta del tablero.
+    @State private var expanded = false
+    @State private var draft = ""
+    @FocusState private var writing: Bool
     /// Al completar, la tarea desaparece de la lista. Este instante deja ver
     /// el círculo llenarse antes de que se vaya; sin él el clic no tiene
     /// respuesta, sólo una fila que se esfuma.
@@ -465,12 +528,92 @@ struct TaskRow: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            row
+            if expanded {
+                notesEditor.padding(.leading, 39).padding(.trailing, 10).padding(.bottom, 10)
+            } else if !task.notes.isEmpty {
+                Text(task.notes)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textFaint)
+                    .lineLimit(2)
+                    .padding(.leading, 39)
+                    .padding(.trailing, 10)
+                    .padding(.bottom, 9)
+            }
+        }
+        .background(hovering || expanded ? Palette.fill(0.035) : .clear,
+                    in: RoundedRectangle(cornerRadius: 8))
+        .onHover { hovering = $0 }
+        .transition(.asymmetric(
+            insertion: .opacity.combined(with: .offset(y: -6)),
+            removal: .opacity.combined(with: .offset(x: 30))
+        ))
+    }
+
+    private var notesEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .topLeading) {
+                if draft.isEmpty {
+                    Text("Escribe aquí")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textFaint.opacity(0.6))
+                        .padding(.top, 6).padding(.leading, 4)
+                        .allowsHitTesting(false)
+                }
+                TextEditor(text: $draft)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.text)
+                    .scrollContentBackground(.hidden)
+                    .focused($writing)
+                    .frame(height: 70)
+            }
+            .padding(.horizontal, 4)
+            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.hairlineFaint, lineWidth: 1))
+
+            HStack {
+                Spacer()
+                Button("Listo") { closeNotes() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+            }
+        }
+    }
+
+    private func toggleExpanded() {
+        if expanded {
+            closeNotes()
+        } else {
+            draft = task.notes
+            withAnimation(.smooth(duration: 0.22)) { expanded = true }
+            writing = true
+        }
+    }
+
+    private func closeNotes() {
+        store.setNotes(draft.trimmingCharacters(in: .whitespacesAndNewlines), for: task.id)
+        withAnimation(.smooth(duration: 0.22)) { expanded = false }
+    }
+
+    private var row: some View {
         HStack(spacing: 12) {
             Button(action: complete) {
                 ZStack {
                     Circle()
-                        .stroke(completing ? accent : Palette.hairline, lineWidth: 1.5)
+                        .stroke(completing ? accent
+                                : task.inProgress ? Palette.accent.opacity(0.7)
+                                : Palette.hairline,
+                                lineWidth: 1.5)
                         .frame(width: 17, height: 17)
+                    // Empezada: el círculo lleva un punto adentro. En la lista
+                    // una tarea en progreso se veía igual que una sin tocar.
+                    if task.inProgress && !completing {
+                        Circle()
+                            .fill(Palette.accent.opacity(0.7))
+                            .frame(width: 7, height: 7)
+                    }
                     Circle()
                         .fill(accent)
                         .frame(width: 17, height: 17)
@@ -518,13 +661,19 @@ struct TaskRow: View {
             }
         }
         .padding(.horizontal, 10)
-        .background(hovering ? Palette.fill(0.035) : .clear,
-                    in: RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
-        .onHover { hovering = $0 }
+        // Doble clic abre la hoja de edición; uno solo abre la nota. El de
+        // dos va primero o SwiftUI se queda con el de uno.
         .onTapGesture(count: 2, perform: onEdit)
+        .onTapGesture { toggleExpanded() }
         .contextMenu {
             Button("Editar…", action: onEdit)
+            Button(expanded ? "Cerrar nota" : "Escribir dentro") { toggleExpanded() }
+            Button(task.inProgress ? "Marcar como pendiente" : "Marcar en progreso") {
+                withAnimation(.smooth(duration: 0.25)) {
+                    store.setColumn(task.inProgress ? .pending : .doing, for: task.id)
+                }
+            }
             Button("Completar", action: complete)
             Divider()
             Button("Borrar", role: .destructive) {
@@ -532,11 +681,6 @@ struct TaskRow: View {
                 withAnimation(.smooth(duration: 0.25)) { onDelete() }
             }
         }
-        // Entra desde arriba y sale hacia la derecha, como en la web.
-        .transition(.asymmetric(
-            insertion: .opacity.combined(with: .offset(y: -6)),
-            removal: .opacity.combined(with: .offset(x: 30))
-        ))
     }
 
     static func deadlineLabel(_ key: String) -> String {

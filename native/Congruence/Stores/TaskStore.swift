@@ -124,6 +124,61 @@ final class TaskStore {
         commit()
     }
 
+    /// Mueve una tarea de columna. Salir de "Hecho" limpia `completedAt`,
+    /// para que no siga contando como completada hoy.
+    func setColumn(_ column: TaskColumn, for id: String) {
+        guard let i = document.tasks.firstIndex(where: { $0.id == id }),
+              document.tasks[i].column != column else { return }
+        switch column {
+        case .pending:
+            document.tasks[i].completed = false
+            document.tasks[i].completedAt = nil
+            document.tasks[i].inProgress = false
+        case .doing:
+            document.tasks[i].completed = false
+            document.tasks[i].completedAt = nil
+            document.tasks[i].inProgress = true
+        case .done:
+            document.tasks[i].completed = true
+            document.tasks[i].completedAt = Date().timeIntervalSince1970 * 1000
+            document.tasks[i].inProgress = false
+        }
+        commit()
+    }
+
+    func setNotes(_ text: String, for id: String) {
+        guard let i = document.tasks.firstIndex(where: { $0.id == id }),
+              document.tasks[i].notes != text else { return }
+        document.tasks[i].notes = text
+        commit()
+    }
+
+    /// Las tareas de una columna del tablero, en el mismo orden que la lista:
+    /// prioridad primero y, a igual prioridad, las más viejas arriba.
+    func column(_ column: TaskColumn, groupId: String? = nil,
+                onlyPriority: Bool = false, now: Date = Date()) -> [TodoTask] {
+        let today = HabitDay.key(now)
+        return document.tasks
+            .filter { task in
+                guard task.column == column else { return false }
+                // "Hecho" muestra sólo lo de hoy: si no, la columna crece
+                // para siempre y deja de decir nada.
+                if column == .done {
+                    guard let at = task.completedAt else { return false }
+                    return HabitDay.key(Date(timeIntervalSince1970: at / 1000)) == today
+                }
+                return true
+            }
+            .filter { groupId == nil || $0.groupId == groupId }
+            .filter { !onlyPriority || $0.priority != .normal }
+            .sorted {
+                if column == .done { return ($0.completedAt ?? 0) > ($1.completedAt ?? 0) }
+                return $0.priority.weight != $1.priority.weight
+                    ? $0.priority.weight > $1.priority.weight
+                    : $0.createdAt < $1.createdAt
+            }
+    }
+
     func updateTask(_ id: String, text: String, priority: TaskPriority,
                     deadline: String?, groupId: String?) {
         guard let i = document.tasks.firstIndex(where: { $0.id == id }) else { return }

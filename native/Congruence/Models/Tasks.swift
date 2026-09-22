@@ -23,6 +23,33 @@ enum TaskPriority: String, CaseIterable, Hashable {
     }
 }
 
+/// Las dos formas de ver las tareas.
+enum TaskLayout: String, CaseIterable, Hashable {
+    case list, board
+
+    var label: String { self == .list ? "Lista" : "Tablero" }
+    var symbol: String { self == .list ? "list.bullet" : "rectangle.split.3x1" }
+}
+
+/// Las tres columnas del tablero.
+///
+/// `completed` sigue siendo la verdad sobre si algo está hecho —es lo que
+/// entiende la web—, y `inProgress` sólo separa lo empezado de lo que ni
+/// arrancó. La web no conoce ese campo, pero tampoco lo pierde: su store
+/// actualiza con `{...t, ...updates}`, así que lo que no entiende viaja
+/// intacto de vuelta.
+enum TaskColumn: String, CaseIterable, Hashable {
+    case pending, doing, done
+
+    var label: String {
+        switch self {
+        case .pending: return "Pendiente"
+        case .doing:   return "En progreso"
+        case .done:    return "Hecho"
+        }
+    }
+}
+
 /// Una tarea. Se llama `TodoTask` y no `Task` porque `Task` ya existe en Swift
 /// (el de la concurrencia) y chocaría en todos lados.
 struct TodoTask: JSONRecord, Identifiable {
@@ -63,6 +90,23 @@ struct TodoTask: JSONRecord, Identifiable {
         set { set("completedAt", newValue.map(JSONValue.number) ?? .null) }
     }
     var createdAt: Double { double("createdAt") ?? 0 }
+
+    /// Empezada pero no terminada. Sólo tiene sentido si no está completada.
+    var inProgress: Bool {
+        get { bool("inProgress") ?? false }
+        set { set("inProgress", .bool(newValue)) }
+    }
+
+    /// El texto largo de la tarjeta: lo que escribes al abrirla.
+    var notes: String {
+        get { string("notes") ?? "" }
+        set { set("notes", newValue.isEmpty ? .null : .string(newValue)) }
+    }
+
+    var column: TaskColumn {
+        if completed { return .done }
+        return inProgress ? .doing : .pending
+    }
 }
 
 struct TaskGroup: JSONRecord, Identifiable {

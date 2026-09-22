@@ -26,19 +26,34 @@ struct WindowMaterial: NSViewRepresentable {
 
 /// Le saca el fondo opaco a la ventana. Sin esto macOS pinta su propio fondo
 /// detrás del material y no queda nada que dejar pasar.
+///
+/// El trabajo va en `viewDidMoveToWindow` y no en `makeNSView`: cuando SwiftUI
+/// crea la vista todavía no está en ninguna ventana, así que ahí `window` es
+/// `nil` y el ajuste se pierde sin avisar.
 private struct TransparentWindow: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            guard let window = view.window else { return }
+    final class Host: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            apply()
+        }
+
+        func apply() {
+            guard let window else { return }
             window.isOpaque = false
             window.backgroundColor = .clear
+            // SwiftUI vuelve a pintar el fondo de la ventana en algunos
+            // cambios de tamaño y de apariencia, así que se reafirma.
+            window.titlebarAppearsTransparent = true
         }
-        return view
     }
 
-    func updateNSView(_ view: NSView, context: Context) {}
+    func makeNSView(context: Context) -> Host { Host() }
+
+    func updateNSView(_ view: Host, context: Context) {
+        DispatchQueue.main.async { view.apply() }
+    }
 }
+
 #endif
 
 /// El fondo de la app: el material del sistema y, encima, un velo del color
@@ -55,7 +70,7 @@ struct AppBackground: View {
         #if os(macOS)
         ZStack {
             WindowMaterial()
-            Palette.base.opacity(scheme == .dark ? 0.58 : 0.72)
+            Palette.base.opacity(scheme == .dark ? 0.45 : 0.55)
             TransparentWindow().frame(width: 0, height: 0)
         }
         .ignoresSafeArea()
