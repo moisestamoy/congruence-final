@@ -31,8 +31,6 @@ struct TasksView: View {
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
     @State private var editing: TodoTask?
-    @State private var newNote = false
-    @State private var editingNote: DiaryNote?
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -68,13 +66,11 @@ struct TasksView: View {
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
         }
-        .sheet(isPresented: $newNote) { NoteEditorSheet(note: nil) }
         .background {
             Button("") { tab = .tareas; inputFocused = true }
                 .keyboardShortcut("n", modifiers: .command)
                 .opacity(0)
         }
-        .sheet(item: $editingNote) { note in NoteEditorSheet(note: note) }
     }
 
     // MARK: - Encabezado
@@ -144,12 +140,12 @@ struct TasksView: View {
     /// Arriba del tablero van el campo de escribir y los filtros, igual que
     /// en la lista: cambiar de vista no debería cambiar dónde se crea algo.
     private var boardControls: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            newTaskField.frame(maxWidth: 560)
+        VStack(alignment: .leading, spacing: 16) {
             if !store.document.groups.isEmpty { filters }
+            newTaskField.frame(maxWidth: 560)
         }
         .padding(.horizontal, 28)
-        .padding(.top, 22)
+        .padding(.top, 20)
     }
 
     private var tabs: some View {
@@ -181,8 +177,8 @@ struct TasksView: View {
 
     private var tareasView: some View {
         VStack(alignment: .leading, spacing: 18) {
-            newTaskField
             if !store.document.groups.isEmpty { filters }
+            newTaskField
 
             let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
             if groups.isEmpty {
@@ -337,9 +333,12 @@ struct TasksView: View {
             .padding(.horizontal, 8)
             .frame(height: 36)
         }
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(inputFocused ? Palette.fill(0.07) : Palette.fill(0.045))
+        )
         .overlay(RoundedRectangle(cornerRadius: 12)
-            .stroke(inputFocused ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
+            .stroke(inputFocused ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.18), value: inputFocused)
     }
 
@@ -421,59 +420,16 @@ struct TasksView: View {
 
     private var diarioView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button { newNote = true } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "square.and.pencil").font(.system(size: 10, weight: .bold))
-                    Text("Nueva nota").font(.system(size: 11, weight: .bold)).tracking(1).textCase(.uppercase)
-                }
-                .foregroundStyle(Palette.accent)
-                .padding(.horizontal, 16)
-                .frame(height: 32)
-                .background(Capsule().fill(Palette.accent.opacity(0.08)))
-                .overlay(Capsule().stroke(Palette.accent.opacity(0.3), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
+            NoteComposer()
 
             if store.document.notes.isEmpty {
                 empty("El diario está vacío.")
             } else {
                 ForEach(store.document.notes) { note in
-                    Button { editingNote = note } label: { noteCard(note) }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button("Borrar", role: .destructive) {
-                                SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
-                                withAnimation(.smooth(duration: 0.25)) { store.removeNote(note.id) }
-                            }
-                        }
+                    NoteCard(note: note)
                 }
             }
         }
-    }
-
-    private func noteCard(_ note: DiaryNote) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(note.title.isEmpty ? "Sin título" : note.title)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Palette.text)
-                Spacer()
-                Text(DateFormatter.es("d MMM yyyy · HH:mm").string(from: note.date))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(Palette.textFaint)
-            }
-            if !note.content.isEmpty {
-                Text(note.content)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.textMuted)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(14, raised: true)
-        .contentShape(Rectangle())
     }
 
     private func empty(_ text: String) -> some View {

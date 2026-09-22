@@ -94,25 +94,22 @@ struct TaskEditorSheet: View {
     }
 }
 
-/// Una nota del diario. Se dibuja como un documento, no como un formulario:
-/// el título es un título y el cuerpo es texto sobre el fondo de la hoja.
-/// Antes eran dos cajas grises anidadas sobre una hoja gris, que en modo
-/// claro quedaban todas del mismo valor y no se distinguía nada.
-struct NoteEditorSheet: View {
-    let note: DiaryNote?
-
+/// Escribir una nota nueva, ahí mismo en el Diario.
+///
+/// Antes era una ventana modal flotando encima de todo. Una nota no es un
+/// formulario que se confirma: es algo que se escribe donde vive, así que
+/// ahora nace en la misma lista en la que va a quedar.
+struct NoteComposer: View {
     @Environment(TaskStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
 
-    @State private var title: String
-    @State private var content: String
-    @State private var confirmingDelete = false
-    @FocusState private var titleFocused: Bool
+    @State private var title = ""
+    @State private var content = ""
+    @FocusState private var focused: Field?
 
-    init(note: DiaryNote?) {
-        self.note = note
-        _title = State(initialValue: note?.title ?? "")
-        _content = State(initialValue: note?.content ?? "")
+    private enum Field { case title, body }
+
+    private var open: Bool {
+        focused != nil || !title.isEmpty || !content.isEmpty
     }
 
     private var canSave: Bool {
@@ -120,93 +117,213 @@ struct NoteEditorSheet: View {
             || !content.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    private func save() {
-        guard canSave else { return }
-        if let note {
-            store.updateNote(note.id, title: title, content: content)
-        } else {
-            store.addNote(title: title, content: content)
-            SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        }
-        dismiss()
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // macOS ignora el color del `prompt`, así que el marcador va a
-            // mano: si se parece a texto escrito, la nota parece llena.
-            ZStack(alignment: .leading) {
-                if title.isEmpty {
-                    Text("Título")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Palette.textFaint.opacity(0.55))
-                        .allowsHitTesting(false)
-                }
-                TextField("", text: $title)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Palette.text)
-                    .focused($titleFocused)
+            HStack(spacing: 10) {
+                Image(systemName: "square.and.pencil")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(open ? Palette.accent : Palette.textFaint)
+                NoteField(placeholder: "Nueva nota", text: $title, size: 15, weight: .bold)
+                    .focused($focused, equals: .title)
             }
-            .padding(.bottom, 14)
+            .padding(.horizontal, 14)
+            .frame(height: 46)
 
-            Divider().overlay(Palette.hairlineFaint)
+            if open {
+                Divider().overlay(Palette.hairlineFaint)
 
-            ZStack(alignment: .topLeading) {
-                if content.isEmpty {
-                    Text("Escribe lo que pasó, o lo que entendiste.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.textFaint.opacity(0.55))
-                        .padding(.top, 16)
-                        .allowsHitTesting(false)
+                NoteBody(text: $content, placeholder: "Escribe lo que pasó, o lo que entendiste.")
+                    .focused($focused, equals: .body)
+                    .frame(height: 150)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 6)
+
+                HStack(spacing: 14) {
+                    Spacer()
+                    Button("Cancelar") { reset() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.textMuted)
+                    Button("Guardar", action: save)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(canSave ? Palette.accent : Palette.textFaint)
+                        .disabled(!canSave)
                 }
-                TextEditor(text: $content)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.text)
-                    .lineSpacing(5)
-                    .scrollContentBackground(.hidden)
-                    .background(.clear)
-                    .padding(.top, 10)
-                    .padding(.leading, -5)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
             }
-            .frame(height: 300)
+        }
+        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 14)
+            .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
+        .animation(.smooth(duration: 0.22), value: open)
+    }
 
-            Divider().overlay(Palette.hairlineFaint)
+    private func save() {
+        guard canSave else { return }
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        withAnimation(.smooth(duration: 0.28)) {
+            store.addNote(title: title, content: content)
+        }
+        reset()
+    }
 
-            HStack(spacing: 16) {
-                if let note {
-                    Text(DateFormatter.es("d 'de' MMMM, yyyy · HH:mm").string(from: note.date))
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Palette.textFaint)
+    private func reset() {
+        title = ""
+        content = ""
+        focused = nil
+    }
+}
+
+/// Una nota de la lista. Se abre en su sitio para editarla, sin ventanas.
+struct NoteCard: View {
+    let note: DiaryNote
+
+    @Environment(TaskStore.self) private var store
+    @State private var expanded = false
+    @State private var title = ""
+    @State private var content = ""
+    @State private var confirmingDelete = false
+    @State private var hovering = false
+
+    private var dirty: Bool { title != note.title || content != note.content }
+
+    var body: some View {
+        Group {
+            if expanded {
+                card
+            } else {
+                // Cerrada es un botón, no un gesto suelto: así también se
+                // alcanza con el teclado y con un lector de pantalla.
+                Button(action: open) { card }
+                    .buttonStyle(.plain)
+            }
+        }
+        .animation(.smooth(duration: 0.22), value: expanded)
+        .confirmationDialog("¿Borrar esta nota?", isPresented: $confirmingDelete) {
+            Button("Borrar", role: .destructive) {
+                SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                withAnimation(.smooth(duration: 0.25)) { store.removeNote(note.id) }
+            }
+            Button("Cancelar", role: .cancel) {}
+        }
+    }
+
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                if expanded {
+                    NoteField(placeholder: "Sin título", text: $title, size: 15, weight: .bold)
+                } else {
+                    Text(note.title.isEmpty ? "Sin título" : note.title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Palette.text)
+                }
+                Spacer(minLength: 10)
+                Text(DateFormatter.es("d MMM yyyy · HH:mm").string(from: note.date))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(Palette.textFaint)
+            }
+
+            if expanded {
+                Divider().overlay(Palette.hairlineFaint)
+
+                NoteBody(text: $content, placeholder: "Escribe lo que pasó, o lo que entendiste.")
+                    .frame(height: 220)
+
+                HStack(spacing: 14) {
                     Button("Borrar") { confirmingDelete = true }
                         .buttonStyle(.plain)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Palette.negative.opacity(0.8))
+                    Spacer()
+                    Button("Cerrar") { close(saving: false) }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.textMuted)
+                    Button("Guardar") { close(saving: true) }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(dirty ? Palette.accent : Palette.textFaint)
+                        .disabled(!dirty)
                 }
-                Spacer()
-                Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 12, weight: .medium))
+            } else if !note.content.isEmpty {
+                Text(note.content)
+                    .font(.system(size: 13))
                     .foregroundStyle(Palette.textMuted)
-                    .keyboardShortcut(.cancelAction)
-                Button("Guardar", action: save)
-                    .buttonStyle(.plain)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(canSave ? Palette.accent : Palette.textFaint)
-                    .disabled(!canSave)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
             }
-            .padding(.top, 14)
         }
-        .padding(28)
-        .frame(width: 540)
-        .background(Palette.surface)
-        .onAppear { titleFocused = note == nil }
-        .confirmationDialog("¿Borrar esta nota?", isPresented: $confirmingDelete) {
-            Button("Borrar", role: .destructive) {
-                if let note { store.removeNote(note.id) }
-                dismiss()
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14)
+            .fill(Palette.fill(expanded ? 0.06 : hovering ? 0.05 : 0.035)))
+        .overlay(RoundedRectangle(cornerRadius: 14)
+            .stroke(expanded ? Palette.accent.opacity(0.3) : Palette.hairlineFaint, lineWidth: 1))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+    }
+
+    private func open() {
+        title = note.title
+        content = note.content
+        expanded = true
+    }
+
+    private func close(saving: Bool) {
+        if saving, dirty { store.updateNote(note.id, title: title, content: content) }
+        expanded = false
+    }
+}
+
+/// Un campo de una línea sin caja: el marcador va a mano porque macOS ignora
+/// el color del `prompt` y lo deja del gris claro del sistema.
+struct NoteField: View {
+    let placeholder: String
+    @Binding var text: String
+    var size: CGFloat = 15
+    var weight: Font.Weight = .bold
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            if text.isEmpty {
+                Text(placeholder)
+                    .font(.system(size: size, weight: weight))
+                    .foregroundStyle(Palette.textFaint.opacity(0.7))
+                    .allowsHitTesting(false)
             }
-            Button("Cancelar", role: .cancel) {}
+            TextField("", text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: size, weight: weight))
+                .foregroundStyle(Palette.text)
+        }
+    }
+}
+
+/// El cuerpo de una nota: texto sobre el fondo, sin recuadro propio.
+struct NoteBody: View {
+    @Binding var text: String
+    let placeholder: String
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text(placeholder)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.textFaint.opacity(0.7))
+                    .padding(.top, 8)
+                    .padding(.leading, 5)
+                    .allowsHitTesting(false)
+            }
+            TextEditor(text: $text)
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.text)
+                .lineSpacing(4)
+                .scrollContentBackground(.hidden)
+                .background(.clear)
+                .padding(.leading, -5)
         }
     }
 }

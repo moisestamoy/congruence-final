@@ -13,18 +13,20 @@ struct KanbanBoard: View {
     @Environment(TaskStore.self) private var store
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ForEach(TaskColumn.allCases, id: \.self) { column in
-                KanbanColumn(
-                    column: column,
-                    tasks: store.column(column, groupId: filterGroupId,
-                                        onlyPriority: onlyPriority),
-                    onEdit: onEdit
-                )
+        ScrollView {
+            HStack(alignment: .top, spacing: 16) {
+                ForEach(TaskColumn.allCases, id: \.self) { column in
+                    KanbanColumn(
+                        column: column,
+                        tasks: store.column(column, groupId: filterGroupId,
+                                            onlyPriority: onlyPriority),
+                        onEdit: onEdit
+                    )
+                }
             }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 22)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 22)
     }
 }
 
@@ -56,31 +58,29 @@ private struct KanbanColumn: View {
             }
             .padding(.horizontal, 4)
 
-            ScrollView {
-                VStack(spacing: 10) {
-                    ForEach(tasks) { task in
-                        TaskCard(task: task, group: store.group(task.groupId),
-                                 muted: column == .done, onEdit: { onEdit(task) })
-                    }
-
-                    if tasks.isEmpty {
-                        Text(column == .done ? "Nada terminado hoy" : "Vacío")
-                            .font(.system(size: 12, weight: .light, design: .serif))
-                            .italic()
-                            .foregroundStyle(Palette.textFaint.opacity(0.7))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 26)
-                    }
+            VStack(spacing: 10) {
+                ForEach(tasks) { task in
+                    TaskCard(task: task, group: store.group(task.groupId),
+                             muted: column == .done, onEdit: { onEdit(task) })
                 }
-                .padding(.bottom, 8)
+
+                if tasks.isEmpty {
+                    Text(column == .done ? "Nada terminado hoy" : "Vacío")
+                        .font(.system(size: 12, weight: .light, design: .serif))
+                        .italic()
+                        .foregroundStyle(Palette.textFaint.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
         .padding(10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Una columna vacía sigue siendo un blanco al que soltar, así que
+        // guarda un alto mínimo; de ahí crece con lo que tenga.
+        .frame(maxWidth: .infinity, minHeight: 190, alignment: .top)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(targeted ? accent.opacity(0.07) : Palette.fill(0.022))
+                .fill(targeted ? accent.opacity(0.09) : Palette.fill(0.045))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -150,12 +150,13 @@ struct TaskCard: View {
             if group != nil || task.deadline != nil || task.priority != .normal {
                 HStack(spacing: 6) {
                     if let group {
-                        GroupTag(group: group)
+                        GroupTag(group: group).opacity(muted ? 0.65 : 1)
                     }
                     if task.priority != .normal {
                         Text(task.priority.rawValue)
                             .font(.system(size: 10, weight: .black))
-                            .foregroundStyle(task.priority == .high ? Palette.negative : Palette.warning)
+                            .foregroundStyle((task.priority == .high ? Palette.negative : Palette.warning)
+                                .opacity(muted ? 0.5 : 1))
                     }
                     Spacer(minLength: 4)
                     if let deadline = task.deadline {
@@ -168,19 +169,20 @@ struct TaskCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+        .background(muted ? Palette.nested : Palette.surfaceRaised,
+                    in: RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .leading) {
             // La barra de prioridad, en el borde de la tarjeta.
             if task.priority != .normal {
                 UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10)
-                    .fill(task.priority == .high ? Palette.negative : Palette.warning)
+                    .fill((task.priority == .high ? Palette.negative : Palette.warning)
+                        .opacity(muted ? 0.4 : 1))
                     .frame(width: 3)
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 10)
             .stroke(hovering ? Palette.hairline : Palette.hairlineFaint, lineWidth: 1))
         .shadow(color: Palette.cardShadowSoft, radius: hovering ? 6 : 2, y: 1)
-        .opacity(muted ? 0.45 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .onTapGesture { toggleExpanded() }
@@ -210,7 +212,8 @@ struct TaskCard: View {
                 .lineLimit(2)
                 .padding(12)
                 .frame(maxWidth: 240, alignment: .leading)
-                .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+                .background(muted ? Palette.nested : Palette.surfaceRaised,
+                    in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.5), lineWidth: 1.5))
         }
         // Entra y sale con una caída corta: al soltarla en Hecho, la tarjeta
