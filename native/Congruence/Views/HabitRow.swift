@@ -5,6 +5,8 @@ struct HabitRow: View {
     let day: String
     /// Los últimos 7 días, del más viejo al más reciente.
     let weekDots: [Bool]
+    /// Veces cumplidas esta semana. Sólo importa si el hábito tiene mínimo.
+    let weekCount: Int
     let onToggle: () -> Void
     let onSetValue: (Double) -> Void
     let onSkip: (LogStatus) -> Void
@@ -16,6 +18,13 @@ struct HabitRow: View {
     private var isDone: Bool { log?.completed == true }
     private var isPaused: Bool { log?.isPaused == true }
     private var tint: Color { .tint(habit.color) }
+
+    /// El mínimo de la semana ya está cubierto: el hábito queda tachado y
+    /// deja de pedirse hasta el lunes.
+    private var weeklyMet: Bool {
+        guard let target = habit.weeklyTarget else { return false }
+        return weekCount >= target
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -32,8 +41,8 @@ struct HabitRow: View {
                 .textCase(.uppercase)
                 .font(.system(size: 12, weight: .bold))
                 .tracking(1.1)
-                .foregroundStyle(statusColor)
-                .strikethrough(isPaused, color: Palette.textFaint)
+                .foregroundStyle(weeklyMet && !isDone ? Palette.textFaint : statusColor)
+                .strikethrough(isPaused || weeklyMet, color: Palette.textFaint)
                 .lineLimit(1)
 
             Spacer(minLength: 10)
@@ -41,6 +50,8 @@ struct HabitRow: View {
             // Los hábitos numéricos muestran el contador; el resto, la semana.
             if habit.type == .numeric {
                 numericControl
+            } else if habit.weeklyTarget != nil {
+                weeklyCount
             } else {
                 weekStrip
             }
@@ -135,6 +146,26 @@ struct HabitRow: View {
                     .frame(width: 4, height: 4)
             }
         }
+    }
+
+    /// Para un hábito semanal, los siete puntos no dicen lo que importa. Lo
+    /// que importa es cuánto falta para el mínimo.
+    private var weeklyCount: some View {
+        let target = habit.weeklyTarget ?? 0
+        return HStack(spacing: 6) {
+            HStack(spacing: 3) {
+                ForEach(0..<max(target, 1), id: \.self) { i in
+                    Capsule()
+                        .fill(i < weekCount ? tint.opacity(0.85) : Palette.fill(0.10))
+                        .frame(width: 8, height: 3)
+                }
+            }
+            Text("\(min(weekCount, target))/\(target)")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(weeklyMet ? tint : Palette.textFaint)
+        }
+        .help(weeklyMet ? "Mínimo de la semana cumplido"
+                        : "\(weekCount) de \(target) esta semana")
     }
 
     private var numericControl: some View {

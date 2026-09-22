@@ -100,6 +100,29 @@ struct Habit: Codable, Identifiable, Hashable {
 
     var isArchived: Bool { archived == true }
 
+    /// Cuántas veces por semana hay que cumplirlo. `nil` es todos los días,
+    /// que es como se comportaron siempre.
+    ///
+    /// Vive en `extras`, así que la web lo conserva sin conocerlo: su store
+    /// actualiza con `{...h, ...updates}` y los campos que no entiende viajan
+    /// intactos. Eso sí: la web no lo interpreta, así que allá el hábito se
+    /// sigue pidiendo todos los días.
+    var weeklyTarget: Int? {
+        get {
+            guard case let .number(n)? = extras["weeklyTarget"], n >= 1, n <= 6 else { return nil }
+            return Int(n)
+        }
+        set {
+            if let newValue, (1...6).contains(newValue) {
+                extras["weeklyTarget"] = .number(Double(newValue))
+            } else {
+                extras.removeValue(forKey: "weeklyTarget")
+            }
+        }
+    }
+
+    var isDaily: Bool { weeklyTarget == nil }
+
     init(id: String, title: String, subtitle: String?, type: HabitKind, goal: Double,
          unit: String?, color: String, icon: String?, identityAxis: IdentityAxis?,
          logs: [String: HabitLog], isDemo: Bool?, archived: Bool? = nil) {
@@ -181,7 +204,7 @@ enum HabitDay {
         return f
     }()
 
-    /// Antes de las 5 AM seguís en el día anterior — igual que `getHabitDay()` en la web.
+    /// Antes de las 5 AM sigues en el día anterior — igual que `getHabitDay()` en la web.
     static func current(_ now: Date = Date()) -> Date {
         let hour = Calendar.current.component(.hour, from: now)
         return hour < 5 ? Calendar.current.date(byAdding: .day, value: -1, to: now)! : now

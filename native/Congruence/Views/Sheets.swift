@@ -20,6 +20,7 @@ struct HabitEditorSheet: View {
     @State private var goalText: String
     @State private var unit: String
     @State private var axis: IdentityAxis
+    @State private var weeklyTarget: Int?
     @State private var confirmingDelete = false
 
     init(existing: Habit? = nil,
@@ -35,6 +36,7 @@ struct HabitEditorSheet: View {
         _goalText = State(initialValue: existing.map { String(Int($0.goal)) } ?? "30")
         _unit = State(initialValue: existing?.unit ?? "min")
         _axis = State(initialValue: existing?.identityAxis ?? .physical)
+        _weeklyTarget = State(initialValue: existing?.weeklyTarget)
     }
 
     private var trimmed: String {
@@ -140,6 +142,38 @@ struct HabitEditorSheet: View {
 
                 Divider().overlay(Palette.hairlineFaint)
 
+                section("Cada cuánto") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Chip(label: "Todos los días",
+                                 isSelected: weeklyTarget == nil, tint: tint) {
+                                weeklyTarget = nil
+                            }
+                            Chip(label: "Veces por semana",
+                                 isSelected: weeklyTarget != nil, tint: tint) {
+                                if weeklyTarget == nil { weeklyTarget = 4 }
+                            }
+                            Spacer()
+                        }
+
+                        if let target = weeklyTarget {
+                            HStack(spacing: 6) {
+                                ForEach(1...6, id: \.self) { n in
+                                    Chip(label: "\(n)", isSelected: target == n, tint: tint) {
+                                        weeklyTarget = n
+                                    }
+                                }
+                                Spacer()
+                            }
+                            Text("Al llegar a \(target) esta semana queda tachado y deja de pedirse hasta el lunes.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Palette.textFaint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .animation(.smooth(duration: 0.2), value: weeklyTarget)
+                }
+
                 section("Cómo se cumple") {
                     HStack(spacing: 8) {
                         Chip(label: "Sí o no", isSelected: !isNumeric, tint: tint) {
@@ -189,6 +223,7 @@ struct HabitEditorSheet: View {
                 habit: draft,
                 day: "preview",
                 weekDots: Array(repeating: false, count: 7),
+                weekCount: 0,
                 onToggle: {},
                 onSetValue: { _ in },
                 onSkip: { _ in }
@@ -199,7 +234,7 @@ struct HabitEditorSheet: View {
 
     private func save() {
         let goal = isNumeric ? (Double(goalText) ?? 1) : 1
-        onSave(Habit(
+        var habit = Habit(
             id: existing?.id ?? UUID().uuidString,
             title: trimmed.uppercased(),
             subtitle: nil,
@@ -211,7 +246,9 @@ struct HabitEditorSheet: View {
             identityAxis: axis,
             logs: [:],
             isDemo: false
-        ))
+        )
+        habit.weeklyTarget = weeklyTarget
+        onSave(habit)
         dismiss()
     }
 

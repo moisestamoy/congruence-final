@@ -219,6 +219,7 @@ struct TodayView: View {
                                 habit: habit,
                                 day: dayKey,
                                 weekDots: store.weekDots(for: habit),
+                                weekCount: store.weekCount(for: habit),
                                 onToggle: { toggle(habit) },
                                 onSetValue: { store.setValue($0, for: habit.id, on: dayKey) },
                                 onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) },

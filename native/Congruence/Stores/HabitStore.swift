@@ -126,6 +126,9 @@ final class HabitStore {
         var merged = edited
         merged.logs = document.habits[i].logs
         merged.extras = document.habits[i].extras
+        // Los extras guardados mandan para no perder nada de la web, pero la
+        // frecuencia sí la edita esta hoja, así que esa pasa por encima.
+        merged.weeklyTarget = edited.weeklyTarget
         merged.archived = document.habits[i].archived
         merged.isDemo = false
         document.habits[i] = merged
@@ -161,10 +164,16 @@ final class HabitStore {
         var applicable = 0
         var hasAnyLog = false
 
+        let date = HabitDay.formatter.date(from: day) ?? Date()
         for habit in habits {
             let log = habit.logs[day]
             if log != nil { hasAnyLog = true }
             if log?.isPaused == true { continue }
+            // Un hábito semanal que ya llegó a su mínimo sale del cálculo:
+            // no se cumplió hoy, pero tampoco se está faltando a nada. Si
+            // contara como pendiente, cumplir el objetivo bajaría el anillo.
+            if habit.weeklyTarget != nil, log?.completed != true,
+               weeklyMet(habit, on: date) { continue }
             applicable += 1
             if log?.completed == true { completed += 1 }
         }
@@ -204,6 +213,33 @@ final class HabitStore {
             let c = congruence(on: HabitDay.key(HabitDay.adding(-i, to: day)))
             if c > 0 || c == -1 { acc += 1 }
         }
+    }
+
+    // MARK: - Hábitos con mínimo semanal
+
+    /// El lunes de la semana de `day`, con el mismo corte de las 5 de la
+    /// mañana que usa el resto de la app.
+    static func weekStart(of day: Date) -> Date {
+        // En Foundation el domingo es 1 y el lunes 2; queremos que la semana
+        // empiece el lunes, así que corremos hacia atrás lo que haga falta.
+        let weekday = Calendar.current.component(.weekday, from: day)
+        return HabitDay.adding(-((weekday + 5) % 7), to: day)
+    }
+
+    /// Veces que se cumplió el hábito en la semana de `day`.
+    func weekCount(for habit: Habit, on day: Date = HabitDay.current()) -> Int {
+        let monday = Self.weekStart(of: day)
+        return (0..<7).reduce(into: 0) { acc, i in
+            let key = HabitDay.key(HabitDay.adding(i, to: monday))
+            if habit.logs[key]?.completed == true { acc += 1 }
+        }
+    }
+
+    /// El mínimo de la semana ya está cubierto. A partir de acá el hábito deja
+    /// de pedirse: ni cuenta como pendiente ni como cumplido del día.
+    func weeklyMet(_ habit: Habit, on day: Date = HabitDay.current()) -> Bool {
+        guard let target = habit.weeklyTarget else { return false }
+        return weekCount(for: habit, on: day) >= target
     }
 
     /// Los últimos 7 días de un hábito, del más viejo al más reciente.
