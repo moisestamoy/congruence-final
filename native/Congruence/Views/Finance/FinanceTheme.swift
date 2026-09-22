@@ -39,6 +39,8 @@ struct FinCard<Content: View>: View {
                     }
             }
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.hairlineFaint, lineWidth: 1))
+            .shadow(color: Palette.cardShadow, radius: 10, y: 3)
+            .shadow(color: Palette.cardShadowSoft, radius: 2, y: 1)
     }
 }
 

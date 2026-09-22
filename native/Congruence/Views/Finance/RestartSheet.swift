@@ -67,8 +67,8 @@ struct RestartSheet: View {
                 }
             }
 
-            field(mode == .newCycle ? "Saldo inicial (opcional)" : "Saldo con el que empezás") {
-                DarkField(placeholder: mode == .newCycle ? "Dejalo vacío para no cambiarlo" : "0",
+            field(mode == .newCycle ? "Saldo inicial (opcional)" : "Saldo con el que empiezas") {
+                DarkField(placeholder: mode == .newCycle ? "Déjalo vacío para no cambiarlo" : "0",
                           text: $balanceText)
             }
 
@@ -120,7 +120,7 @@ struct RestartSheet: View {
                 .foregroundStyle(accent)
             Text(isCycle
                  ? "Un presupuesto nuevo desde el mes que elijas, sin tocar los meses anteriores."
-                 : "Borra de forma permanente todos los movimientos, fijos, metas y ajustes. Volvés a cero.")
+                 : "Borra de forma permanente todos los movimientos, fijos, metas y ajustes. Vuelves a cero.")
                 .font(.system(size: 12))
                 .foregroundStyle(Palette.textMuted)
                 .fixedSize(horizontal: false, vertical: true)

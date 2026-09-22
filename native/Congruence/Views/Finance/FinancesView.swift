@@ -231,7 +231,7 @@ struct MetricCards: View {
                     Text("Sin datos para este período")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Palette.textMuted)
-                    Text("Registrá ingresos y gastos para ver tu realidad financiera. Los números, tal como son, sin juicios.")
+                    Text("Registra ingresos y gastos para ver tu realidad financiera. Los números, tal como son, sin juicios.")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.textFaint)
                         .multilineTextAlignment(.center)
@@ -317,7 +317,7 @@ struct MetricCards: View {
                             .foregroundStyle(Palette.textMuted)
                         }
                         .buttonStyle(.plain)
-                        .help("Corregí tu saldo real de hoy")
+                        .help("Corrige tu saldo real de hoy")
                     }
                 }
 
@@ -422,7 +422,7 @@ struct MetricCards: View {
                         .font(.system(size: 11)).foregroundStyle(Palette.textFaint)
                 } else {
                     Text("—").font(.system(size: 26, weight: .black)).foregroundStyle(Palette.textFaint)
-                    Text("Registrá ingresos para proyectar")
+                    Text("Registra ingresos para proyectar")
                         .font(.system(size: 11)).foregroundStyle(Palette.textFaint)
                 }
                 VStack(spacing: 6) {

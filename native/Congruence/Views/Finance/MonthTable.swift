@@ -132,7 +132,7 @@ struct MonthTable: View {
 
 /// El presupuesto diario, editable en la misma celda.
 ///
-/// Es un botón hasta que hacés clic: si fuera un campo de texto siempre, macOS
+/// Es un botón hasta que haces clic: si fuera un campo de texto siempre, macOS
 /// le daría el foco al primero de la ventana al abrir Finanzas y cualquier
 /// tecla sin querer te cambiaría el presupuesto de ese día.
 private struct DailyBudgetCell: View {

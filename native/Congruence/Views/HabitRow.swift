@@ -80,7 +80,7 @@ struct HabitRow: View {
     /// del propio hábito tiñendo su fila.
     private var rowSurface: some View {
         RoundedRectangle(cornerRadius: 12)
-            .fill(Palette.surfaceRaised)
+            .fill(Palette.nested)
             .overlay {
                 if isDone {
                     RoundedRectangle(cornerRadius: 12)

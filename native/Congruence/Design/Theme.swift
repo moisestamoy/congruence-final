@@ -73,16 +73,34 @@ extension Color {
 
 enum Palette {
     // Fondos
-    static let base = Color(light: Color(hex: "#f6f6f7"), dark: Color(hex: "#0a0a0a"))
+    //
+    // En oscuro la página es casi negra y las tarjetas son todavía más
+    // oscuras: el borde las separa. En claro hay que invertir la idea — la
+    // página lleva el gris y las tarjetas son blancas —, porque cuando las
+    // dos eran casi blancas no se distinguía una de otra y todo quedaba en
+    // una papilla gris sin profundidad.
+    static let base = Color(light: Color(hex: "#e9ebef"), dark: Color(hex: "#0a0a0a"))
     static let surface = Color(light: .white, dark: Color(hex: "#050505"))
-    static let surfaceRaised = Color(light: Color(hex: "#f2f3f5"), dark: Color(hex: "#080808"))
+    static let surfaceRaised = Color(light: .white, dark: Color(hex: "#080808"))
 
-    /// Fondo de los campos de texto.
-    static let inputBackground = Color(light: Color(hex: "#f1f2f4"), dark: Color(hex: "#111111"))
+    /// Una fila o celda dentro de una tarjeta. En claro se hunde, porque la
+    /// tarjeta ya es blanca y dos blancos no se distinguen; en oscuro sube
+    /// apenas sobre el fondo de la tarjeta.
+    static let nested = Color(light: Color(hex: "#f2f4f7"), dark: Color(hex: "#080808"))
+
+    /// Fondo de los campos de texto. Dentro de una tarjeta blanca tiene que
+    /// hundirse un poco para leerse como campo.
+    static let inputBackground = Color(light: Color(hex: "#f1f3f6"), dark: Color(hex: "#111111"))
 
     // Líneas
-    static let hairline = Color(light: .black.opacity(0.13), dark: .white.opacity(0.10))
-    static let hairlineFaint = Color(light: .black.opacity(0.07), dark: .white.opacity(0.04))
+    static let hairline = Color(light: .black.opacity(0.11), dark: .white.opacity(0.10))
+    static let hairlineFaint = Color(light: .black.opacity(0.055), dark: .white.opacity(0.04))
+
+    // Sombra de tarjeta. En oscuro no existe: una sombra negra sobre negro no
+    // se ve y sólo ensucia. En claro es lo que levanta la tarjeta del fondo,
+    // el trabajo que en oscuro hace el borde.
+    static let cardShadow = Color(light: .black.opacity(0.06), dark: .clear)
+    static let cardShadowSoft = Color(light: .black.opacity(0.035), dark: .clear)
 
     // Texto
     static let text = Color(light: Color(hex: "#111114"), dark: .white)
@@ -99,9 +117,11 @@ enum Palette {
     /// texto negro; en claro es profundo y pide blanco. Nunca al revés.
     static let onAccent = Color(light: .white, dark: .black)
 
-    /// El riel vacío del anillo. Necesita más cuerpo en claro: un velo tenue
-    /// sobre blanco desaparece, y el anillo es lo primero que mirás.
-    static let ringTrack = Color(light: .black.opacity(0.10), dark: .white.opacity(0.055))
+    /// El riel vacío del anillo. En claro tenía tanto cuerpo que era lo más
+    /// oscuro de la pantalla: un aro gris enorme que no dice nada tapando al
+    /// que sí dice algo. Ahora la página es más gris, así que alcanza con
+    /// mucho menos.
+    static let ringTrack = Color(light: .black.opacity(0.055), dark: .white.opacity(0.055))
 
     /// Un velo sobre el fondo: blanco en oscuro, negro en claro. Reemplaza a los
     /// `Color.white.opacity(…)` sueltos, que en modo claro desaparecían.
@@ -113,6 +133,20 @@ enum Palette {
     /// blanco ensucian en vez de iluminar.
     static func glow(_ color: Color, _ opacity: Double) -> Color {
         Color(light: color.opacity(opacity * 0.22), dark: color.opacity(opacity))
+    }
+}
+
+extension View {
+    /// Una tarjeta de la app: blanca y con sombra suave en claro, casi negra y
+    /// con borde en oscuro. Los dos tokens se resuelven solos, así que la
+    /// vista no tiene que saber en qué modo está.
+    func cardSurface(_ cornerRadius: CGFloat = 16, raised: Bool = false) -> some View {
+        background(raised ? Palette.surfaceRaised : Palette.surface,
+                   in: RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(RoundedRectangle(cornerRadius: cornerRadius)
+                .stroke(Palette.hairlineFaint, lineWidth: 1))
+            .shadow(color: Palette.cardShadow, radius: 10, y: 3)
+            .shadow(color: Palette.cardShadowSoft, radius: 2, y: 1)
     }
 }
 

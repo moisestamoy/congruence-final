@@ -141,7 +141,7 @@ enum FinanceEngine {
     /// Replica a propósito un detalle de la web: hace `new Date("2026-06-01")`,
     /// que JavaScript interpreta como medianoche UTC. En zonas al oeste de
     /// Greenwich (Bogotá, UTC-5) eso es el 31 de mayo a la noche, así que el
-    /// recorrido empieza un mes antes. El saldo inicial que tenés cargado se
+    /// recorrido empieza un mes antes. El saldo inicial que tienes cargado se
     /// calibró con ese recorrido; si la nativa lo "corrigiera" sola, todos los
     /// saldos se correrían. Arreglarlo tiene que ser en las dos apps a la vez.
     static func walkStart(for doc: FinancesDocument, today: Date = Date()) -> (year: Int, month: Int) {

@@ -19,8 +19,8 @@ enum AuthError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidCredentials: return "Mail o contraseña incorrectos."
-        case .emailNotConfirmed:  return "Tenés que confirmar tu mail primero."
-        case .sessionExpired:     return "La sesión venció. Volvé a entrar."
+        case .emailNotConfirmed:  return "Tienes que confirmar tu mail primero."
+        case .sessionExpired:     return "La sesión venció. Vuelve a entrar."
         case .server(let m):      return m
         case .network:            return "Sin conexión con Supabase."
         }

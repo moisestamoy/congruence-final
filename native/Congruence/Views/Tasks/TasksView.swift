@@ -129,7 +129,7 @@ struct TasksView: View {
 
             let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
             if groups.isEmpty {
-                empty("Nada pendiente. Disfrutalo.")
+                empty("Nada pendiente. Disfrútalo.")
                 footer
             } else {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, entry in
@@ -233,13 +233,17 @@ struct TasksView: View {
         }
     }
 
+    /// Todo lo de escribir una tarea vive dentro de una sola tarjeta: el
+    /// texto arriba, los ajustes abajo de una línea fina. Antes eran dos
+    /// filas de píldoras idénticas — una configuraba la tarea, la otra
+    /// filtraba la lista — y se leían como una sola sopa de diez botones.
     private var newTaskField: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Palette.textFaint)
-                TextField("", text: $draft, prompt: Text("Escribí una tarea y apretá Enter"))
+                    .foregroundStyle(inputFocused ? Palette.accent : Palette.textFaint)
+                TextField("", text: $draft, prompt: Text("Escribe una tarea y pulsa Enter"))
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .foregroundStyle(Palette.text)
@@ -253,28 +257,33 @@ struct TasksView: View {
                     }
             }
             .padding(.horizontal, 14)
-            .frame(height: 46)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12)
-                .stroke(inputFocused ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
+            .frame(height: 44)
 
-            // Siempre visible: cuando dependía del foco, al hacer clic en un
-            // chip el campo lo perdía, la fila se ocultaba a mitad del clic y
-            // el botón nunca se disparaba.
-            HStack(spacing: 8) {
+            Divider().overlay(Palette.hairlineFaint)
+
+            HStack(spacing: 4) {
                 ForEach(TaskPriority.allCases, id: \.self) { p in
-                    Chip(label: p == .normal ? "Normal" : p.rawValue,
-                         isSelected: draftPriority == p,
-                         tint: p == .high ? Palette.negative : Palette.accent) {
+                    FlatOption(label: p == .normal ? "Normal" : p.rawValue,
+                               isSelected: draftPriority == p,
+                               tint: p == .high ? Palette.negative
+                                   : p == .medium ? Palette.warning : Palette.accent) {
                         draftPriority = p
                     }
                 }
-                Divider().frame(height: 18).overlay(Palette.hairlineFaint)
+                Rectangle().fill(Palette.hairlineFaint)
+                    .frame(width: 1, height: 14)
+                    .padding(.horizontal, 4)
                 DeadlineField(date: $draftDeadline)
                 GroupPicker(groupId: $draftGroupId, groups: store.document.groups)
                 Spacer()
             }
+            .padding(.horizontal, 8)
+            .frame(height: 36)
         }
+        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(inputFocused ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
+        .animation(.smooth(duration: 0.18), value: inputFocused)
     }
 
     private func isCollapsed(_ key: String) -> Bool {
@@ -299,13 +308,17 @@ struct TasksView: View {
         draftDeadline = nil
     }
 
+    /// Los filtros hablan el idioma de las pestañas de arriba — etiqueta
+    /// chica en mayúsculas, sin cápsula — para que no compitan con la
+    /// tarjeta de escribir, que es lo único con forma de control acá.
     private var filters: some View {
-        HStack(spacing: 6) {
-            Chip(label: "Todo", isSelected: filterGroupId == nil && !onlyPriority,
-                 tint: Palette.accent) {
+        HStack(spacing: 16) {
+            FilterLabel(text: "Todo", isSelected: filterGroupId == nil && !onlyPriority,
+                        tint: Palette.text) {
                 filterGroupId = nil; onlyPriority = false
             }
-            Chip(label: "Prioritarias", isSelected: onlyPriority, tint: Palette.negative) {
+            FilterLabel(text: "Prioritarias", isSelected: onlyPriority,
+                        tint: Palette.negative) {
                 onlyPriority.toggle()
             }
             // Sólo los grupos con algo pendiente: un filtro que no filtra nada
@@ -313,13 +326,14 @@ struct TasksView: View {
             ForEach(store.document.groups.filter { g in
                 store.pending().contains { $0.groupId == g.id }
             }) { g in
-                Chip(label: g.name, isSelected: filterGroupId == g.id,
-                     tint: Color.tint(g.color)) {
+                FilterLabel(text: g.name, isSelected: filterGroupId == g.id,
+                            tint: Color.tint(g.color), dot: Color.tint(g.color)) {
                     filterGroupId = filterGroupId == g.id ? nil : g.id
                 }
             }
             Spacer()
         }
+        .padding(.horizontal, 2)
     }
 
     // MARK: - Hoy
@@ -328,7 +342,7 @@ struct TasksView: View {
         let list = store.dueToday()
         return VStack(alignment: .leading, spacing: 2) {
             if list.isEmpty {
-                empty("Nada por hoy · descansá")
+                empty("Nada por hoy · descansa")
             } else {
                 ForEach(list) { task in
                     TaskRow(task: task, group: store.group(task.groupId),
@@ -355,10 +369,11 @@ struct TasksView: View {
                     Image(systemName: "square.and.pencil").font(.system(size: 10, weight: .bold))
                     Text("Nueva nota").font(.system(size: 11, weight: .bold)).tracking(1).textCase(.uppercase)
                 }
-                .foregroundStyle(Palette.onAccent)
+                .foregroundStyle(Palette.accent)
                 .padding(.horizontal, 16)
-                .frame(height: 34)
-                .background(Palette.accent, in: Capsule())
+                .frame(height: 32)
+                .background(Capsule().fill(Palette.accent.opacity(0.08)))
+                .overlay(Capsule().stroke(Palette.accent.opacity(0.3), lineWidth: 1))
             }
             .buttonStyle(.plain)
 
@@ -400,8 +415,7 @@ struct TasksView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.hairlineFaint, lineWidth: 1))
+        .cardSurface(14, raised: true)
         .contentShape(Rectangle())
     }
 
@@ -540,24 +554,111 @@ struct DeadlineField: View {
     @Binding var date: Date?
 
     var body: some View {
-        HStack(spacing: 4) {
-            if let bound = Binding($date) {
+        if let bound = Binding($date) {
+            HStack(spacing: 2) {
                 DatePicker("", selection: bound, displayedComponents: .date)
                     .labelsHidden()
                     .datePickerStyle(.compact)
                     .environment(\.locale, Locale(identifier: "es"))
+                    .scaleEffect(0.85, anchor: .leading)
+                    .frame(width: 92)
                 Button { date = nil } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 11))
+                    Image(systemName: "xmark")
+                        .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(Palette.textFaint)
+                        .frame(width: 16, height: 16)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-            } else {
-                Chip(label: "Sin fecha", isSelected: false, tint: Palette.accent) {
-                    date = Date()
-                }
+            }
+        } else {
+            FlatOption(label: "Sin fecha", isSelected: false, tint: Palette.accent,
+                       icon: "calendar") {
+                date = Date()
             }
         }
+    }
+}
+
+/// Un ajuste dentro de la tarjeta de escribir: texto plano, y sólo cuando
+/// está elegido se enciende con un fondo apenas teñido. Sin cápsula ni borde,
+/// para que la tarjeta siga leyéndose como un objeto y no como diez.
+struct FlatOption: View {
+    let label: String
+    let isSelected: Bool
+    var tint: Color = Palette.accent
+    var icon: String?
+    var trailingIcon: String?
+    var dot: Color?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if let dot {
+                    Circle().fill(dot).frame(width: 5, height: 5)
+                }
+                if let icon {
+                    Image(systemName: icon).font(.system(size: 9, weight: .semibold))
+                }
+                Text(label)
+                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                    .lineLimit(1)
+                if let trailingIcon {
+                    Image(systemName: trailingIcon).font(.system(size: 6, weight: .bold))
+                }
+            }
+            .foregroundStyle(isSelected ? tint : Palette.textMuted)
+            .padding(.horizontal, 9)
+            .frame(height: 24)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? tint.opacity(0.11) : .clear)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .animation(.smooth(duration: 0.18), value: isSelected)
+    }
+}
+
+/// Un filtro de la lista. Es texto, no un control: el único control con forma
+/// de tal en esta pantalla es la tarjeta de escribir.
+struct FilterLabel: View {
+    let text: String
+    let isSelected: Bool
+    var tint: Color = Palette.text
+    var dot: Color?
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                HStack(spacing: 5) {
+                    if let dot {
+                        Circle().fill(dot)
+                            .frame(width: 5, height: 5)
+                            .opacity(isSelected ? 1 : 0.55)
+                    }
+                    Text(text)
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1.2)
+                        .textCase(.uppercase)
+                }
+                .foregroundStyle(isSelected ? tint
+                                 : hovering ? Palette.textMuted : Palette.textFaint)
+                Rectangle()
+                    .fill(isSelected ? tint.opacity(0.5) : .clear)
+                    .frame(height: 1)
+            }
+            .fixedSize()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.smooth(duration: 0.18), value: isSelected)
     }
 }
 
@@ -572,25 +673,13 @@ struct GroupPicker: View {
 
     var body: some View {
         let current = groups.first { $0.id == groupId }
-        Button { picking = true } label: {
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(Color.tint(current?.color ?? "#7a8fa6"))
-                    .frame(width: 6, height: 6)
-                Text(current?.name ?? "Sin grupo")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Palette.textMuted)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 7, weight: .bold))
-                    .foregroundStyle(Palette.textFaint)
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 30)
-            .background(Capsule().fill(Palette.fill(0.03)))
-            .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
-            .contentShape(Capsule())
+        FlatOption(label: current?.name ?? "Sin grupo",
+                   isSelected: current != nil,
+                   tint: Color.tint(current?.color ?? "#7a8fa6"),
+                   trailingIcon: "chevron.down",
+                   dot: Color.tint(current?.color ?? "#7a8fa6")) {
+            picking = true
         }
-        .buttonStyle(.plain)
         .fixedSize()
         .sheet(isPresented: $picking) {
             GroupPickerSheet(groupId: $groupId, groups: groups)

@@ -19,10 +19,10 @@ struct LoginSheet: View {
             HStack(spacing: 12) {
                 RingMark(size: 26)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Entrá con tu cuenta")
+                    Text("Entra con tu cuenta")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Palette.text)
-                    Text("La misma que usás en la web. Tus hábitos se sincronizan.")
+                    Text("La misma que usas en la web. Tus hábitos se sincronizan.")
                         .font(.system(size: 11))
                         .foregroundStyle(Palette.textFaint)
                 }

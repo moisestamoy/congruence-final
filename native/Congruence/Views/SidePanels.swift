@@ -23,10 +23,7 @@ struct PanelCard<Content: View>: View {
         content
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Palette.surface, in: RoundedRectangle(cornerRadius: 18))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18).stroke(Palette.hairlineFaint, lineWidth: 1)
-            )
+            .cardSurface(18)
     }
 }
 
