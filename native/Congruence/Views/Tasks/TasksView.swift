@@ -24,6 +24,10 @@ struct TasksView: View {
     @State private var draftGroupId: String?
     @State private var filterGroupId: String?
     @State private var onlyPriority = false
+    @State private var showingDoneToday = false
+    /// Grupos plegados, separados por coma. Se guarda para que al volver a
+    /// abrir la app siga plegado lo que plegaste.
+    @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
     @State private var editing: TodoTask?
     @State private var newNote = false
     @State private var editingNote: DiaryNote?
@@ -43,9 +47,9 @@ struct TasksView: View {
                     case .diario: diarioView
                     }
                 }
-                .padding(28)
-                .frame(maxWidth: 900, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 28)
+                .frame(maxWidth: 672, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
         }
         .background(Palette.base)
@@ -53,6 +57,11 @@ struct TasksView: View {
             TaskEditorSheet(task: task)
         }
         .sheet(isPresented: $newNote) { NoteEditorSheet(note: nil) }
+        .background {
+            Button("") { tab = .tareas; inputFocused = true }
+                .keyboardShortcut("n", modifiers: .command)
+                .opacity(0)
+        }
         .sheet(item: $editingNote) { note in NoteEditorSheet(note: note) }
     }
 
@@ -68,7 +77,8 @@ struct TasksView: View {
                 .tracking(-0.8)
                 .foregroundStyle(Palette.text)
         }
-        .padding(.horizontal, 28)
+        .frame(maxWidth: 672, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .padding(.top, 28)
         .padding(.bottom, 18)
     }
@@ -94,7 +104,8 @@ struct TasksView: View {
             }
             Spacer()
         }
-        .padding(.horizontal, 28)
+        .frame(maxWidth: 672, alignment: .leading)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Tareas
@@ -107,36 +118,101 @@ struct TasksView: View {
             let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
             if groups.isEmpty {
                 empty("Nada pendiente. Disfrutalo.")
+                footer
             } else {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, entry in
+                    let key = entry.group?.id ?? ""
+                    let collapsed = isCollapsed(key)
                     VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 7) {
-                            Circle()
-                                .fill(Color.tint(entry.group?.color ?? "#7a8fa6"))
-                                .frame(width: 6, height: 6)
-                            Text(entry.group?.name ?? "Sin grupo")
-                                .microLabelStyle(Palette.textMuted, size: 9)
+                        Button { toggleCollapsed(key) } label: {
+                            HStack(spacing: 7) {
+                                Circle()
+                                    .fill(Color.tint(entry.group?.color ?? "#7a8fa6"))
+                                    .frame(width: 6, height: 6)
+                                Text(entry.group?.name ?? "Sin grupo")
+                                    .microLabelStyle(Palette.textMuted, size: 9)
+                                Text("\(entry.tasks.count)")
+                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(Palette.textFaint)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundStyle(Palette.textFaint)
+                                    .rotationEffect(.degrees(collapsed ? -90 : 0))
+                                Spacer()
+                            }
+                            .padding(.bottom, 6)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.bottom, 6)
+                        .buttonStyle(.plain)
 
-                        ForEach(entry.tasks) { task in
-                            TaskRow(task: task, group: store.group(task.groupId),
-                                    onToggle: { store.toggleTask(task.id) },
-                                    onEdit: { editing = task },
-                                    onDelete: { store.removeTask(task.id) })
+                        if !collapsed {
+                            ForEach(entry.tasks) { task in
+                                TaskRow(task: task, group: store.group(task.groupId),
+                                        onToggle: { store.toggleTask(task.id) },
+                                        onEdit: { editing = task },
+                                        onDelete: { store.removeTask(task.id) })
+                            }
+                            .padding(.horizontal, -10)
                         }
                     }
-                    .padding(.bottom, 14)
+                    .padding(.bottom, collapsed ? 4 : 14)
                 }
 
-                let pending = store.pending(groupId: filterGroupId, onlyPriority: onlyPriority).count
-                let done = store.completedToday()
-                Divider().overlay(Palette.hairlineFaint)
-                Text("\(pending) pendiente\(pending == 1 ? "" : "s")"
-                     + (done > 0 ? " · \(done) completada\(done == 1 ? "" : "s") hoy" : ""))
+                footer
+            }
+        }
+    }
+
+    /// El pie cuenta lo pendiente y, si completaste algo hoy, deja verlo y
+    /// deshacerlo: al completar una tarea desaparece, y sin esto un clic sin
+    /// querer no tenía vuelta atrás.
+    private var footer: some View {
+        let pending = store.pending(groupId: filterGroupId, onlyPriority: onlyPriority).count
+        let doneToday = store.doneToday()
+        return VStack(alignment: .leading, spacing: 10) {
+            Divider().overlay(Palette.hairlineFaint)
+            HStack(spacing: 8) {
+                Text("\(pending) pendiente\(pending == 1 ? "" : "s")")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(Palette.textFaint)
-                    .padding(.top, 10)
+                if !doneToday.isEmpty {
+                    Text("·").foregroundStyle(Palette.textFaint)
+                    Button {
+                        withAnimation(.smooth(duration: 0.2)) { showingDoneToday.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("\(doneToday.count) completada\(doneToday.count == 1 ? "" : "s") hoy")
+                            Image(systemName: showingDoneToday ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 7, weight: .bold))
+                        }
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Palette.textMuted)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+            .padding(.top, 10)
+
+            if showingDoneToday {
+                ForEach(doneToday) { task in
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.positive.opacity(0.7))
+                        Text(task.text)
+                            .font(.system(size: 13))
+                            .strikethrough(color: Palette.textFaint)
+                            .foregroundStyle(Palette.textFaint)
+                        Spacer(minLength: 8)
+                        Button("Deshacer") { store.toggleTask(task.id) }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Palette.accent)
+                    }
+                    .padding(.vertical, 5)
+                }
             }
         }
     }
@@ -160,22 +236,33 @@ struct TasksView: View {
             .overlay(RoundedRectangle(cornerRadius: 12)
                 .stroke(inputFocused ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
 
-            if inputFocused || !draft.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(TaskPriority.allCases, id: \.self) { p in
-                        Chip(label: p == .normal ? "Normal" : p.rawValue,
-                             isSelected: draftPriority == p,
-                             tint: p == .high ? Palette.negative : Palette.accent) {
-                            draftPriority = p
-                        }
+            // Siempre visible: cuando dependía del foco, al hacer clic en un
+            // chip el campo lo perdía, la fila se ocultaba a mitad del clic y
+            // el botón nunca se disparaba.
+            HStack(spacing: 8) {
+                ForEach(TaskPriority.allCases, id: \.self) { p in
+                    Chip(label: p == .normal ? "Normal" : p.rawValue,
+                         isSelected: draftPriority == p,
+                         tint: p == .high ? Palette.negative : Palette.accent) {
+                        draftPriority = p
                     }
-                    Divider().frame(height: 18).overlay(Palette.hairlineFaint)
-                    DeadlineField(date: $draftDeadline)
-                    GroupPicker(groupId: $draftGroupId, groups: store.document.groups)
-                    Spacer()
                 }
+                Divider().frame(height: 18).overlay(Palette.hairlineFaint)
+                DeadlineField(date: $draftDeadline)
+                GroupPicker(groupId: $draftGroupId, groups: store.document.groups)
+                Spacer()
             }
         }
+    }
+
+    private func isCollapsed(_ key: String) -> Bool {
+        collapsedRaw.split(separator: ",").contains(Substring(key))
+    }
+
+    private func toggleCollapsed(_ key: String) {
+        var keys = collapsedRaw.split(separator: ",").map(String.init)
+        if let i = keys.firstIndex(of: key) { keys.remove(at: i) } else { keys.append(key) }
+        withAnimation(.smooth(duration: 0.2)) { collapsedRaw = keys.joined(separator: ",") }
     }
 
     private func addTask() {
@@ -195,7 +282,11 @@ struct TasksView: View {
             Chip(label: "Prioritarias", isSelected: onlyPriority, tint: Palette.negative) {
                 onlyPriority.toggle()
             }
-            ForEach(store.document.groups) { g in
+            // Sólo los grupos con algo pendiente: un filtro que no filtra nada
+            // es ruido.
+            ForEach(store.document.groups.filter { g in
+                store.pending().contains { $0.groupId == g.id }
+            }) { g in
                 Chip(label: g.name, isSelected: filterGroupId == g.id,
                      tint: Color.tint(g.color)) {
                     filterGroupId = filterGroupId == g.id ? nil : g.id
@@ -303,6 +394,8 @@ struct TaskRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
+    @State private var hovering = false
+
     private var isOverdue: Bool {
         guard let d = task.deadline else { return false }
         return d < HabitDay.key(HabitDay.current())
@@ -340,22 +433,26 @@ struct TaskRow: View {
             }
         }
         .padding(.vertical, 9)
-        .contentShape(Rectangle())
-        .onTapGesture(count: 2, perform: onEdit)
-        .contextMenu {
-            Button("Editar…", action: onEdit)
-            Button("Completar", action: onToggle)
-            Divider()
-            Button("Borrar", role: .destructive, action: onDelete)
-        }
         .overlay(alignment: .leading) {
             if task.priority != .normal {
                 Rectangle()
                     .fill(task.priority == .high ? Palette.negative : Palette.warning)
                     .frame(width: 2)
                     .padding(.vertical, 6)
-                    .offset(x: -10)
+                    .offset(x: -6)
             }
+        }
+        .padding(.horizontal, 10)
+        .background(hovering ? Palette.fill(0.035) : .clear,
+                    in: RoundedRectangle(cornerRadius: 8))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture(count: 2, perform: onEdit)
+        .contextMenu {
+            Button("Editar…", action: onEdit)
+            Button("Completar", action: onToggle)
+            Divider()
+            Button("Borrar", role: .destructive, action: onDelete)
         }
     }
 
@@ -395,18 +492,18 @@ struct DeadlineField: View {
     }
 }
 
+/// El chip de grupo. Abre una hoja en vez de un `Menu` porque macOS le quita
+/// el estilo al label de un Menu (se pierden la cápsula y el punto de color),
+/// y porque desde la hoja se puede crear un grupo sin salir de acá.
 struct GroupPicker: View {
     @Binding var groupId: String?
     let groups: [TaskGroup]
 
+    @State private var picking = false
+
     var body: some View {
-        Menu {
-            Button("Sin grupo") { groupId = nil }
-            ForEach(groups) { g in
-                Button(g.name) { groupId = g.id }
-            }
-        } label: {
-            let current = groups.first { $0.id == groupId }
+        let current = groups.first { $0.id == groupId }
+        Button { picking = true } label: {
             HStack(spacing: 5) {
                 Circle()
                     .fill(Color.tint(current?.color ?? "#7a8fa6"))
@@ -414,14 +511,134 @@ struct GroupPicker: View {
                 Text(current?.name ?? "Sin grupo")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(Palette.textFaint)
             }
             .padding(.horizontal, 12)
             .frame(height: 30)
             .background(Capsule().fill(Palette.fill(0.03)))
             .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
+            .contentShape(Capsule())
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
         .fixedSize()
+        .sheet(isPresented: $picking) {
+            GroupPickerSheet(groupId: $groupId, groups: groups)
+        }
+    }
+}
+
+struct GroupPickerSheet: View {
+    @Binding var groupId: String?
+    let groups: [TaskGroup]
+
+    @Environment(TaskStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var newName = ""
+    @State private var colorIndex = 0
+    @FocusState private var newFocused: Bool
+
+    /// La misma paleta que ya usan los grupos existentes.
+    static let palette = ["#5b8dd9", "#c8920a", "#3aada8", "#a56ad4",
+                          "#d4765a", "#6aa84f", "#7a8fa6"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Grupo").font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Palette.text)
+
+            VStack(alignment: .leading, spacing: 0) {
+                row(color: "#7a8fa6", name: "Sin grupo", selected: groupId == nil) {
+                    groupId = nil
+                    dismiss()
+                }
+                ForEach(groups) { g in
+                    row(color: g.color, name: g.name, selected: groupId == g.id) {
+                        groupId = g.id
+                        dismiss()
+                    }
+                }
+            }
+
+            Divider().overlay(Palette.hairlineFaint)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Nuevo grupo").microLabelStyle(Palette.textFaint, size: 9)
+                HStack(spacing: 10) {
+                    DarkField(placeholder: "Casa, Trabajo, Estudio…", text: $newName)
+                        .focused($newFocused)
+                        .onSubmit(create)
+                    Button("Crear", action: create)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(canCreate ? Palette.onAccent : Palette.textFaint)
+                        .padding(.horizontal, 18)
+                        .frame(height: 34)
+                        .background(Capsule().fill(canCreate ? Palette.accent : Palette.fill(0.06)))
+                        .disabled(!canCreate)
+                }
+                HStack(spacing: 10) {
+                    ForEach(Array(Self.palette.enumerated()), id: \.offset) { i, hex in
+                        Button { colorIndex = i } label: {
+                            Circle()
+                                .fill(Color.tint(hex))
+                                .frame(width: 16, height: 16)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Palette.text, lineWidth: colorIndex == i ? 1.5 : 0)
+                                        .padding(-3)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cerrar") { dismiss() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.textMuted)
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(26)
+        .frame(width: 400)
+        .background(Palette.base)
+        .onAppear { colorIndex = groups.count % Self.palette.count }
+    }
+
+    private var canCreate: Bool { !newName.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    private func create() {
+        guard let id = store.addGroup(name: newName, color: Self.palette[colorIndex]) else { return }
+        groupId = id
+        dismiss()
+    }
+
+    private func row(color: String, name: String, selected: Bool,
+                     action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Circle().fill(Color.tint(color)).frame(width: 7, height: 7)
+                Text(name).font(.system(size: 13)).foregroundStyle(Palette.text)
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Palette.accent)
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .background(selected ? Palette.fill(0.04) : .clear,
+                        in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

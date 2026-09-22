@@ -88,13 +88,18 @@ final class TaskStore {
             .sorted { ($0.deadline ?? "") < ($1.deadline ?? "") }
     }
 
-    func completedToday(_ now: Date = Date()) -> Int {
+    /// Lo que completaste hoy, lo último primero: es lo que se puede deshacer.
+    func doneToday(_ now: Date = Date()) -> [TodoTask] {
         let today = HabitDay.key(now)
-        return document.tasks.filter {
-            guard $0.completed, let at = $0.completedAt else { return false }
-            return HabitDay.key(Date(timeIntervalSince1970: at / 1000)) == today
-        }.count
+        return document.tasks
+            .filter {
+                guard $0.completed, let at = $0.completedAt else { return false }
+                return HabitDay.key(Date(timeIntervalSince1970: at / 1000)) == today
+            }
+            .sorted { ($0.completedAt ?? 0) > ($1.completedAt ?? 0) }
     }
+
+    func completedToday(_ now: Date = Date()) -> Int { doneToday(now).count }
 
     func group(_ id: String?) -> TaskGroup? {
         guard let id else { return nil }
