@@ -29,6 +29,9 @@ struct TasksView: View {
     @AppStorage("tasksLayout") private var layoutRaw = TaskLayout.list.rawValue
     /// El día que estás mirando en el Diario.
     @State private var diaryDay = HabitDay.current()
+    /// Sube cada vez que algo pide escribir una nota; el compositor lo mira
+    /// para tomar el foco.
+    @State private var noteFocusToken = 0
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -184,7 +187,7 @@ struct TasksView: View {
 
             let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
             if groups.isEmpty {
-                empty("Nada pendiente. Disfrútalo.")
+                empty("Nada pendiente. Disfrútalo.") { inputFocused = true }
                 footer
             } else {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, entry in
@@ -400,7 +403,10 @@ struct TasksView: View {
         let list = store.dueToday()
         return VStack(alignment: .leading, spacing: 2) {
             if list.isEmpty {
-                empty("Nada por hoy · descansa")
+                empty("Nada por hoy · descansa") {
+                    withAnimation(.smooth(duration: 0.2)) { tab = .tareas }
+                    inputFocused = true
+                }
             } else {
                 ForEach(list) { task in
                     TaskRow(task: task, group: store.group(task.groupId),
@@ -425,11 +431,13 @@ struct TasksView: View {
         return VStack(alignment: .leading, spacing: 12) {
             diaryHeader
 
-            NoteComposer(day: diaryDay)
+            NoteComposer(day: diaryDay, focusToken: noteFocusToken)
 
             if notes.isEmpty {
                 VStack(spacing: 10) {
-                    empty(isToday ? "Todavía no escribiste hoy." : "Ese día no escribiste nada.")
+                    empty(isToday ? "Todavía no escribiste hoy." : "Ese día no escribiste nada.") {
+                        noteFocusToken += 1
+                    }
                     // Ir de a un día hasta la última nota pueden ser cien
                     // clics, así que el día vacío ofrece el salto.
                     if let anterior = previousDayWithNotes {
@@ -528,13 +536,22 @@ struct TasksView: View {
         .buttonStyle(.plain)
     }
 
-    private func empty(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 17, weight: .light, design: .serif))
-            .italic()
-            .foregroundStyle(Palette.textFaint)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 44)
+    /// El vacío es el sitio más grande de la pantalla, y hasta ahora no hacía
+    /// nada. Un clic ahí empieza a escribir, que es lo único que se puede
+    /// querer hacer cuando no hay nada.
+    private func empty(_ text: String, action: (() -> Void)? = nil) -> some View {
+        Button { action?() } label: {
+            Text(text)
+                .font(.system(size: 17, weight: .light, design: .serif))
+                .italic()
+                .foregroundStyle(Palette.textFaint)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 200)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+        .help(action == nil ? "" : "Clic para escribir")
     }
 }
 

@@ -103,6 +103,8 @@ struct NoteComposer: View {
     /// El día en el que se guarda. El Diario se navega por día, y escribir
     /// mientras miras el martes tiene que dejar la nota en el martes.
     var day: Date = Date()
+    /// Cambia cuando algo de afuera pide empezar a escribir.
+    var focusToken: Int = 0
 
     @Environment(TaskStore.self) private var store
 
@@ -162,6 +164,7 @@ struct NoteComposer: View {
         .overlay(RoundedRectangle(cornerRadius: 14)
             .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.22), value: open)
+        .onChange(of: focusToken) { _, _ in focused = .title }
     }
 
     private func save() {
