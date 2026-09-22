@@ -55,7 +55,7 @@ struct MonthTable: View {
             LazyVStack(spacing: 0) {
                 ForEach(month.days) { day in
                     row(day)
-                    Divider().overlay(Color.white.opacity(0.03))
+                    Divider().overlay(Palette.fill(0.03))
                 }
             }
         }

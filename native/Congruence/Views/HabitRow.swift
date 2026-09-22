@@ -15,7 +15,7 @@ struct HabitRow: View {
     private var log: HabitLog? { habit.log(on: day) }
     private var isDone: Bool { log?.completed == true }
     private var isPaused: Bool { log?.isPaused == true }
-    private var tint: Color { Color(hex: habit.color) }
+    private var tint: Color { .tint(habit.color) }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -54,7 +54,7 @@ struct HabitRow: View {
         )
         // El resplandor sólo aparece al completar. Es la única recompensa
         // visual de la fila: si brillara siempre, no significaría nada.
-        .shadow(color: isDone ? tint.opacity(0.20) : .clear, radius: 14, y: 3)
+        .shadow(color: isDone ? Palette.glow(tint, 0.20) : .clear, radius: 14, y: 3)
         .opacity(isPaused ? 0.5 : 1)
         .animation(.smooth(duration: 0.3), value: isDone)
         // Toda la fila marca el hábito, no sólo el círculo. Los botones de
@@ -118,7 +118,7 @@ struct HabitRow: View {
                 Circle()
                     .fill(tint)
                     .frame(width: 10, height: 10)
-                    .shadow(color: tint.opacity(0.6), radius: 6)
+                    .shadow(color: Palette.glow(tint, 0.6), radius: 6)
             } else if isPaused {
                 Rectangle()
                     .fill(Palette.textFaint)
@@ -131,7 +131,7 @@ struct HabitRow: View {
         HStack(spacing: 5) {
             ForEach(Array(weekDots.enumerated()), id: \.offset) { _, done in
                 Circle()
-                    .fill(done ? tint.opacity(0.85) : Color.white.opacity(0.10))
+                    .fill(done ? tint.opacity(0.85) : Palette.fill(0.10))
                     .frame(width: 4, height: 4)
             }
         }
@@ -173,7 +173,7 @@ struct HabitRow: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Palette.textMuted)
                 .frame(width: 22, height: 22)
-                .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
     }

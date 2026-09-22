@@ -42,7 +42,7 @@ struct RingMark: View {
                 .frame(width: size * 0.16, height: size * 0.16)
         }
         .frame(width: size, height: size)
-        .shadow(color: color.opacity(0.6), radius: size * 0.3)
+        .shadow(color: Palette.glow(color, 0.6), radius: size * 0.3)
     }
 }
 
@@ -50,6 +50,7 @@ struct Sidebar: View {
     @Binding var selection: AppSection
     var onLogin: () -> Void = {}
 
+    @AppStorage("appearance") private var appearanceRaw = Appearance.system.rawValue
     @Environment(AuthService.self) private var auth
     @Environment(SyncService.self) private var sync
 
@@ -67,6 +68,9 @@ struct Sidebar: View {
 
             Spacer()
 
+            appearanceButton
+                .padding(.bottom, 10)
+
             accountButton
                 .padding(.bottom, 18)
         }
@@ -78,6 +82,27 @@ struct Sidebar: View {
                 .fill(Palette.hairlineFaint)
                 .frame(width: 1)
         }
+    }
+
+    // MARK: - Apariencia
+
+    private var appearance: Appearance { Appearance(rawValue: appearanceRaw) ?? .system }
+
+    private var appearanceButton: some View {
+        Button {
+            withAnimation(.smooth(duration: 0.25)) { appearanceRaw = appearance.next.rawValue }
+        } label: {
+            Image(systemName: appearance.symbol)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
+                .frame(width: 30, height: 30)
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1))
+                .contentTransition(.symbolEffect(.replace))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Apariencia: \(appearance.label) · clic para cambiar")
     }
 
     // MARK: - Cuenta y estado de sincronización

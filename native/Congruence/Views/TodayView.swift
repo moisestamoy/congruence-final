@@ -282,7 +282,7 @@ struct TodayView: View {
                     .opacity(isToday ? 0.3 : 1)
             }
             .padding(3)
-            .background(Color.white.opacity(0.03), in: Capsule())
+            .background(Palette.fill(0.03), in: Capsule())
             .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
         }
     }
@@ -298,7 +298,7 @@ struct TodayView: View {
                 .foregroundStyle(Palette.textMuted)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 28, height: 26)
-                .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+                .background(Palette.fill(0.03), in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8).stroke(Palette.hairlineFaint, lineWidth: 1)
                 )
@@ -319,7 +319,7 @@ struct TodayView: View {
                 .background(
                     RoundedRectangle(cornerRadius: 12)
                         .strokeBorder(
-                            Color.white.opacity(0.08),
+                            Palette.fill(0.08),
                             style: StrokeStyle(lineWidth: 1, dash: [4, 4])
                         )
                 )

@@ -7,6 +7,7 @@ struct CongruenceApp: App {
     @State private var auth: AuthService
     @State private var sync: SyncService
 
+    @AppStorage("appearance") private var appearanceRaw = Appearance.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -26,7 +27,7 @@ struct CongruenceApp: App {
                 .environment(finances)
                 .environment(auth)
                 .environment(sync)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(Appearance(rawValue: appearanceRaw)?.colorScheme)
                 .background(Palette.base)
                 .task { await sync.refresh() }
                 // Igual que la web al volver a la pestaña: al volver a la app, baja.

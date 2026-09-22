@@ -19,7 +19,7 @@ struct Chip: View {
                 .frame(maxWidth: fillsWidth ? .infinity : nil)
                 .frame(height: 30)
                 .background(
-                    Capsule().fill(isSelected ? tint.opacity(0.12) : Color.white.opacity(0.03))
+                    Capsule().fill(isSelected ? tint.opacity(0.12) : Palette.fill(0.03))
                 )
                 .overlay(
                     Capsule().stroke(

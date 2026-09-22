@@ -81,7 +81,7 @@ struct FinancesView: View {
                     Image(systemName: "plus").font(.system(size: 10, weight: .bold))
                     Text("Movimiento").font(.system(size: 11, weight: .bold)).tracking(1).textCase(.uppercase)
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(Palette.onAccent)
                 .padding(.horizontal, 16)
                 .frame(height: 36)
                 .background(FinPalette.accent, in: RoundedRectangle(cornerRadius: 12))
@@ -127,8 +127,8 @@ struct FinancesView: View {
                 }
             }
             .padding(3)
-            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.07), lineWidth: 1))
+            .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.07), lineWidth: 1))
 
             Spacer()
 
@@ -156,8 +156,8 @@ struct FinancesView: View {
                 navButton("chevron.right") { shift(1) }
             }
             .padding(3)
-            .background(Color(hex: "#111111"), in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.05), lineWidth: 1))
+            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.05), lineWidth: 1))
         }
     }
 
@@ -284,7 +284,7 @@ struct MetricCards: View {
                 bigNumber((projectedEnd < 0 ? "-" : "") + money(projectedEnd),
                           color: projectedEnd >= 0 ? Palette.text : FinPalette.expense)
 
-                Divider().overlay(Color.white.opacity(0.05))
+                Divider().overlay(Palette.fill(0.05))
 
                 HStack {
                     Text("Saldo actual").microLabelStyle(Palette.textFaint.opacity(0.8), size: 9)
@@ -296,7 +296,7 @@ struct MetricCards: View {
                                 .font(.system(size: 12, design: .monospaced))
                                 .padding(.horizontal, 8)
                                 .frame(width: 110, height: 24)
-                                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                                .background(Palette.fill(0.08), in: RoundedRectangle(cornerRadius: 6))
                                 .onSubmit(commitBalance)
                             Button("✓", action: commitBalance).buttonStyle(.plain)
                                 .foregroundStyle(FinPalette.income)
@@ -378,7 +378,7 @@ struct MetricCards: View {
 
     private var paceCard: some View {
         let ratio = stats.income > 0 ? abs(stats.expenses) / stats.income : 0
-        let color: Color = ratio > 0.9 ? Color(hex: "#f59e0b") : ratio > 0.7 ? Color(hex: "#eab308") : FinPalette.accent
+        let color: Color = ratio > 0.9 ? Color(light: Color(hex: "#b45309"), dark: Color(hex: "#f59e0b")) : ratio > 0.7 ? Color(light: Color(hex: "#a16207"), dark: Color(hex: "#eab308")) : FinPalette.accent
         return FinCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -386,7 +386,7 @@ struct MetricCards: View {
                     Spacer()
                     Image(systemName: ratio > 0.9 ? "exclamationmark.circle" : "arrow.down.right")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(ratio > 0.9 ? Color(hex: "#f59e0b") : Palette.textFaint)
+                        .foregroundStyle(ratio > 0.9 ? Color(light: Color(hex: "#b45309"), dark: Color(hex: "#f59e0b")) : Palette.textFaint)
                 }
                 bigNumber("\(Int((ratio * 100).rounded()))%", color: Palette.text)
                 ProgressLine(value: ratio, color: color, height: 5)
@@ -461,7 +461,7 @@ struct CategoryBreakdown: View {
     let title: String
 
     private static let colors = ["#6366f1", "#f59e0b", "#3b82f6", "#ef4444", "#f97316",
-                                 "#a855f7", "#10b981", "#ec4899"].map(Color.init(hex:))
+                                 "#a855f7", "#10b981", "#ec4899"].map(Color.tint)
 
     var body: some View {
         FinCard(padding: 24) {

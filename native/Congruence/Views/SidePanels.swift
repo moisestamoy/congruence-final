@@ -101,7 +101,7 @@ struct NinetyDayCard: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.white.opacity(0.05))
+                            .fill(Palette.fill(0.05))
                         Capsule()
                             .fill(Palette.accent)
                             .frame(width: max(0, geo.size.width * progress))
@@ -113,7 +113,7 @@ struct NinetyDayCard: View {
                 HStack(spacing: 6) {
                     ForEach(Array(weekDots.enumerated()), id: \.offset) { _, done in
                         Capsule()
-                            .fill(done ? Palette.accent : Color.white.opacity(0.06))
+                            .fill(done ? Palette.accent : Palette.fill(0.06))
                             .frame(height: 3)
                     }
                 }
@@ -129,7 +129,7 @@ struct NinetyDayCard: View {
 struct CoachCard: View {
     var onAnalyze: () -> Void = {}
 
-    private let violet = Color(hex: "#8b5cf6")
+    private let violet = FinPalette.recurring
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -177,7 +177,7 @@ struct CoachCard: View {
                     .foregroundStyle(Palette.textFaint)
             }
             .padding(12)
-            .background(Color.white.opacity(0.02), in: RoundedRectangle(cornerRadius: 10))
+            .background(Palette.fill(0.02), in: RoundedRectangle(cornerRadius: 10))
         }
         .padding(16)
         .background(violet.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))

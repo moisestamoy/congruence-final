@@ -16,7 +16,7 @@ struct RestartSheet: View {
     @State private var clearFuture = false
     @State private var confirmingReset = false
 
-    private static let indigo = Color(hex: "#818cf8")
+    private static let indigo = Color(light: Color(hex: "#4f46e5"), dark: Color(hex: "#818cf8"))
     private static let rose = FinPalette.expense
 
     init(budget: Double) {
@@ -86,10 +86,10 @@ struct RestartSheet: View {
                 Button(action: apply) {
                     Text(mode == .newCycle ? "Guardar ciclo" : "Sí, borrar todo")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(budget != nil ? (mode == .newCycle ? Color.black : .white) : Palette.textFaint)
+                        .foregroundStyle(budget != nil ? Palette.onAccent : Palette.textFaint)
                         .padding(.horizontal, 20)
                         .frame(height: 36)
-                        .background(Capsule().fill(budget != nil ? accent : Color.white.opacity(0.06)))
+                        .background(Capsule().fill(budget != nil ? accent : Palette.fill(0.06)))
                         .shadow(color: budget != nil ? accent.opacity(0.35) : .clear, radius: 12, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -171,7 +171,7 @@ struct RestartSheet: View {
             }
             .padding(14)
             .background(RoundedRectangle(cornerRadius: 12)
-                .fill(clearFuture ? Self.rose.opacity(0.06) : Color.white.opacity(0.02)))
+                .fill(clearFuture ? Self.rose.opacity(0.06) : Palette.fill(0.02)))
             .overlay(RoundedRectangle(cornerRadius: 12)
                 .stroke(clearFuture ? Self.rose.opacity(0.3) : Palette.hairlineFaint, lineWidth: 1))
             .contentShape(Rectangle())

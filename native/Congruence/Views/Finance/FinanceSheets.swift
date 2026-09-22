@@ -29,7 +29,7 @@ struct DayDetailsSheet: View {
                     Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Palette.textMuted)
                         .frame(width: 28, height: 28)
-                        .background(Color.white.opacity(0.05), in: Circle())
+                        .background(Palette.fill(0.05), in: Circle())
                 }
                 .buttonStyle(.plain)
                 .keyboardShortcut(.cancelAction)
@@ -234,7 +234,7 @@ struct TransactionSheet: View {
                     .foregroundStyle(Palette.text)
                     .padding(.horizontal, 14)
                     .frame(height: 52)
-                    .background(Color(hex: "#111111"), in: RoundedRectangle(cornerRadius: 12))
+                    .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12)
                         .stroke(amount != nil ? tint.opacity(0.5) : Palette.hairlineFaint, lineWidth: 1))
             }
@@ -275,10 +275,10 @@ struct TransactionSheet: View {
                         Text(editing != nil ? "Guardar cambios" : "Agregar")
                     }
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(amount != nil ? Color.black : Palette.textFaint)
+                    .foregroundStyle(amount != nil ? Palette.onAccent : Palette.textFaint)
                     .padding(.horizontal, 20)
                     .frame(height: 36)
-                    .background(Capsule().fill(amount != nil ? tint : Color.white.opacity(0.06)))
+                    .background(Capsule().fill(amount != nil ? tint : Palette.fill(0.06)))
                     .shadow(color: amount != nil ? tint.opacity(0.35) : .clear, radius: 12, y: 3)
                 }
                 .buttonStyle(.plain)
@@ -309,16 +309,16 @@ struct TransactionSheet: View {
             HStack(spacing: 12) {
                 Image(systemName: "repeat")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(isRecurring ? Color(hex: "#c4b5fd") : Palette.textFaint)
+                    .foregroundStyle(isRecurring ? Color(light: Color(hex: "#5b21b6"), dark: Color(hex: "#c4b5fd")) : Palette.textFaint)
                     .frame(width: 32, height: 32)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(isRecurring ? FinPalette.recurring.opacity(0.3) : Color.white.opacity(0.05))
+                            .fill(isRecurring ? FinPalette.recurring.opacity(0.3) : Palette.fill(0.05))
                     )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(isRecurring ? "Se repite cada mes" : "Repetir cada mes")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(isRecurring ? Color(hex: "#ddd6fe") : Palette.textMuted)
+                        .foregroundStyle(isRecurring ? Color(light: Color(hex: "#4c1d95"), dark: Color(hex: "#ddd6fe")) : Palette.textMuted)
                     Text(isRecurring
                          ? "Se suma el día \(day) de todos los meses"
                          : "Para fijos: alquiler, salario, suscripciones…")
@@ -327,7 +327,7 @@ struct TransactionSheet: View {
                 }
                 Spacer()
                 Capsule()
-                    .fill(isRecurring ? FinPalette.recurring : Color.white.opacity(0.1))
+                    .fill(isRecurring ? FinPalette.recurring : Palette.fill(0.1))
                     .frame(width: 40, height: 22)
                     .overlay(alignment: isRecurring ? .trailing : .leading) {
                         Circle().fill(.white).frame(width: 16, height: 16).padding(3)
@@ -336,7 +336,7 @@ struct TransactionSheet: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isRecurring ? FinPalette.recurring.opacity(0.12) : Color.white.opacity(0.03))
+                    .fill(isRecurring ? FinPalette.recurring.opacity(0.12) : Palette.fill(0.03))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
@@ -418,10 +418,10 @@ struct BudgetSheet: View {
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(value != nil ? Color.black : Palette.textFaint)
+                .foregroundStyle(value != nil ? Palette.onAccent : Palette.textFaint)
                 .padding(.horizontal, 20)
                 .frame(height: 34)
-                .background(Capsule().fill(value != nil ? FinPalette.accent : Color.white.opacity(0.06)))
+                .background(Capsule().fill(value != nil ? FinPalette.accent : Palette.fill(0.06)))
                 .disabled(value == nil)
                 .keyboardShortcut(.defaultAction)
             }

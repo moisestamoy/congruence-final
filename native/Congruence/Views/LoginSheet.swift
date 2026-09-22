@@ -70,14 +70,14 @@ struct LoginSheet: View {
 
                 Button(action: submit) {
                     HStack(spacing: 6) {
-                        if isWorking { ProgressView().controlSize(.small).tint(.black) }
+                        if isWorking { ProgressView().controlSize(.small).tint(Palette.onAccent) }
                         Text(isWorking ? "Entrando…" : "Entrar")
                     }
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(canSubmit ? Color.black : Palette.textFaint)
+                    .foregroundStyle(canSubmit ? Palette.onAccent : Palette.textFaint)
                     .padding(.horizontal, 20)
                     .frame(height: 34)
-                    .background(Capsule().fill(canSubmit ? Palette.accent : Color.white.opacity(0.06)))
+                    .background(Capsule().fill(canSubmit ? Palette.accent : Palette.fill(0.06)))
                     .shadow(color: canSubmit ? Palette.accent.opacity(0.35) : .clear, radius: 14, y: 3)
                     .contentShape(Capsule())
                 }

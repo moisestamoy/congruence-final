@@ -43,6 +43,23 @@ Lo más importante: nunca escribe sin haber leído antes, sólo toca
 `habits_data` y `finances_data`, y respeta los gastos que tu Atajo de iPhone
 escribe directo en la base.
 
+## Apariencia
+
+Claro, oscuro o lo que diga el sistema. Se cambia con el botón de abajo de la
+barra lateral y se recuerda (`appearance` en UserDefaults).
+
+Los colores viven en `Design/Theme.swift` y se resuelven solos según la
+apariencia (`Color(light:dark:)`), así que una vista nueva no tiene que saber
+en qué modo está: alcanza con usar los tokens de `Palette`. Reglas:
+
+- Nada de `Color.white.opacity(…)` suelto — sobre blanco desaparece. Va
+  `Palette.fill(_:)`, que es blanco en oscuro y negro en claro.
+- Un color que viene de datos (el de un hábito) se pasa por `Color.tint(hex:)`,
+  que lo oscurece en claro para que se lea.
+- Los resplandores van por `Palette.glow(_:_:)`: sobre blanco ensucian, así que
+  casi desaparecen.
+- Texto sobre el acento: `Palette.onAccent` (negro en oscuro, blanco en claro).
+
 ## Pendiente conocido
 
 La web calcula el saldo empezando un mes antes en zonas horarias al oeste de

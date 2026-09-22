@@ -3,19 +3,19 @@ import SwiftUI
 /// Los colores de la página de Finanzas de la web: verde para lo que entra y
 /// el acento de la página, rosa para lo que sale, turquesa para el diario.
 enum FinPalette {
-    static let accent = Color(hex: "#10b981")
-    static let income = Color(hex: "#34d399")
-    static let expense = Color(hex: "#fb7185")
-    static let daily = Color(hex: "#22d3ee")
-    static let recurring = Color(hex: "#8b5cf6")
-    static let goal = Color(hex: "#8b5cf6")
+    static let accent = Color(light: Color(hex: "#047857"), dark: Color(hex: "#10b981"))
+    static let income = Color(light: Color(hex: "#047857"), dark: Color(hex: "#34d399"))
+    static let expense = Color(light: Color(hex: "#e11d48"), dark: Color(hex: "#fb7185"))
+    static let daily = Color(light: Color(hex: "#0e7490"), dark: Color(hex: "#22d3ee"))
+    static let recurring = Color(light: Color(hex: "#6d28d9"), dark: Color(hex: "#8b5cf6"))
+    static let goal = recurring
 
     static func status(_ s: DayStatus) -> Color {
         switch s {
-        case .solid:    return Color(hex: "#34d399")
-        case .caution:  return Color(hex: "#fbbf24")
-        case .risk:     return Color(hex: "#fb923c")
-        case .critical: return Color(hex: "#fb7185")
+        case .solid:    return income
+        case .caution:  return Color(light: Color(hex: "#b45309"), dark: Color(hex: "#fbbf24"))
+        case .risk:     return Color(light: Color(hex: "#c2410c"), dark: Color(hex: "#fb923c"))
+        case .critical: return expense
         }
     }
 }
@@ -29,12 +29,16 @@ struct FinCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                LinearGradient(colors: [Color.white.opacity(0.04), Color.white.opacity(0.01)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 16)
-            )
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.07), lineWidth: 1))
+            .background {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Palette.surface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(LinearGradient(colors: [Palette.fill(0.04), Palette.fill(0.012)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+            }
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.hairlineFaint, lineWidth: 1))
     }
 }
 
@@ -47,7 +51,7 @@ struct ProgressLine: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.05))
+                Capsule().fill(Palette.fill(0.06))
                 Capsule().fill(color).frame(width: geo.size.width * max(0, min(value, 1)))
             }
         }

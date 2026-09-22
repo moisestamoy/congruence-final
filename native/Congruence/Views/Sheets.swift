@@ -42,7 +42,7 @@ struct HabitEditorSheet: View {
     }
 
     private var canSave: Bool { !trimmed.isEmpty }
-    private var tint: Color { Color(hex: color) }
+    private var tint: Color { .tint(color) }
 
     /// El hábito tal como quedará. Se arma con los mismos datos que se guardan,
     /// así que la vista previa no puede mentir.
@@ -107,11 +107,11 @@ struct HabitEditorSheet: View {
                         ForEach(habitColors, id: \.self) { option in
                             Button { color = option } label: {
                                 Circle()
-                                    .fill(Color(hex: option))
+                                    .fill(Color.tint(option))
                                     .frame(width: 20, height: 20)
                                     .overlay(
                                         Circle()
-                                            .stroke(Color(hex: option).opacity(0.5),
+                                            .stroke(Color.tint(option).opacity(0.5),
                                                     lineWidth: color == option ? 2 : 0)
                                             .padding(-4)
                                     )
@@ -313,11 +313,11 @@ struct SheetShell<Content: View>: View {
                 Button("Guardar", action: onSave)
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(canSave ? Color.black : Palette.textFaint)
+                    .foregroundStyle(canSave ? Palette.onAccent : Palette.textFaint)
                     .padding(.horizontal, 20)
                     .frame(height: 34)
                     .background(
-                        Capsule().fill(canSave ? Palette.accent : Color.white.opacity(0.06))
+                        Capsule().fill(canSave ? Palette.accent : Palette.fill(0.06))
                     )
                     .shadow(color: canSave ? Palette.accent.opacity(0.35) : .clear,
                             radius: 14, y: 3)
