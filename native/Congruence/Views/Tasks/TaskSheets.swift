@@ -100,6 +100,10 @@ struct TaskEditorSheet: View {
 /// formulario que se confirma: es algo que se escribe donde vive, así que
 /// ahora nace en la misma lista en la que va a quedar.
 struct NoteComposer: View {
+    /// El día en el que se guarda. El Diario se navega por día, y escribir
+    /// mientras miras el martes tiene que dejar la nota en el martes.
+    var day: Date = Date()
+
     @Environment(TaskStore.self) private var store
 
     @State private var title = ""
@@ -164,7 +168,7 @@ struct NoteComposer: View {
         guard canSave else { return }
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         withAnimation(.smooth(duration: 0.28)) {
-            store.addNote(title: title, content: content)
+            store.addNote(title: title, content: content, on: day)
         }
         reset()
     }
@@ -252,8 +256,9 @@ struct NoteCard: View {
                 Text(note.content)
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.textMuted)
-                    .lineLimit(3)
+                    .lineSpacing(4)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)

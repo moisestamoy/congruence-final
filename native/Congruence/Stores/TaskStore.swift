@@ -224,9 +224,27 @@ final class TaskStore {
     // MARK: - Diario
 
     /// Las notas nuevas van arriba, como en la web.
-    func addNote(title: String, content: String) {
-        document.notes.insert(DiaryNote(title: title, content: content), at: 0)
+    func addNote(title: String, content: String, on day: Date = Date()) {
+        document.notes.insert(DiaryNote(title: title, content: content, on: day), at: 0)
+        document.notes.sort { $0.createdAt > $1.createdAt }
         commit()
+    }
+
+    /// Las notas de un día, la última primero.
+    func notes(on day: Date) -> [DiaryNote] {
+        let key = HabitDay.key(day)
+        return document.notes
+            .filter { HabitDay.key($0.date) == key }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    /// Los días que tienen alguna nota, del más reciente al más viejo. Sirve
+    /// para saltar al día anterior con algo escrito en vez de ir de a uno.
+    func daysWithNotes() -> [Date] {
+        var vistos = Set<String>()
+        return document.notes
+            .sorted { $0.createdAt > $1.createdAt }
+            .compactMap { vistos.insert(HabitDay.key($0.date)).inserted ? $0.date : nil }
     }
 
     func updateNote(_ id: String, title: String, content: String) {

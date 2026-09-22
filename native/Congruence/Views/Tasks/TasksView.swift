@@ -27,6 +27,8 @@ struct TasksView: View {
     @State private var showingDoneToday = false
     /// Lista o tablero. Es una segunda vista de lo mismo, no otra sección.
     @AppStorage("tasksLayout") private var layoutRaw = TaskLayout.list.rawValue
+    /// El día que estás mirando en el Diario.
+    @State private var diaryDay = HabitDay.current()
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -419,17 +421,111 @@ struct TasksView: View {
     // MARK: - Diario
 
     private var diarioView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            NoteComposer()
+        let notes = store.notes(on: diaryDay)
+        return VStack(alignment: .leading, spacing: 12) {
+            diaryHeader
 
-            if store.document.notes.isEmpty {
-                empty("El diario está vacío.")
+            NoteComposer(day: diaryDay)
+
+            if notes.isEmpty {
+                VStack(spacing: 10) {
+                    empty(isToday ? "Todavía no escribiste hoy." : "Ese día no escribiste nada.")
+                    // Ir de a un día hasta la última nota pueden ser cien
+                    // clics, así que el día vacío ofrece el salto.
+                    if let anterior = previousDayWithNotes {
+                        Button {
+                            withAnimation(.smooth(duration: 0.25)) { diaryDay = anterior }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text("Ir al \(DateFormatter.es("d 'de' MMMM").string(from: anterior))")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundStyle(Palette.accent)
+                            .padding(.horizontal, 12)
+                            .frame(height: 26)
+                            .background(Capsule().fill(Palette.accent.opacity(0.09)))
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             } else {
-                ForEach(store.document.notes) { note in
+                ForEach(notes) { note in
                     NoteCard(note: note)
                 }
             }
         }
+        .animation(.smooth(duration: 0.22), value: HabitDay.key(diaryDay))
+    }
+
+    /// El día anterior más cercano que sí tenga algo escrito.
+    private var previousDayWithNotes: Date? {
+        let actual = HabitDay.key(diaryDay)
+        return store.daysWithNotes().first { HabitDay.key($0) < actual }
+    }
+
+    private var isToday: Bool {
+        HabitDay.key(diaryDay) == HabitDay.key(HabitDay.current())
+    }
+
+    /// El diario va por día. Antes era una pila plana de notas sin tiempo, y
+    /// un diario sin días no es un diario: es un cajón.
+    private var diaryHeader: some View {
+        HStack(spacing: 10) {
+            Text(dayLabel)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Palette.text)
+                + Text(isToday ? ", \(DateFormatter.es("d 'de' MMMM").string(from: diaryDay))" : "")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Palette.textFaint)
+
+            Spacer()
+
+            if !isToday {
+                Button("Hoy") { withAnimation { diaryDay = HabitDay.current() } }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.accent)
+                    .padding(.horizontal, 10)
+                    .frame(height: 24)
+                    .background(Capsule().fill(Palette.accent.opacity(0.1)))
+            }
+
+            dayStep(-1, "chevron.left")
+            dayStep(1, "chevron.right")
+                .disabled(isToday)
+                .opacity(isToday ? 0.3 : 1)
+        }
+        .padding(.bottom, 2)
+    }
+
+    private var dayLabel: String {
+        if isToday { return "Hoy" }
+        let ayer = HabitDay.key(HabitDay.adding(-1, to: HabitDay.current()))
+        if HabitDay.key(diaryDay) == ayer { return "Ayer" }
+        return DateFormatter.es("EEEE d 'de' MMMM").string(from: diaryDay).sentenceCased
+    }
+
+    private func dayStep(_ offset: Int, _ symbol: String) -> some View {
+        Button {
+            withAnimation(.smooth(duration: 0.22)) {
+                diaryDay = HabitDay.adding(offset, to: diaryDay)
+            }
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Palette.textMuted)
+                .frame(width: 26, height: 24)
+                .background(Capsule().fill(Palette.fill(0.045)))
+                .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func empty(_ text: String) -> some View {

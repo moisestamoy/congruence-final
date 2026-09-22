@@ -130,9 +130,10 @@ struct DiaryNote: JSONRecord, Identifiable {
     var raw: [String: JSONValue]
     init(raw: [String: JSONValue]) { self.raw = raw }
 
-    init(title: String, content: String) {
+    /// `on` permite fechar la nota en el día que estés mirando, no en hoy.
+    init(title: String, content: String, on day: Date = Date()) {
         raw = [:]
-        let now = Date().timeIntervalSince1970 * 1000
+        let now = Self.stamp(for: day)
         id = UUID().uuidString
         self.title = title
         self.content = content
@@ -147,6 +148,16 @@ struct DiaryNote: JSONRecord, Identifiable {
     var updatedAt: Double { get { double("updatedAt") ?? 0 } set { set("updatedAt", .number(newValue)) } }
 
     var date: Date { Date(timeIntervalSince1970: createdAt / 1000) }
+
+    /// Si escribes en un día pasado, la nota se fecha a mediodía de ese día;
+    /// si es hoy, lleva la hora real. Así una nota de ayer queda en ayer sin
+    /// inventar una hora exacta que nadie vivió.
+    private static func stamp(for day: Date) -> Double {
+        let cal = Calendar.current
+        if cal.isDateInToday(day) { return Date().timeIntervalSince1970 * 1000 }
+        let noon = cal.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day
+        return noon.timeIntervalSince1970 * 1000
+    }
 }
 
 /// Exactamente lo que guarda la columna `tasks_data`.
