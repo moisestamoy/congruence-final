@@ -8,6 +8,7 @@ import SwiftUI
 struct KanbanBoard: View {
     let filterGroupId: String?
     let onlyPriority: Bool
+    @Binding var composing: TaskColumn?
     let onEdit: (TodoTask) -> Void
     /// Tocar el vacío de una columna escribe una tarea que nace ahí.
     let onCompose: (TaskColumn) -> Void
@@ -22,6 +23,7 @@ struct KanbanBoard: View {
                         column: column,
                         tasks: store.column(column, groupId: filterGroupId,
                                             onlyPriority: onlyPriority),
+                        composing: $composing,
                         onEdit: onEdit,
                         onCompose: { onCompose(column) }
                     )
@@ -36,6 +38,7 @@ struct KanbanBoard: View {
 private struct KanbanColumn: View {
     let column: TaskColumn
     let tasks: [TodoTask]
+    @Binding var composing: TaskColumn?
     let onEdit: (TodoTask) -> Void
     let onCompose: () -> Void
 
@@ -63,12 +66,16 @@ private struct KanbanColumn: View {
             .padding(.horizontal, 4)
 
             VStack(spacing: 10) {
+                if composing == column {
+                    TaskComposer(column: column, composing: $composing, compact: true)
+                }
+
                 ForEach(tasks) { task in
                     TaskCard(task: task, group: store.group(task.groupId),
                              muted: column == .done, onEdit: { onEdit(task) })
                 }
 
-                if tasks.isEmpty {
+                if tasks.isEmpty && composing != column {
                     Button(action: onCompose) {
                         Text(column == .done ? "Nada terminado hoy" : "Vacío")
                             .font(.system(size: 12, weight: .light, design: .serif))
@@ -76,6 +83,16 @@ private struct KanbanColumn: View {
                             .foregroundStyle(Palette.textFaint.opacity(0.8))
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: 130)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clic para escribir una tarea acá")
+                } else if composing != column {
+                    // Debajo de las tarjetas también se escribe.
+                    Button(action: onCompose) {
+                        Color.clear
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

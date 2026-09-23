@@ -18,10 +18,6 @@ struct TasksView: View {
     @Environment(TaskStore.self) private var store
 
     @State private var tab: Tab = .tareas
-    @State private var draft = ""
-    @State private var draftPriority: TaskPriority = .normal
-    @State private var draftDeadline: Date?
-    @State private var draftGroupId: String?
     @State private var filterGroupId: String?
     @State private var onlyPriority = false
     @State private var showingDoneToday = false
@@ -32,14 +28,13 @@ struct TasksView: View {
     /// Sube cada vez que algo pide escribir una nota; el compositor lo mira
     /// para tomar el foco.
     @State private var noteFocusToken = 0
-    /// La columna en la que nace lo que escribas. Vuelve a Pendiente después
-    /// de guardar: sólo dura lo que dura esa tarea.
-    @State private var draftColumn: TaskColumn = .pending
+    /// La columna que está escribiendo ahora mismo, o ninguna. El campo no
+    /// vive en la pantalla: aparece donde haces clic y se va al terminar.
+    @State private var composing: TaskColumn?
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
     @State private var editing: TodoTask?
-    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -54,11 +49,9 @@ struct TasksView: View {
                     boardControls
                     KanbanBoard(filterGroupId: filterGroupId,
                                 onlyPriority: onlyPriority,
+                                composing: $composing,
                                 onEdit: { editing = $0 },
-                                onCompose: { column in
-                                    draftColumn = column
-                                    inputFocused = true
-                                })
+                                onCompose: { compose($0) })
                 }
             } else {
                 ScrollView {
@@ -79,7 +72,7 @@ struct TasksView: View {
             TaskEditorSheet(task: task)
         }
         .background {
-            Button("") { tab = .tareas; inputFocused = true }
+            Button("") { tab = .tareas; compose(.pending) }
                 .keyboardShortcut("n", modifiers: .command)
                 .opacity(0)
         }
@@ -152,12 +145,12 @@ struct TasksView: View {
     /// Arriba del tablero van el campo de escribir y los filtros, igual que
     /// en la lista: cambiar de vista no debería cambiar dónde se crea algo.
     private var boardControls: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        Group {
             if !store.document.groups.isEmpty { filters }
-            newTaskField.frame(maxWidth: 560)
         }
         .padding(.horizontal, 28)
         .padding(.top, 20)
+        .padding(.bottom, 4)
     }
 
     private var tabs: some View {
@@ -190,11 +183,14 @@ struct TasksView: View {
     private var tareasView: some View {
         VStack(alignment: .leading, spacing: 18) {
             if !store.document.groups.isEmpty { filters }
-            newTaskField
+
+            if composing != nil {
+                TaskComposer(column: composing ?? .pending, composing: $composing)
+            }
 
             let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
             if groups.isEmpty {
-                empty("Nada pendiente. Disfrútalo.") { inputFocused = true }
+                empty("Nada pendiente. Disfrútalo.") { compose(.pending) }
                 footer
             } else {
                 ForEach(Array(groups.enumerated()), id: \.offset) { _, entry in
@@ -237,8 +233,26 @@ struct TasksView: View {
                 }
 
                 footer
+                blankCatcher
             }
         }
+    }
+
+    /// El espacio de debajo de la lista también escribe. Sin esto, con tareas
+    /// en pantalla no quedaría ningún sitio en blanco donde hacer clic.
+    private var blankCatcher: some View {
+        Button { compose(.pending) } label: {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 220)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Clic para escribir una tarea")
+    }
+
+    private func compose(_ column: TaskColumn) {
+        withAnimation(.smooth(duration: 0.2)) { composing = column }
     }
 
     /// El pie cuenta lo pendiente y, si completaste algo hoy, deja verlo y
@@ -302,66 +316,6 @@ struct TasksView: View {
     /// texto arriba, los ajustes abajo de una línea fina. Antes eran dos
     /// filas de píldoras idénticas — una configuraba la tarea, la otra
     /// filtraba la lista — y se leían como una sola sopa de diez botones.
-    private var newTaskField: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(inputFocused ? Palette.accent : Palette.textFaint)
-                TextField("", text: $draft, prompt: Text(draftColumn == .pending
-                    ? "Escribe una tarea y pulsa Enter"
-                    : "Escribe una tarea para \(draftColumn.label)"))
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.text)
-                    .focused($inputFocused)
-                    .onSubmit(addTask)
-                    .onChange(of: draft) { old, new in
-                        // Sólo al escribir, no al vaciar el campo tras guardar.
-                        if new.count > old.count {
-                            SoundEffects.shared.play(.key, enabled: store.document.soundEnabled)
-                        }
-                    }
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 44)
-
-            Divider().overlay(Palette.hairlineFaint)
-
-            HStack(spacing: 4) {
-                ForEach(TaskPriority.allCases, id: \.self) { p in
-                    FlatOption(label: p == .normal ? "Normal" : p.rawValue,
-                               isSelected: draftPriority == p,
-                               tint: p == .high ? Palette.negative
-                                   : p == .medium ? Palette.warning : Palette.accent) {
-                        draftPriority = p
-                    }
-                }
-                Rectangle().fill(Palette.hairlineFaint)
-                    .frame(width: 1, height: 14)
-                    .padding(.horizontal, 4)
-                DeadlineField(date: $draftDeadline)
-                GroupPicker(groupId: $draftGroupId, groups: store.document.groups)
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .frame(height: 36)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(inputFocused ? Palette.fill(0.07) : Palette.fill(0.045))
-        )
-        .overlay(RoundedRectangle(cornerRadius: 12)
-            .stroke(inputFocused ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
-        .animation(.smooth(duration: 0.18), value: inputFocused)
-        // Escape suelta el campo y vuelve a Pendiente: si tocaste el vacío de
-        // una columna y te arrepentiste, no había forma de deshacerlo.
-        .onExitCommand {
-            draftColumn = .pending
-            inputFocused = false
-        }
-    }
-
     private func isCollapsed(_ key: String) -> Bool {
         collapsedRaw.split(separator: ",").contains(Substring(key))
     }
@@ -370,20 +324,6 @@ struct TasksView: View {
         var keys = collapsedRaw.split(separator: ",").map(String.init)
         if let i = keys.firstIndex(of: key) { keys.remove(at: i) } else { keys.append(key) }
         withAnimation(.smooth(duration: 0.2)) { collapsedRaw = keys.joined(separator: ",") }
-    }
-
-    private func addTask() {
-        guard !draft.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        withAnimation(.smooth(duration: 0.25)) {
-            store.addTask(text: draft, priority: draftPriority,
-                          deadline: draftDeadline.map(HabitDay.key),
-                          groupId: draftGroupId, column: draftColumn)
-        }
-        draft = ""
-        draftPriority = .normal
-        draftDeadline = nil
-        draftColumn = .pending
     }
 
     /// Los filtros hablan el idioma de las pestañas de arriba — etiqueta
@@ -422,7 +362,7 @@ struct TasksView: View {
             if list.isEmpty {
                 empty("Nada por hoy · descansa") {
                     withAnimation(.smooth(duration: 0.2)) { tab = .tareas }
-                    inputFocused = true
+                    compose(.pending)
                 }
             } else {
                 ForEach(list) { task in
@@ -1027,5 +967,107 @@ struct GroupPickerSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Escribir una tarea
+
+/// El campo para escribir. No vive en la pantalla: aparece donde haces clic y
+/// se va al terminar. Una barra de escribir siempre presente ocupa sitio los
+/// días en que no escribes nada, que son la mayoría.
+struct TaskComposer: View {
+    /// La columna en la que nace lo que escribas.
+    let column: TaskColumn
+    @Binding var composing: TaskColumn?
+    /// Dentro de una columna del tablero el espacio es menor.
+    var compact = false
+
+    @Environment(TaskStore.self) private var store
+    @State private var draft = ""
+    @State private var priority: TaskPriority = .normal
+    @State private var deadline: Date?
+    @State private var groupId: String?
+    @FocusState private var focused: Bool
+
+    private var placeholder: String {
+        column == .pending ? "Escribe una tarea y pulsa Enter"
+                           : "Escribe una tarea para \(column.label)"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                TextField("", text: $draft, prompt: Text(placeholder))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: compact ? 13 : 14))
+                    .foregroundStyle(Palette.text)
+                    .focused($focused)
+                    .onSubmit(add)
+                    .onChange(of: draft) { old, new in
+                        // Sólo al escribir, no al vaciarse tras guardar.
+                        if new.count > old.count {
+                            SoundEffects.shared.play(.key, enabled: store.document.soundEnabled)
+                        }
+                    }
+            }
+            .padding(.horizontal, compact ? 11 : 14)
+            .frame(height: compact ? 38 : 44)
+
+            Divider().overlay(Palette.hairlineFaint)
+
+            // Centrados: pegados a la izquierda dejaban medio campo vacío.
+            HStack(spacing: 4) {
+                Spacer(minLength: 0)
+                ForEach(TaskPriority.allCases, id: \.self) { p in
+                    FlatOption(label: p == .normal ? "Normal" : p.rawValue,
+                               isSelected: priority == p,
+                               tint: p == .high ? Palette.negative
+                                   : p == .medium ? Palette.warning : Palette.accent) {
+                        priority = p
+                    }
+                }
+                Rectangle().fill(Palette.hairlineFaint)
+                    .frame(width: 1, height: 14)
+                    .padding(.horizontal, 4)
+                DeadlineField(date: $deadline)
+                GroupPicker(groupId: $groupId, groups: store.document.groups)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 6)
+            .frame(height: 36)
+        }
+        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(Palette.accent.opacity(0.4), lineWidth: 1))
+        .onAppear { focused = true }
+        // Al perder el foco con el campo vacío se cierra solo: nada que
+        // guardar, nada que dejar abierto.
+        .onChange(of: focused) { _, isFocused in
+            if !isFocused && draft.trimmingCharacters(in: .whitespaces).isEmpty {
+                composing = nil
+            }
+        }
+        .onExitCommand { composing = nil }
+        .transition(.opacity.combined(with: .offset(y: -6)))
+    }
+
+    /// Guarda y se queda abierto: escribir tres tareas seguidas no debería
+    /// costar tres clics más.
+    private func add() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { composing = nil; return }
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        withAnimation(.smooth(duration: 0.25)) {
+            store.addTask(text: text, priority: priority,
+                          deadline: deadline.map(HabitDay.key),
+                          groupId: groupId, column: column)
+        }
+        draft = ""
+        priority = .normal
+        deadline = nil
+        focused = true
     }
 }
