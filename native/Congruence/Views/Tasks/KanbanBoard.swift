@@ -17,6 +17,18 @@ struct KanbanBoard: View {
 
     var body: some View {
         ScrollView {
+            ZStack(alignment: .top) {
+                // Todo lo que no es columna cierra lo que estés escribiendo.
+                // Va como botón y no como gesto sobre un `Color.clear`: dentro
+                // de un ScrollView el gesto no llegaba.
+                Button {
+                    withAnimation(.smooth(duration: 0.2)) { composing = nil }
+                } label: {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(composing == nil)
+
             HStack(alignment: .top, spacing: 16) {
                 ForEach(TaskColumn.allCases, id: \.self) { column in
                     KanbanColumn(
@@ -31,6 +43,8 @@ struct KanbanBoard: View {
             }
             .padding(.horizontal, 28)
             .padding(.vertical, 22)
+            }
+            .frame(maxWidth: .infinity, minHeight: 640, alignment: .top)
         }
     }
 }

@@ -251,8 +251,12 @@ struct TasksView: View {
         .help("Clic para escribir una tarea")
     }
 
+    /// Un clic en blanco abre el campo; otro clic en blanco lo cierra. Si ya
+    /// estabas escribiendo en otra columna, lo mueve a ésta.
     private func compose(_ column: TaskColumn) {
-        withAnimation(.smooth(duration: 0.2)) { composing = column }
+        withAnimation(.smooth(duration: 0.2)) {
+            composing = composing == column ? nil : column
+        }
     }
 
     /// El pie cuenta lo pendiente y, si completaste algo hoy, deja verlo y
@@ -988,6 +992,8 @@ struct TaskComposer: View {
     @State private var deadline: Date?
     @State private var groupId: String?
     @FocusState private var focused: Bool
+    /// Escape descarta; cerrar de cualquier otra forma guarda.
+    @State private var discarding = false
 
     private var placeholder: String {
         column == .pending ? "Escribe una tarea y pulsa Enter"
@@ -1050,7 +1056,20 @@ struct TaskComposer: View {
                 composing = nil
             }
         }
-        .onExitCommand { composing = nil }
+        .onExitCommand {
+            discarding = true
+            composing = nil
+        }
+        // Cerrar con algo escrito lo guarda. Un clic fuera no debería tirar
+        // un texto que escribiste a propósito.
+        .onDisappear {
+            guard !discarding else { return }
+            let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return }
+            store.addTask(text: text, priority: priority,
+                          deadline: deadline.map(HabitDay.key),
+                          groupId: groupId, column: column)
+        }
         .transition(.opacity.combined(with: .offset(y: -6)))
     }
 
