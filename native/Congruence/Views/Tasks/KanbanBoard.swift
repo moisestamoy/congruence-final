@@ -9,6 +9,8 @@ struct KanbanBoard: View {
     let filterGroupId: String?
     let onlyPriority: Bool
     let onEdit: (TodoTask) -> Void
+    /// Tocar el vacío de una columna escribe una tarea que nace ahí.
+    let onCompose: (TaskColumn) -> Void
 
     @Environment(TaskStore.self) private var store
 
@@ -20,7 +22,8 @@ struct KanbanBoard: View {
                         column: column,
                         tasks: store.column(column, groupId: filterGroupId,
                                             onlyPriority: onlyPriority),
-                        onEdit: onEdit
+                        onEdit: onEdit,
+                        onCompose: { onCompose(column) }
                     )
                 }
             }
@@ -34,6 +37,7 @@ private struct KanbanColumn: View {
     let column: TaskColumn
     let tasks: [TodoTask]
     let onEdit: (TodoTask) -> Void
+    let onCompose: () -> Void
 
     @Environment(TaskStore.self) private var store
     @State private var targeted = false
@@ -65,12 +69,17 @@ private struct KanbanColumn: View {
                 }
 
                 if tasks.isEmpty {
-                    Text(column == .done ? "Nada terminado hoy" : "Vacío")
-                        .font(.system(size: 12, weight: .light, design: .serif))
-                        .italic()
-                        .foregroundStyle(Palette.textFaint.opacity(0.8))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
+                    Button(action: onCompose) {
+                        Text(column == .done ? "Nada terminado hoy" : "Vacío")
+                            .font(.system(size: 12, weight: .light, design: .serif))
+                            .italic()
+                            .foregroundStyle(Palette.textFaint.opacity(0.8))
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: 130)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clic para escribir una tarea acá")
                 }
             }
         }

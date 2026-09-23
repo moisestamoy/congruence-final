@@ -108,11 +108,22 @@ final class TaskStore {
 
     // MARK: - Tareas
 
-    func addTask(text: String, priority: TaskPriority, deadline: String?, groupId: String?) {
+    func addTask(text: String, priority: TaskPriority, deadline: String?,
+                 groupId: String?, column: TaskColumn = .pending) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        document.tasks.append(TodoTask(text: text, priority: priority,
-                                       deadline: deadline, groupId: groupId))
+        var task = TodoTask(text: text, priority: priority,
+                            deadline: deadline, groupId: groupId)
+        // Crear desde una columna del tablero la deja ya en ese estado:
+        // hacer clic en "En progreso" es decir que ya empezaste.
+        switch column {
+        case .pending: break
+        case .doing:   task.inProgress = true
+        case .done:
+            task.completed = true
+            task.completedAt = Date().timeIntervalSince1970 * 1000
+        }
+        document.tasks.append(task)
         commit()
     }
 

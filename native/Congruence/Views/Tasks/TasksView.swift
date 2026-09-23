@@ -32,6 +32,9 @@ struct TasksView: View {
     /// Sube cada vez que algo pide escribir una nota; el compositor lo mira
     /// para tomar el foco.
     @State private var noteFocusToken = 0
+    /// La columna en la que nace lo que escribas. Vuelve a Pendiente después
+    /// de guardar: sólo dura lo que dura esa tarea.
+    @State private var draftColumn: TaskColumn = .pending
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -51,7 +54,11 @@ struct TasksView: View {
                     boardControls
                     KanbanBoard(filterGroupId: filterGroupId,
                                 onlyPriority: onlyPriority,
-                                onEdit: { editing = $0 })
+                                onEdit: { editing = $0 },
+                                onCompose: { column in
+                                    draftColumn = column
+                                    inputFocused = true
+                                })
                 }
             } else {
                 ScrollView {
@@ -301,7 +308,9 @@ struct TasksView: View {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(inputFocused ? Palette.accent : Palette.textFaint)
-                TextField("", text: $draft, prompt: Text("Escribe una tarea y pulsa Enter"))
+                TextField("", text: $draft, prompt: Text(draftColumn == .pending
+                    ? "Escribe una tarea y pulsa Enter"
+                    : "Escribe una tarea para \(draftColumn.label)"))
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .foregroundStyle(Palette.text)
@@ -345,6 +354,12 @@ struct TasksView: View {
         .overlay(RoundedRectangle(cornerRadius: 12)
             .stroke(inputFocused ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.18), value: inputFocused)
+        // Escape suelta el campo y vuelve a Pendiente: si tocaste el vacío de
+        // una columna y te arrepentiste, no había forma de deshacerlo.
+        .onExitCommand {
+            draftColumn = .pending
+            inputFocused = false
+        }
     }
 
     private func isCollapsed(_ key: String) -> Bool {
@@ -362,11 +377,13 @@ struct TasksView: View {
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         withAnimation(.smooth(duration: 0.25)) {
             store.addTask(text: draft, priority: draftPriority,
-                          deadline: draftDeadline.map(HabitDay.key), groupId: draftGroupId)
+                          deadline: draftDeadline.map(HabitDay.key),
+                          groupId: draftGroupId, column: draftColumn)
         }
         draft = ""
         draftPriority = .normal
         draftDeadline = nil
+        draftColumn = .pending
     }
 
     /// Los filtros hablan el idioma de las pestañas de arriba — etiqueta
