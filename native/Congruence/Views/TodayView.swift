@@ -16,6 +16,11 @@ enum RingLayout: String {
 
 struct TodayView: View {
     @Environment(HabitStore.self) private var store
+    @Environment(TaskStore.self) private var tasks
+    /// El día en que ya se ofreció escribir al cerrar. Una vez por día y
+    /// basta: un aviso que insiste deja de ser una señal y pasa a ser ruido.
+    @AppStorage("closeNudge.day") private var nudgedDay = ""
+    @State private var showCloseNudge = false
 
     @AppStorage("ring_layout") private var layoutRaw = RingLayout.central.rawValue
 
@@ -249,12 +254,19 @@ struct TodayView: View {
 
             addButton
                 .padding(.top, 10)
+
+            if showCloseNudge { closeNudge.padding(.top, 12) }
         }
         .padding(20)
         // La tarjeta se ajusta a lo que tiene dentro. Cuando se estiraba a
         // toda la altura, tres hábitos dejaban media pantalla de blanco y el
         // botón de abajo quedaba desterrado al otro extremo.
         .cardSurface(18)
+        // Mira el día de hoy, no el que estés mirando: cerrar el día es cosa
+        // de hoy aunque estés revisando otro.
+        .onChange(of: store.congruence(on: todayKey)) { antes, ahora in
+            checkDayClosed(from: antes, to: ahora)
+        }
     }
 
     private var habitsHeader: some View {
@@ -313,6 +325,57 @@ struct TodayView: View {
         }
         .buttonStyle(.plain)
         .help(layout.label)
+    }
+
+    // MARK: - Al cerrar el día
+
+    private var todayKey: String { HabitDay.key(HabitDay.current()) }
+
+    /// El día queda completo al marcar el hábito que faltaba. Es la señal que
+    /// la investigación sobre hábitos pide: un momento que ya existe, no una
+    /// hora cualquiera. Ahí se ofrece escribir una frase, una vez.
+    private func checkDayClosed(from antes: Int, to ahora: Int) {
+        guard ahora >= 100, antes < 100,
+              nudgedDay != todayKey,
+              tasks.notes(on: HabitDay.current()).isEmpty
+        else { return }
+        nudgedDay = todayKey
+        withAnimation(.smooth(duration: 0.35)) { showCloseNudge = true }
+    }
+
+    private var closeNudge: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Día completo.")
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .foregroundStyle(Palette.text)
+            Text("¿Una frase antes de cerrarlo?")
+                .font(.system(size: 13, design: .serif))
+                .foregroundStyle(Palette.textMuted)
+            HStack(spacing: 14) {
+                Button("Escribir") {
+                    withAnimation(.smooth(duration: 0.25)) { showCloseNudge = false }
+                    #if os(macOS)
+                    QuickCapture.shared.toggle()
+                    #endif
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.accent)
+                Button("Ahora no") {
+                    withAnimation(.smooth(duration: 0.25)) { showCloseNudge = false }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Palette.textFaint)
+                Spacer()
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.positive.opacity(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(Palette.positive.opacity(0.25), lineWidth: 1))
+        .transition(.opacity.combined(with: .offset(y: 6)))
     }
 
     private var addButton: some View {
