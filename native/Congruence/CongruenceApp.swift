@@ -33,7 +33,13 @@ struct CongruenceApp: App {
                 .environment(sync)
                 .preferredColorScheme(Appearance(rawValue: appearanceRaw)?.colorScheme)
                 .background(AppBackground())
-                .task { await sync.refresh() }
+                .task {
+                    #if os(macOS)
+                    // ⌘⇧Espacio desde cualquier app: una línea al diario de hoy.
+                    QuickCapture.shared.install(store: tasks)
+                    #endif
+                    await sync.refresh()
+                }
                 // Igual que la web al volver a la pestaña: al volver a la app, baja.
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await sync.refresh() } }
