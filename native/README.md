@@ -60,12 +60,14 @@ en qué modo está: alcanza con usar los tokens de `Palette`. Reglas:
   casi desaparecen.
 - Texto sobre el acento: `Palette.onAccent` (negro en oscuro, blanco en claro).
 
-## Pendiente conocido
+## Resuelto: el mes fantasma
 
-La web calcula el saldo empezando un mes antes en zonas horarias al oeste de
-Greenwich (ver el comentario de `FinanceEngine.walkStart`). La nativa lo
-replica a propósito para que los saldos coincidan; hay que arreglarlo en las
-dos apps a la vez y volver a cargar el "saldo actual".
+La web calculaba el saldo empezando un mes antes al oeste de Greenwich: leía
+`"2026-09-01"` como medianoche UTC, que en Bogotá es el 31 de agosto. La nativa
+lo replicaba a propósito para que los saldos coincidieran. Se corrigió en las
+dos a la vez (`FinancesPage.tsx` y `FinanceEngine.walkStart`): el mes se arma
+desde sus partes, sin pasar por ninguna zona horaria. Si alguna vez calibraste
+el "saldo actual" con el error presente, conviene volver a cargarlo.
 
 ## Estructura
 

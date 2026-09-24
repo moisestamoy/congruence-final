@@ -138,12 +138,12 @@ enum FinanceEngine {
 
     /// Mes desde el que se acumula el saldo.
     ///
-    /// Replica a propósito un detalle de la web: hace `new Date("2026-06-01")`,
-    /// que JavaScript interpreta como medianoche UTC. En zonas al oeste de
-    /// Greenwich (Bogotá, UTC-5) eso es el 31 de mayo a la noche, así que el
-    /// recorrido empieza un mes antes. El saldo inicial que tienes cargado se
-    /// calibró con ese recorrido; si la nativa lo "corrigiera" sola, todos los
-    /// saldos se correrían. Arreglarlo tiene que ser en las dos apps a la vez.
+    /// Durante un tiempo replicó a propósito un error de la web: ésta hacía
+    /// `new Date("2026-09-01")`, que JavaScript lee como medianoche UTC, y al
+    /// oeste de Greenwich (Bogotá, UTC-5) eso es la noche del día anterior. El
+    /// recorrido arrancaba un mes antes y cobraba un mes fantasma entero de
+    /// presupuesto diario antes de que el ciclo empezara. Se corrigió en las dos
+    /// apps a la vez, que era la única forma de que siguieran dando lo mismo.
     static func walkStart(for doc: FinancesDocument, today: Date = Date()) -> (year: Int, month: Int) {
         let ym: String
         if let start = doc.config.cycleStartYearMonth, !start.isEmpty {
@@ -157,15 +157,12 @@ enum FinanceEngine {
             ym = String(first.prefix(7))
         }
         let parts = ym.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 2 else {
+        guard parts.count >= 2 else {
             let c = calendar.dateComponents([.year, .month], from: today)
             return (c.year!, c.month!)
         }
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(identifier: "UTC")!
-        let instant = utc.date(from: DateComponents(year: parts[0], month: parts[1], day: 1))!
-        let local = calendar.dateComponents([.year, .month], from: instant)
-        return (local.year!, local.month!)
+        // El mes tal como está escrito, sin pasar por ninguna zona horaria.
+        return (parts[0], parts[1])
     }
 
     /// Los meses visibles, desde `fromYear/fromMonth`, con el saldo encadenado

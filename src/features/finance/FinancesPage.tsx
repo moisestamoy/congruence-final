@@ -121,16 +121,26 @@ export default function FinancesPage() {
 
     // --- CALCULATION ENGINE ---
     const projections = useMemo(() => {
-        // Determine where to start the balance walk
+        // Where the balance walk starts, as a LOCAL date.
+        //
+        // This used to be `new Date('2026-09-01')`. JavaScript reads a bare
+        // ISO date as midnight UTC, which west of Greenwich (Bogotá, UTC-5) is
+        // the evening of the day before — so the walk started a month early and
+        // charged a whole phantom month of daily budget before the cycle even
+        // began. Building the date from its parts keeps it in local time.
+        const monthStart = (ym: string) => {
+            const [y, m] = ym.substring(0, 7).split('-').map(Number);
+            return new Date(y, m - 1, 1);
+        };
         const cycleStart = config.cycleStartYearMonth
-            ? new Date(config.cycleStartYearMonth + '-01')
+            ? monthStart(config.cycleStartYearMonth)
             : (() => {
                 const allDates = [
                     ...events.map((e: any) => e.date),
                     ...realExpenses.map((e: any) => e.date)
                 ].sort();
                 return allDates.length > 0
-                    ? new Date(allDates[0].substring(0, 7) + '-01')
+                    ? monthStart(allDates[0])
                     : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
             })();
 
