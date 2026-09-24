@@ -184,10 +184,45 @@ final class TaskStore {
             .filter { !onlyPriority || $0.priority != .normal }
             .sorted {
                 if column == .done { return ($0.completedAt ?? 0) > ($1.completedAt ?? 0) }
+                // Si arrastraste algo en esta columna, manda tu orden. Si no,
+                // la prioridad. Media columna a mano y media automática sería
+                // imposible de leer, así que es todo o nada.
+                if let a = $0.sort, let b = $1.sort { return a < b }
                 return $0.priority.weight != $1.priority.weight
                     ? $0.priority.weight > $1.priority.weight
                     : $0.createdAt < $1.createdAt
             }
+    }
+
+    /// Mueve `id` justo antes de `target` dentro de `column`. Si `target` es
+    /// nil, al final.
+    ///
+    /// La primera vez numera toda la columna en el orden en que la estabas
+    /// viendo, para que arrastrar una tarjeta no reordene las otras siete.
+    func reorder(_ id: String, before target: String?, in column: TaskColumn) {
+        var visibles = self.column(column).map(\.id)
+        guard let desde = visibles.firstIndex(of: id) else { return }
+        visibles.remove(at: desde)
+
+        if let target, let hasta = visibles.firstIndex(of: target) {
+            visibles.insert(id, at: hasta)
+        } else {
+            visibles.append(id)
+        }
+
+        for (posicion, taskId) in visibles.enumerated() {
+            guard let i = document.tasks.firstIndex(where: { $0.id == taskId }) else { continue }
+            document.tasks[i].sort = Double(posicion)
+        }
+        commit()
+    }
+
+    /// Una tarjeta que llega de otra columna se coloca donde la soltaste, y si
+    /// la columna ya estaba ordenada a mano se renumera con ella dentro.
+    func setColumn(_ column: TaskColumn, for id: String, before target: String?) {
+        setColumn(column, for: id)
+        guard target != nil || self.column(column).contains(where: { $0.sort != nil }) else { return }
+        reorder(id, before: target, in: column)
     }
 
     func updateTask(_ id: String, text: String, priority: TaskPriority,

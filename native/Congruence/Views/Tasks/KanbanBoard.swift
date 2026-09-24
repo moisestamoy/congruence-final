@@ -105,7 +105,9 @@ private struct KanbanColumn: View {
                 ForEach(tasks) { task in
                     TaskCard(task: task, group: store.group(task.groupId),
                              openTask: $openTask,
-                             muted: column == .done, onEdit: { onEdit(task) })
+                             muted: column == .done,
+                             column: column,
+                             onEdit: { onEdit(task) })
                 }
 
                 if tasks.isEmpty && composing != column {
@@ -188,11 +190,15 @@ struct TaskCard: View {
     let group: TaskGroup?
     @Binding var openTask: String?
     var muted = false
+    /// La columna en la que vive, para poder recolocar lo que le suelten.
+    var column: TaskColumn = .pending
     let onEdit: () -> Void
 
     @Environment(TaskStore.self) private var store
     @State private var draft = ""
     @State private var hovering = false
+    /// Algo viene cayendo justo encima: se abre hueco arriba.
+    @State private var dropAbove = false
     @FocusState private var writing: Bool
 
     private var expanded: Bool { openTask == task.id }
@@ -265,6 +271,30 @@ struct TaskCard: View {
         .overlay(RoundedRectangle(cornerRadius: 10)
             .stroke(hovering ? Palette.hairline : Palette.hairlineFaint, lineWidth: 1))
         .shadow(color: Palette.cardShadowSoft, radius: hovering ? 6 : 2, y: 1)
+        .overlay(alignment: .top) {
+            // La línea marca dónde va a caer, que es lo único que hace falta
+            // saber mientras arrastras.
+            if dropAbove {
+                Capsule().fill(Palette.accent)
+                    .frame(height: 3)
+                    .offset(y: -6)
+            }
+        }
+        .dropDestination(for: String.self) { ids, _ in
+            guard let arrastrada = ids.first, arrastrada != task.id else { return false }
+            withAnimation(.smooth(duration: 0.28)) {
+                if store.document.tasks.first(where: { $0.id == arrastrada })?.column == column {
+                    store.reorder(arrastrada, before: task.id, in: column)
+                } else {
+                    if column == .done {
+                        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+                    }
+                    store.setColumn(column, for: arrastrada, before: task.id)
+                }
+            }
+            return true
+        } isTargeted: { dropAbove = $0 }
+        .animation(.smooth(duration: 0.15), value: dropAbove)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .onTapGesture { toggleExpanded() }

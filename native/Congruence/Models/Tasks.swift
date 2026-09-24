@@ -103,6 +103,14 @@ struct TodoTask: JSONRecord, Identifiable {
         set { set("notes", newValue.isEmpty ? .null : .string(newValue)) }
     }
 
+    /// Posición elegida a mano dentro de su columna del tablero. Sólo existe
+    /// si arrastraste algo: hasta entonces la columna se ordena por prioridad.
+    /// La web no lo conoce pero no lo pierde.
+    var sort: Double? {
+        get { double("sort") }
+        set { set("sort", newValue.map(JSONValue.number) ?? .null) }
+    }
+
     var column: TaskColumn {
         if completed { return .done }
         return inProgress ? .doing : .pending
