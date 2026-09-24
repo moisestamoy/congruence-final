@@ -113,7 +113,14 @@ struct NoteComposer: View {
     @State private var savedId: String?
     @State private var saving: Task<Void, Never>?
     @State private var phase: Phase = .writing
+    /// Lo que se escribió en esta sesión, para poder ofrecer la próxima acción
+    /// sin tener que releer la nota guardada.
+    @State private var lastWritten = ""
+    @State private var askingAction = false
+    @State private var actionText = ""
+    @State private var actionDate: Date?
     @FocusState private var writing: Bool
+    @FocusState private var editingAction: Bool
 
     /// Sacar lo que tienes en la cabeza y revisar el día son dos trabajos
     /// distintos, y mezclarlos rompe el primero: si lo primero que ves al ir a
@@ -212,26 +219,86 @@ struct NoteComposer: View {
         .padding(.bottom, 12)
     }
 
+    /// Escribir el pensamiento lo saca de la cabeza; lo que quita la
+    /// interferencia de una intención pendiente es que tenga plan. Por eso
+    /// después de guardar se pregunta —una vez, y con "No" por defecto— si
+    /// algo de eso necesita una próxima acción. Convertir cada preocupación en
+    /// tarea automáticamente sería enseñarte a no escribir lo que no quieres
+    /// convertir en obligación.
     private var savedStrip: some View {
-        HStack(spacing: 14) {
-            Text("Registrado")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.positive.opacity(0.85))
-            Spacer()
-            Button("Terminar") { reset() }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Text("Registrado")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.positive.opacity(0.85))
+                Spacer()
+                Button("Revisar contra mi día") {
+                    phase = .review
+                    writing = true
+                }
                 .buttonStyle(.plain)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Palette.textMuted)
-            Button("Revisar contra mi día") {
-                phase = .review
-                writing = true
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.accent)
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 11, weight: .bold))
-            .foregroundStyle(Palette.accent)
+
+            if askingAction {
+                VStack(alignment: .leading, spacing: 8) {
+                    NoteField(placeholder: "¿Qué harás?", text: $actionText,
+                              size: 13, weight: .medium)
+                        .focused($editingAction)
+                    HStack(spacing: 8) {
+                        DeadlineField(date: $actionDate)
+                        Spacer()
+                        Button("No hace falta") {
+                            withAnimation(.smooth(duration: 0.2)) { askingAction = false }
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.textMuted)
+                        Button("Crear tarea") { createAction() }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(actionText.trimmingCharacters(in: .whitespaces).isEmpty
+                                             ? Palette.textFaint : Palette.accent)
+                            .disabled(actionText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 9).fill(Palette.fill(0.05)))
+            } else {
+                HStack(spacing: 12) {
+                    Text("¿Algo de esto necesita una próxima acción?")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer()
+                    Button("No") { reset() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.textMuted)
+                    Button("Sí") {
+                        // Si al escribir apareció algo con forma de compromiso,
+                        // la app lo propone ya escrito.
+                        actionText = DiaryPrompt.findPromise(in: lastWritten) ?? ""
+                        withAnimation(.smooth(duration: 0.2)) { askingAction = true }
+                        editingAction = true
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
+    }
+
+    private func createAction() {
+        let texto = actionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !texto.isEmpty else { return }
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        store.addTask(text: texto, priority: .normal,
+                      deadline: actionDate.map(HabitDay.key), groupId: nil)
+        reset()
     }
 
     /// Los datos del día, sólo acá: ya escribiste, ahora hay contra qué
@@ -321,6 +388,7 @@ struct NoteComposer: View {
     private func finish() {
         saving?.cancel()
         persist()
+        lastWritten = content
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         writing = false
         phase = phase == .review ? .writing : .saved
@@ -330,6 +398,10 @@ struct NoteComposer: View {
     private func reset() {
         content = ""
         savedId = nil
+        lastWritten = ""
+        actionText = ""
+        actionDate = nil
+        askingAction = false
         phase = .writing
         writing = false
     }
