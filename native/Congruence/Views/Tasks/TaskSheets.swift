@@ -107,9 +107,15 @@ struct NoteComposer: View {
     var focusToken: Int = 0
 
     @Environment(TaskStore.self) private var store
+    @Environment(HabitStore.self) private var habits
 
     @State private var title = ""
     @State private var content = ""
+    /// El id de la nota una vez creada. A partir de ahí se actualiza, no se
+    /// crea otra: guardar solo no debe dejar un rastro de notas sueltas.
+    @State private var savedId: String?
+    @State private var saving: Task<Void, Never>?
+    @State private var justSaved = false
     @FocusState private var focused: Field?
 
     private enum Field { case title, body }
@@ -118,68 +124,145 @@ struct NoteComposer: View {
         focused != nil || !title.isEmpty || !content.isEmpty
     }
 
-    private var canSave: Bool {
+    private var hasSomething: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
             || !content.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    private var isToday: Bool {
+        HabitDay.key(day) == HabitDay.key(HabitDay.current())
+    }
+
+    /// La pregunta del día, armada con lo que la app ya sabe.
+    private var prompt: DiaryPrompt {
+        let key = HabitDay.key(day)
+        let percentage = habits.congruence(on: key)
+        let missing = habits.habits
+            .filter { $0.logs[key]?.completed != true && $0.logs[key]?.isPaused != true }
+            .map(\.title)
+        let written = (0..<7).reduce(into: 0) { acc, i in
+            let d = HabitDay.adding(-i, to: day)
+            if !store.notes(on: d).isEmpty { acc += 1 }
+        }
+        return DiaryPrompt.forToday(percentage: percentage,
+                                    missing: missing,
+                                    streak: habits.streak(),
+                                    tasksDone: store.completedToday(),
+                                    writtenDays: written,
+                                    isToday: isToday)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(open ? Palette.accent : Palette.textFaint)
-                NoteField(placeholder: "Nueva nota", text: $title, size: 15, weight: .bold)
-                    .focused($focused, equals: .title)
+            // La pregunta va arriba y es lo primero que se lee. Es lo que
+            // quita el peso de la página en blanco.
+            VStack(alignment: .leading, spacing: 3) {
+                if let context = prompt.context {
+                    Text(context).microLabelStyle(Palette.textFaint, size: 9)
+                }
+                Text(prompt.text)
+                    .font(.system(size: 17, weight: .semibold, design: .serif))
+                    .foregroundStyle(open ? Palette.text : Palette.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 14)
-            .frame(height: 46)
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, open ? 10 : 14)
 
             if open {
                 Divider().overlay(Palette.hairlineFaint)
 
-                NoteBody(text: $content, placeholder: "Escribe lo que pasó, o lo que entendiste.")
+                // El cuerpo va primero y el cursor cae acá. Pedir un título
+                // antes de haber escrito nada es pedir el resumen de algo que
+                // todavía no existe, y es donde la gente abandona.
+                NoteBody(text: $content, placeholder: "Escribe.", serif: true)
                     .focused($focused, equals: .body)
-                    .frame(height: 150)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 6)
+                    .frame(minHeight: 170)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
 
-                HStack(spacing: 14) {
-                    Spacer()
-                    Button("Cancelar") { reset() }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Palette.textMuted)
-                    Button("Guardar", action: save)
+                HStack(spacing: 10) {
+                    NoteField(placeholder: "Título (opcional)", text: $title,
+                              size: 12, weight: .semibold)
+                        .focused($focused, equals: .title)
+                    Spacer(minLength: 8)
+                    if justSaved {
+                        Text("Guardado")
+                            .font(.system(size: 9, weight: .semibold))
+                            .tracking(0.8)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.positive.opacity(0.8))
+                            .transition(.opacity)
+                    }
+                    Button("Listo") { finish() }
                         .buttonStyle(.plain)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(canSave ? Palette.accent : Palette.textFaint)
-                        .disabled(!canSave)
+                        .foregroundStyle(Palette.accent)
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.04)))
+        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.035)))
         .overlay(RoundedRectangle(cornerRadius: 14)
             .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.22), value: open)
-        .onChange(of: focusToken) { _, _ in focused = .title }
+        .contentShape(Rectangle())
+        .onTapGesture { if !open { focused = .body } }
+        .onChange(of: focusToken) { _, _ in focused = .body }
+        // Se guarda solo mientras escribes. Un diario no es un formulario que
+        // se confirma; que dependa de acordarse de pulsar Guardar es la forma
+        // más tonta de perder lo escrito.
+        .onChange(of: content) { _, _ in scheduleSave() }
+        .onChange(of: title) { _, _ in scheduleSave() }
+        .onDisappear { saving?.cancel(); persist() }
     }
 
-    private func save() {
-        guard canSave else { return }
-        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        withAnimation(.smooth(duration: 0.28)) {
-            store.addNote(title: title, content: content, on: day)
+    private func scheduleSave() {
+        saving?.cancel()
+        saving = Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled else { return }
+            persist()
         }
-        reset()
     }
 
-    private func reset() {
+    /// Crea la nota la primera vez y la actualiza el resto. El título, si lo
+    /// dejaste vacío, sale de la primera línea.
+    private func persist() {
+        guard hasSomething else { return }
+        let cuerpo = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let puesto = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titulo = puesto.isEmpty ? Self.derivedTitle(from: cuerpo) : puesto
+
+        if let id = savedId {
+            store.updateNote(id, title: titulo, content: cuerpo)
+        } else {
+            store.addNote(title: titulo, content: cuerpo, on: day)
+            savedId = store.notes(on: day).first?.id
+            SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        }
+        withAnimation(.smooth(duration: 0.2)) { justSaved = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.6))
+            withAnimation(.smooth(duration: 0.3)) { justSaved = false }
+        }
+    }
+
+    private func finish() {
+        saving?.cancel()
+        persist()
         title = ""
         content = ""
+        savedId = nil
         focused = nil
+    }
+
+    /// Las primeras palabras, sin cortar a mitad de una.
+    private static func derivedTitle(from body: String) -> String {
+        let primera = body.split(separator: "\n").first.map(String.init) ?? body
+        let palabras = primera.split(separator: " ").prefix(7).joined(separator: " ")
+        return palabras.count < primera.count ? palabras + "…" : palabras
     }
 }
 
@@ -314,21 +397,28 @@ struct NoteField: View {
 struct NoteBody: View {
     @Binding var text: String
     let placeholder: String
+    /// El diario se escribe en serif. Un texto largo en la tipografía de la
+    /// interfaz se lee como un formulario; en serif se lee como una página.
+    var serif = false
+
+    private var font: Font {
+        .system(size: serif ? 15 : 13, design: serif ? .serif : .default)
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             if text.isEmpty {
                 Text(placeholder)
-                    .font(.system(size: 13))
+                    .font(font)
                     .foregroundStyle(Palette.textFaint.opacity(0.7))
                     .padding(.top, 8)
                     .padding(.leading, 5)
                     .allowsHitTesting(false)
             }
             TextEditor(text: $text)
-                .font(.system(size: 13))
+                .font(font)
                 .foregroundStyle(Palette.text)
-                .lineSpacing(4)
+                .lineSpacing(serif ? 7 : 4)
                 .scrollContentBackground(.hidden)
                 .background(.clear)
                 .padding(.leading, -5)
