@@ -121,6 +121,11 @@ struct NoteComposer: View {
     @State private var actionDate: Date?
     @FocusState private var writing: Bool
     @FocusState private var editingAction: Bool
+    /// Cuánta ayuda mostrar: 0 ninguna, 1 frases de inicio, 2 palabras
+    /// sueltas, 3 una frase sin terminar.
+    @State private var helpLevel = 0
+    @State private var openingIndex = 0
+    @State private var ladder: Task<Void, Never>?
 
     /// Sacar lo que tienes en la cabeza y revisar el día son dos trabajos
     /// distintos, y mezclarlos rompe el primero: si lo primero que ves al ir a
@@ -137,6 +142,12 @@ struct NoteComposer: View {
     }
 
     private var open: Bool { writing || !content.isEmpty || phase != .writing }
+
+    /// Ya hay una frase de verdad: algo que se sostiene solo, no dos palabras
+    /// sueltas a medio teclear.
+    private var startedForReal: Bool {
+        content.trimmingCharacters(in: .whitespaces).count >= 25
+    }
 
     private var hasSomething: Bool {
         !content.trimmingCharacters(in: .whitespaces).isEmpty
@@ -169,11 +180,15 @@ struct NoteComposer: View {
             .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.22), value: open)
         .animation(.smooth(duration: 0.22), value: phase)
+        .animation(.smooth(duration: 0.3), value: startedForReal)
         .contentShape(Rectangle())
         .onTapGesture { if !open { writing = true } }
         .onChange(of: focusToken) { _, _ in writing = true }
-        .onChange(of: content) { _, _ in scheduleSave() }
-        .onDisappear { saving?.cancel(); persist() }
+        .onChange(of: content) { _, _ in scheduleSave(); runLadder() }
+        .onChange(of: writing) { _, enfocado in
+            if enfocado { runLadder() } else { ladder?.cancel() }
+        }
+        .onDisappear { saving?.cancel(); ladder?.cancel(); persist() }
     }
 
     // MARK: - Piezas
@@ -184,29 +199,18 @@ struct NoteComposer: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 10) {
             if content.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(DiaryPrompt.starters, id: \.self) { inicio in
-                        Button {
-                            content = inicio + " "
-                            writing = true
-                        } label: {
-                            Text(inicio)
-                                .font(.system(size: 11, design: .serif))
-                                .italic()
-                                .foregroundStyle(Palette.textMuted)
-                                .padding(.horizontal, 10)
-                                .frame(height: 24)
-                                .background(Capsule().fill(Palette.fill(0.05)))
-                                .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
-                                .contentShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    Spacer()
-                }
+                helpLadder
             }
 
-            HStack {
+            HStack(spacing: 12) {
+                // Alivio, no presión por seguir. La recompensa de escribir una
+                // frase verdadera es poder parar ahí.
+                if startedForReal {
+                    Text("Ya empezaste. Puedes terminar aquí o seguir.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textFaint.opacity(0.85))
+                        .transition(.opacity)
+                }
                 Spacer()
                 Button(phase == .review ? "Terminar" : "Listo") { finish() }
                     .buttonStyle(.plain)
@@ -225,20 +229,124 @@ struct NoteComposer: View {
     /// algo de eso necesita una próxima acción. Convertir cada preocupación en
     /// tarea automáticamente sería enseñarte a no escribir lo que no quieres
     /// convertir en obligación.
+    /// La ayuda sube de nivel sola mientras la caja siga vacía.
+    @ViewBuilder
+    private var helpLadder: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("No tienes que escribir bien. Una palabra alcanza.")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textFaint.opacity(0.8))
+
+            if helpLevel >= 1 {
+                HStack(spacing: 6) {
+                    ForEach(DiaryPrompt.starters, id: \.self) { inicio in
+                        chip(inicio) { content = inicio + " " }
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+
+            if helpLevel >= 2 {
+                HStack(spacing: 6) {
+                    ForEach(DiaryPrompt.fragments, id: \.self) { palabra in
+                        chip(palabra) { content = palabra + ": " }
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+
+            if helpLevel >= 4 {
+                // La salida más baja posible. Parece raro guardarlo, y es
+                // justo el punto: abrir esto no te obliga a rendir, y un día
+                // sin nada que decir deja de sentirse como un fallo.
+                Button {
+                    content = "No sé qué escribir todavía."
+                    finish()
+                } label: {
+                    Text("No sé qué escribir todavía.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.textFaint)
+                        .underline()
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .transition(.opacity)
+            }
+
+            if helpLevel >= 3 {
+                // De una en una: cuatro frases juntas vuelven a ser una
+                // decisión.
+                let frase = DiaryPrompt.openings[openingIndex % DiaryPrompt.openings.count]
+                Button { content = frase.replacingOccurrences(of: "…", with: " ") } label: {
+                    Text(frase)
+                        .font(.system(size: 13, design: .serif))
+                        .italic()
+                        .foregroundStyle(Palette.textMuted)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .id(openingIndex)
+                .transition(.opacity)
+            }
+        }
+        .animation(.smooth(duration: 0.3), value: helpLevel)
+        .animation(.smooth(duration: 0.3), value: openingIndex)
+    }
+
+    private func chip(_ texto: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            writing = true
+        } label: {
+            Text(texto)
+                .font(.system(size: 11, design: .serif))
+                .italic()
+                .foregroundStyle(Palette.textMuted)
+                .padding(.horizontal, 10)
+                .frame(height: 24)
+                .background(Capsule().fill(Palette.fill(0.05)))
+                .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func runLadder() {
+        ladder?.cancel()
+        guard content.isEmpty else { helpLevel = 0; return }
+        ladder = Task {
+            for (espera, nivel) in [(5.0, 1), (12.0, 2), (20.0, 3), (30.0, 4)] {
+                try? await Task.sleep(for: .seconds(espera))
+                guard !Task.isCancelled, content.isEmpty else { return }
+                helpLevel = nivel
+            }
+            // A partir de acá la frase va rotando.
+            while !Task.isCancelled && content.isEmpty {
+                try? await Task.sleep(for: .seconds(9))
+                guard !Task.isCancelled, content.isEmpty else { return }
+                openingIndex += 1
+            }
+        }
+    }
+
     private var savedStrip: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Text("Registrado")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.positive.opacity(0.85))
+                // La recompensa no es "cumplí con el diario". Es que ya no
+                // tienes que seguir sosteniendo eso tú.
+                Text("Quedó fuera de tu cabeza.")
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .foregroundStyle(Palette.positive.opacity(0.9))
                 Spacer()
-                Button("Revisar contra mi día") {
+                Button("Revisar mi día") {
                     phase = .review
                     writing = true
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Palette.accent)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
             }
 
             if askingAction {
@@ -271,10 +379,10 @@ struct NoteComposer: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Palette.textMuted)
                     Spacer()
-                    Button("No") { reset() }
+                    Button("No, déjalo escrito") { reset() }
                         .buttonStyle(.plain)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Palette.textMuted)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Palette.accent)
                     Button("Sí") {
                         // Si al escribir apareció algo con forma de compromiso,
                         // la app lo propone ya escrito.
@@ -283,8 +391,8 @@ struct NoteComposer: View {
                         editingAction = true
                     }
                     .buttonStyle(.plain)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Palette.accent)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.textMuted)
                 }
             }
         }
@@ -402,6 +510,7 @@ struct NoteComposer: View {
         actionText = ""
         actionDate = nil
         askingAction = false
+        helpLevel = 0
         phase = .writing
         writing = false
     }

@@ -42,9 +42,27 @@ struct DiaryPrompt {
     /// Lo que escribiste ayer y quedó pendiente de respuesta, si lo hay.
     var promise: String?
 
-    /// Frases para arrancar. No son plantillas a rellenar: son el primer
-    /// empujón, y se pueden ignorar.
-    static let starters = ["Me está dando vueltas", "Lo que no quiero perder", "Todavía no sé"]
+    // MARK: - La escalera de ayuda
+    //
+    // La ayuda aparece por niveles, no toda junta: seis opciones delante son
+    // otra decisión que tomar, y la decisión es justo lo que hay que evitar
+    // cuando no sabes por dónde empezar. Cada nivel sólo aparece si el
+    // anterior no destrabó nada.
+
+    /// Nivel 1: tres formas de empezar la frase.
+    static let starters = ["Ahora mismo estoy pensando en",
+                           "Lo que no quiero seguir sosteniendo es",
+                           "Todavía no sé"]
+
+    /// Nivel 2: una sola palabra. Para cuando ni siquiera hay frase.
+    static let fragments = ["Pendiente", "Preocupación", "Idea",
+                            "Conversación", "Decisión", "Cansancio"]
+
+    /// Nivel 3: frases sin terminar, de una en una.
+    static let openings = ["Hoy me está dando vueltas…",
+                           "Algo que estoy evitando es…",
+                           "Algo que me pesa aunque no parezca importante es…",
+                           "No sé exactamente qué me pasa, pero…"]
 
     static func forToday(facts: DiaryFacts,
                          missing: [String],
