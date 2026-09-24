@@ -103,6 +103,14 @@ struct TodoTask: JSONRecord, Identifiable {
         set { set("notes", newValue.isEmpty ? .null : .string(newValue)) }
     }
 
+    /// La nota del diario de la que salió, si salió de una. El puente entre
+    /// diario y tareas existía en un solo sentido: escribías algo, se volvía
+    /// tarea, y la tarea ya no recordaba de dónde venía.
+    var fromNote: String? {
+        get { string("fromNote") }
+        set { set("fromNote", newValue.map(JSONValue.string) ?? .null) }
+    }
+
     /// Posición elegida a mano dentro de su columna del tablero. Sólo existe
     /// si arrastraste algo: hasta entonces la columna se ordena por prioridad.
     /// La web no lo conoce pero no lo pierde.

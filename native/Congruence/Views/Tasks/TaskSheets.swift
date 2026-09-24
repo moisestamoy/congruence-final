@@ -405,7 +405,8 @@ struct NoteComposer: View {
         guard !texto.isEmpty else { return }
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         store.addTask(text: texto, priority: .normal,
-                      deadline: actionDate.map(HabitDay.key), groupId: nil)
+                      deadline: actionDate.map(HabitDay.key), groupId: nil,
+                      fromNote: savedId)
         reset()
     }
 

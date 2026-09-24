@@ -8,10 +8,12 @@ import SwiftUI
 struct KanbanBoard: View {
     let filterGroupId: String?
     let onlyPriority: Bool
+    var query: String = ""
     @Binding var composing: TaskColumn?
     /// La tarjeta abierta, si hay alguna. Vive acá arriba para que sólo haya
     /// una abierta y para que un clic fuera pueda cerrarla.
     @Binding var openTask: String?
+    @Binding var selected: String?
     let onEdit: (TodoTask) -> Void
     /// Tocar el vacío de una columna escribe una tarea que nace ahí.
     let onCompose: (TaskColumn) -> Void
@@ -40,9 +42,10 @@ struct KanbanBoard: View {
                     KanbanColumn(
                         column: column,
                         tasks: store.column(column, groupId: filterGroupId,
-                                            onlyPriority: onlyPriority),
+                                            onlyPriority: onlyPriority, query: query),
                         composing: $composing,
                         openTask: $openTask,
+                        selected: $selected,
                         onEdit: onEdit,
                         onCompose: { onCompose(column) }
                     )
@@ -53,6 +56,96 @@ struct KanbanBoard: View {
             }
             .frame(maxWidth: .infinity, minHeight: 640, alignment: .top)
         }
+        // El tablero se maneja con el teclado: flechas para moverte, con ⌘
+        // para mover la tarjeta, Enter para abrirla. Vivir todo el día en el
+        // Mac y tener que arrastrar cada cosa con el ratón es lento.
+        .focusable()
+        .focusEffectDisabled()
+        .onKeyPress { tecla in handle(tecla) }
+    }
+
+    // MARK: - Teclado
+
+    private func tasks(_ column: TaskColumn) -> [TodoTask] {
+        store.column(column, groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
+    }
+
+    /// Dónde está la selección: columna y posición.
+    private var cursor: (column: TaskColumn, index: Int)? {
+        guard let selected else { return nil }
+        for columna in TaskColumn.allCases {
+            if let i = tasks(columna).firstIndex(where: { $0.id == selected }) {
+                return (columna, i)
+            }
+        }
+        return nil
+    }
+
+    private func handle(_ press: KeyPress) -> KeyPress.Result {
+        let manda = press.modifiers.contains(.command)
+
+        // Sin nada elegido, la primera flecha elige la primera tarjeta que haya.
+        guard let (columna, i) = cursor else {
+            guard [.upArrow, .downArrow, .leftArrow, .rightArrow].contains(press.key) else {
+                return .ignored
+            }
+            selected = TaskColumn.allCases.compactMap { tasks($0).first?.id }.first
+            return .handled
+        }
+        let lista = tasks(columna)
+
+        switch press.key {
+        case .upArrow, .downArrow:
+            let paso = press.key == .upArrow ? -1 : 1
+            if manda {
+                // Mover la tarjeta, no la selección.
+                let destino = i + paso
+                guard lista.indices.contains(destino) else { return .handled }
+                withAnimation(.smooth(duration: 0.25)) {
+                    store.reorder(lista[i].id,
+                                  before: paso < 0 ? lista[destino].id
+                                        : lista.indices.contains(destino + 1) ? lista[destino + 1].id : nil,
+                                  in: columna)
+                }
+            } else if lista.indices.contains(i + paso) {
+                selected = lista[i + paso].id
+            }
+            return .handled
+
+        case .leftArrow, .rightArrow:
+            let paso = press.key == .leftArrow ? -1 : 1
+            guard let actual = TaskColumn.allCases.firstIndex(of: columna),
+                  TaskColumn.allCases.indices.contains(actual + paso) else { return .handled }
+            let destino = TaskColumn.allCases[actual + paso]
+            if manda {
+                if destino == .done {
+                    SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+                } else if lista[i].completed {
+                    SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                }
+                withAnimation(.smooth(duration: 0.3)) {
+                    store.setColumn(destino, for: lista[i].id, before: tasks(destino).first?.id)
+                }
+            } else {
+                let vecina = tasks(destino)
+                selected = vecina.isEmpty ? selected : vecina[min(i, vecina.count - 1)].id
+            }
+            return .handled
+
+        case .return:
+            withAnimation(.smooth(duration: 0.22)) {
+                openTask = openTask == lista[i].id ? nil : lista[i].id
+            }
+            return .handled
+
+        case .escape:
+            selected = nil
+            openTask = nil
+            return .handled
+
+        default:
+            return .ignored
+        }
     }
 }
 
@@ -61,12 +154,20 @@ private struct KanbanColumn: View {
     let tasks: [TodoTask]
     @Binding var composing: TaskColumn?
     @Binding var openTask: String?
+    @Binding var selected: String?
     let onEdit: (TodoTask) -> Void
     let onCompose: () -> Void
 
     @Environment(TaskStore.self) private var store
     @State private var targeted = false
     @State private var confirmingClear = false
+
+    /// El límite de lo que de verdad puede estar en curso a la vez.
+    private static let wipLimit = 3
+
+    private var overloaded: Bool {
+        column == .doing && tasks.count > Self.wipLimit
+    }
 
     private var accent: Color {
         switch column {
@@ -83,7 +184,14 @@ private struct KanbanColumn: View {
                 Text(column.label).microLabelStyle(Palette.textMuted, size: 9)
                 Text("\(tasks.count)")
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Palette.textFaint)
+                    .foregroundStyle(overloaded ? Palette.warning : Palette.textFaint)
+                if overloaded {
+                    // No es un bloqueo: es que ocho cosas "en progreso" son
+                    // cero cosas en progreso, y esta app se llama Congruence.
+                    Text("· demasiadas a la vez")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Palette.warning.opacity(0.75))
+                }
                 Spacer()
                 if column == .done, !tasks.isEmpty {
                     Button("Limpiar") { confirmingClear = true }
@@ -105,6 +213,7 @@ private struct KanbanColumn: View {
                 ForEach(tasks) { task in
                     TaskCard(task: task, group: store.group(task.groupId),
                              openTask: $openTask,
+                             selected: $selected,
                              muted: column == .done,
                              column: column,
                              onEdit: { onEdit(task) })
@@ -145,7 +254,8 @@ private struct KanbanColumn: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(targeted ? accent.opacity(0.45) : Palette.hairlineFaint,
+                .stroke(targeted ? accent.opacity(0.45)
+                        : overloaded ? Palette.warning.opacity(0.3) : Palette.hairlineFaint,
                         lineWidth: targeted ? 1.5 : 1)
         )
         .animation(.smooth(duration: 0.18), value: targeted)
@@ -189,6 +299,7 @@ struct TaskCard: View {
     let task: TodoTask
     let group: TaskGroup?
     @Binding var openTask: String?
+    @Binding var selected: String?
     var muted = false
     /// La columna en la que vive, para poder recolocar lo que le suelten.
     var column: TaskColumn = .pending
@@ -202,6 +313,15 @@ struct TaskCard: View {
     @FocusState private var writing: Bool
 
     private var expanded: Bool { openTask == task.id }
+    private var isSelected: Bool { selected == task.id }
+
+    /// De dónde salió, si salió del diario.
+    private var originLine: String? {
+        guard let id = task.fromNote,
+              let nota = store.document.notes.first(where: { $0.id == id })
+        else { return nil }
+        return "De tu nota del \(DateFormatter.es("d 'de' MMMM").string(from: nota.date))"
+    }
 
     private var accent: Color {
         task.priority == .high ? Palette.negative
@@ -223,6 +343,12 @@ struct TaskCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if expanded {
+                if let origen = originLine {
+                    Text(origen)
+                        .font(.system(size: 10, design: .serif))
+                        .italic()
+                        .foregroundStyle(Palette.textFaint)
+                }
                 notesEditor
                 Divider().overlay(Palette.hairlineFaint)
                 TaskOptionsRow(task: task)
@@ -247,10 +373,8 @@ struct TaskCard: View {
                                 .opacity(muted ? 0.5 : 1))
                     }
                     Spacer(minLength: 4)
-                    if let deadline = task.deadline {
-                        Text(TaskRow.deadlineLabel(deadline))
-                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(isOverdue ? Palette.negative : Palette.textFaint)
+                    if let deadline = task.deadline, !muted {
+                        DeadlineChip(deadline: deadline)
                     }
                 }
             }
@@ -269,7 +393,9 @@ struct TaskCard: View {
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 10)
-            .stroke(hovering ? Palette.hairline : Palette.hairlineFaint, lineWidth: 1))
+            .stroke(isSelected ? Palette.accent.opacity(0.7)
+                    : hovering ? Palette.hairline : Palette.hairlineFaint,
+                    lineWidth: isSelected ? 1.5 : 1))
         .shadow(color: Palette.cardShadowSoft, radius: hovering ? 6 : 2, y: 1)
         .overlay(alignment: .top) {
             // La línea marca dónde va a caer, que es lo único que hace falta
@@ -297,7 +423,7 @@ struct TaskCard: View {
         .animation(.smooth(duration: 0.15), value: dropAbove)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
-        .onTapGesture { toggleExpanded() }
+        .onTapGesture { selected = task.id; toggleExpanded() }
         // Se puede cerrar desde fuera (un clic en el fondo, otra tarjeta), así
         // que la nota se guarda al cerrarse, no en el botón.
         .onChange(of: expanded) { _, abierta in
@@ -455,5 +581,56 @@ struct TaskOptionsRow: View {
             Spacer(minLength: 0)
         }
         .frame(height: 34)
+    }
+}
+
+
+/// La fecha de una tarea, legible de un vistazo. Antes era texto gris del
+/// mismo peso que todo lo demás, y en un tablero "vence hoy" y "vencida"
+/// tienen que gritar.
+struct DeadlineChip: View {
+    let deadline: String
+
+    private enum Urgency { case overdue, today, tomorrow, later }
+
+    private var urgency: Urgency {
+        let hoy = HabitDay.key(HabitDay.current())
+        let mañana = HabitDay.key(HabitDay.adding(1, to: HabitDay.current()))
+        if deadline < hoy { return .overdue }
+        if deadline == hoy { return .today }
+        if deadline == mañana { return .tomorrow }
+        return .later
+    }
+
+    private var label: String {
+        switch urgency {
+        case .overdue:  return "Vencida"
+        case .today:    return "Hoy"
+        case .tomorrow: return "Mañana"
+        case .later:    return DateFormatter.es("d MMM").string(from: FinDate.date(deadline))
+        }
+    }
+
+    private var tint: Color {
+        switch urgency {
+        case .overdue:  return Palette.negative
+        case .today:    return Palette.warning
+        case .tomorrow: return Palette.accent
+        case .later:    return Palette.textFaint
+        }
+    }
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold))
+            .tracking(0.4)
+            .textCase(.uppercase)
+            .foregroundStyle(urgency == .later ? Palette.textFaint : tint)
+            .padding(.horizontal, 6)
+            .frame(height: 17)
+            .background(
+                Capsule().fill(urgency == .later ? .clear : tint.opacity(0.13))
+            )
+            .help(DateFormatter.es("EEEE d 'de' MMMM").string(from: FinDate.date(deadline)))
     }
 }

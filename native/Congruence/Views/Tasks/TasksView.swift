@@ -33,6 +33,10 @@ struct TasksView: View {
     @State private var composing: TaskColumn?
     /// La tarjeta o fila abierta. Sólo una a la vez, y un clic fuera la cierra.
     @State private var openTask: String?
+    @State private var query = ""
+    /// La tarjeta elegida con el teclado.
+    @State private var selected: String?
+    @FocusState private var searching: Bool
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -51,8 +55,10 @@ struct TasksView: View {
                     boardControls
                     KanbanBoard(filterGroupId: filterGroupId,
                                 onlyPriority: onlyPriority,
+                                query: query,
                                 composing: $composing,
                                 openTask: $openTask,
+                                selected: $selected,
                                 onEdit: { editing = $0 },
                                 onCompose: { compose($0) })
                 }
@@ -77,6 +83,9 @@ struct TasksView: View {
         .background {
             Button("") { tab = .tareas; compose(.pending) }
                 .keyboardShortcut("n", modifiers: .command)
+                .opacity(0)
+            Button("") { tab = .tareas; searching = true }
+                .keyboardShortcut("f", modifiers: .command)
                 .opacity(0)
         }
     }
@@ -191,7 +200,8 @@ struct TasksView: View {
                 TaskComposer(column: composing ?? .pending, composing: $composing)
             }
 
-            let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority)
+            let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority,
+                                       query: query)
             if groups.isEmpty {
                 empty("Nada pendiente. Disfrútalo.") { compose(.pending) }
                 footer
@@ -273,7 +283,8 @@ struct TasksView: View {
     /// deshacerlo: al completar una tarea desaparece, y sin esto un clic sin
     /// querer no tenía vuelta atrás.
     private var footer: some View {
-        let pending = store.pending(groupId: filterGroupId, onlyPriority: onlyPriority).count
+        let pending = store.pending(groupId: filterGroupId, onlyPriority: onlyPriority,
+                                    query: query).count
         let doneToday = store.doneToday()
         return VStack(alignment: .leading, spacing: 10) {
             Divider().overlay(Palette.hairlineFaint)
@@ -349,6 +360,7 @@ struct TasksView: View {
                         tint: Palette.text) {
                 filterGroupId = nil; onlyPriority = false
             }
+            .opacity(query.isEmpty ? 1 : 0.4)
             FilterLabel(text: "Prioritarias", isSelected: onlyPriority,
                         tint: Palette.negative) {
                 onlyPriority.toggle()
@@ -364,8 +376,48 @@ struct TasksView: View {
                 }
             }
             Spacer()
+            searchField
         }
         .padding(.horizontal, 2)
+    }
+
+    /// Buscar en el texto, en la nota de dentro y en el nombre del grupo.
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(searching || !query.isEmpty ? Palette.accent : Palette.textFaint)
+            ZStack(alignment: .leading) {
+                if query.isEmpty {
+                    Text("Buscar")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textFaint.opacity(0.8))
+                        .allowsHitTesting(false)
+                }
+                TextField("", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.text)
+                    .focused($searching)
+            }
+            .frame(width: 120)
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.textFaint)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 9)
+        .frame(height: 26)
+        .background(Capsule().fill(Palette.fill(searching ? 0.07 : 0.04)))
+        .overlay(Capsule().stroke(searching ? Palette.accent.opacity(0.35)
+                                            : Palette.hairlineFaint, lineWidth: 1))
+        .animation(.smooth(duration: 0.18), value: searching)
+        .onExitCommand { query = ""; searching = false }
     }
 
     // MARK: - Hoy
@@ -692,9 +744,7 @@ struct TaskRow: View {
             Spacer(minLength: 8)
 
             if let deadline = task.deadline {
-                Text(Self.deadlineLabel(deadline))
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(isOverdue ? Palette.negative : Palette.textFaint)
+                DeadlineChip(deadline: deadline)
             }
             if let group {
                 Circle().fill(Color.tint(group.color)).frame(width: 6, height: 6)

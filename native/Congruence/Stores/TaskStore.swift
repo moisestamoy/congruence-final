@@ -46,11 +46,13 @@ final class TaskStore {
 
     /// Sólo las pendientes: en esta app una tarea completada desaparece.
     /// Ordena por prioridad y, a igual prioridad, por antigüedad.
-    func pending(groupId: String? = nil, onlyPriority: Bool = false) -> [TodoTask] {
+    func pending(groupId: String? = nil, onlyPriority: Bool = false,
+                 query: String = "") -> [TodoTask] {
         document.tasks
             .filter { !$0.completed }
             .filter { groupId == nil || $0.groupId == groupId }
             .filter { !onlyPriority || $0.priority != .normal }
+            .filter { matches($0, query) }
             .sorted {
                 $0.priority.weight != $1.priority.weight
                     ? $0.priority.weight > $1.priority.weight
@@ -59,8 +61,9 @@ final class TaskStore {
     }
 
     /// Agrupadas, en el orden en que están los grupos; las sueltas al final.
-    func grouped(groupId: String? = nil, onlyPriority: Bool = false) -> [(group: TaskGroup?, tasks: [TodoTask])] {
-        let list = pending(groupId: groupId, onlyPriority: onlyPriority)
+    func grouped(groupId: String? = nil, onlyPriority: Bool = false,
+                 query: String = "") -> [(group: TaskGroup?, tasks: [TodoTask])] {
+        let list = pending(groupId: groupId, onlyPriority: onlyPriority, query: query)
         let groups = document.groups
         var buckets: [String: [TodoTask]] = [:]
         var loose: [TodoTask] = []
@@ -109,11 +112,13 @@ final class TaskStore {
     // MARK: - Tareas
 
     func addTask(text: String, priority: TaskPriority, deadline: String?,
-                 groupId: String?, column: TaskColumn = .pending) {
+                 groupId: String?, column: TaskColumn = .pending,
+                 fromNote: String? = nil) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         var task = TodoTask(text: text, priority: priority,
                             deadline: deadline, groupId: groupId)
+        task.fromNote = fromNote
         // Crear desde una columna del tablero la deja ya en ese estado:
         // hacer clic en "En progreso" es decir que ya empezaste.
         switch column {
@@ -167,7 +172,8 @@ final class TaskStore {
     /// Las tareas de una columna del tablero, en el mismo orden que la lista:
     /// prioridad primero y, a igual prioridad, las más viejas arriba.
     func column(_ column: TaskColumn, groupId: String? = nil,
-                onlyPriority: Bool = false, now: Date = Date()) -> [TodoTask] {
+                onlyPriority: Bool = false, query: String = "",
+                now: Date = Date()) -> [TodoTask] {
         let today = HabitDay.key(now)
         return document.tasks
             .filter { task in
@@ -182,6 +188,7 @@ final class TaskStore {
             }
             .filter { groupId == nil || $0.groupId == groupId }
             .filter { !onlyPriority || $0.priority != .normal }
+            .filter { matches($0, query) }
             .sorted {
                 if column == .done { return ($0.completedAt ?? 0) > ($1.completedAt ?? 0) }
                 // Si arrastraste algo en esta columna, manda tu orden. Si no,
@@ -192,6 +199,18 @@ final class TaskStore {
                     ? $0.priority.weight > $1.priority.weight
                     : $0.createdAt < $1.createdAt
             }
+    }
+
+    /// Busca en el texto, en la nota de dentro y en el nombre del grupo:
+    /// buscar "antoecom" tiene que encontrar las de ese grupo aunque la
+    /// palabra no esté escrita en la tarea.
+    private func matches(_ task: TodoTask, _ query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return true }
+        if task.text.lowercased().contains(q) { return true }
+        if task.notes.lowercased().contains(q) { return true }
+        if let g = group(task.groupId), g.name.lowercased().contains(q) { return true }
+        return false
     }
 
     /// Mueve `id` justo antes de `target` dentro de `column`. Si `target` es
