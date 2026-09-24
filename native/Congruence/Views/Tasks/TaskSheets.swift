@@ -108,6 +108,7 @@ struct NoteComposer: View {
 
     @Environment(TaskStore.self) private var store
     @Environment(HabitStore.self) private var habits
+    @Environment(FinanceStore.self) private var finances
 
     @State private var title = ""
     @State private var content = ""
@@ -133,22 +134,39 @@ struct NoteComposer: View {
         HabitDay.key(day) == HabitDay.key(HabitDay.current())
     }
 
+    /// Los hechos del día, tal como la app ya los tiene.
+    private var facts: DiaryFacts {
+        let key = HabitDay.key(day)
+        let aplicables = habits.habits.filter { $0.logs[key]?.isPaused != true }
+        let cumplidos = aplicables.filter { $0.logs[key]?.completed == true }.count
+        return DiaryFacts(
+            congruence: habits.congruence(on: key),
+            habitsDone: cumplidos,
+            habitsTotal: aplicables.count,
+            tasksDone: store.completedToday(),
+            inDeficit: isToday
+                && FinanceEngine.today(doc: finances.document)?.status == .critical
+        )
+    }
+
     /// La pregunta del día, armada con lo que la app ya sabe.
     private var prompt: DiaryPrompt {
         let key = HabitDay.key(day)
-        let percentage = habits.congruence(on: key)
         let missing = habits.habits
             .filter { $0.logs[key]?.completed != true && $0.logs[key]?.isPaused != true }
             .map(\.title)
         let written = (0..<7).reduce(into: 0) { acc, i in
-            let d = HabitDay.adding(-i, to: day)
-            if !store.notes(on: d).isEmpty { acc += 1 }
+            if !store.notes(on: HabitDay.adding(-i, to: day)).isEmpty { acc += 1 }
         }
-        return DiaryPrompt.forToday(percentage: percentage,
+        // Lo que prometiste ayer, para poder preguntarte hoy qué pasó.
+        let ayer = store.notes(on: HabitDay.adding(-1, to: day))
+            .compactMap { DiaryPrompt.findPromise(in: $0.content) }
+            .first
+        return DiaryPrompt.forToday(facts: facts,
                                     missing: missing,
                                     streak: habits.streak(),
-                                    tasksDone: store.completedToday(),
                                     writtenDays: written,
+                                    yesterdayPromise: ayer,
                                     isToday: isToday)
     }
 
@@ -156,14 +174,31 @@ struct NoteComposer: View {
         VStack(alignment: .leading, spacing: 0) {
             // La pregunta va arriba y es lo primero que se lee. Es lo que
             // quita el peso de la página en blanco.
-            VStack(alignment: .leading, spacing: 3) {
-                if let context = prompt.context {
-                    Text(context).microLabelStyle(Palette.textFaint, size: 9)
+            VStack(alignment: .leading, spacing: 6) {
+                // Los hechos los pone la app. Lo único que se te pide es la
+                // interpretación, que es lo que la app no puede saber.
+                if !facts.lines.isEmpty {
+                    Text(facts.lines.joined(separator: "  ·  "))
+                        .microLabelStyle(Palette.textFaint, size: 9)
                 }
+
                 Text(prompt.text)
                     .font(.system(size: 17, weight: .semibold, design: .serif))
                     .foregroundStyle(open ? Palette.text : Palette.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let promise = prompt.promise {
+                    Text("“\(promise)”")
+                        .font(.system(size: 13, design: .serif))
+                        .italic()
+                        .foregroundStyle(Palette.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 10)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(Palette.accent.opacity(0.5)).frame(width: 2)
+                        }
+                        .padding(.top, 2)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
@@ -180,6 +215,33 @@ struct NoteComposer: View {
                     .frame(minHeight: 170)
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
+
+                // El primer empujón. Desaparecen en cuanto escribes: no son
+                // plantillas que rellenar, sólo una forma de arrancar.
+                if content.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(DiaryPrompt.starters, id: \.self) { inicio in
+                            Button {
+                                content = inicio + " "
+                                focused = .body
+                            } label: {
+                                Text(inicio)
+                                    .font(.system(size: 11, design: .serif))
+                                    .italic()
+                                    .foregroundStyle(Palette.textMuted)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 24)
+                                    .background(Capsule().fill(Palette.fill(0.05)))
+                                    .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
+                                    .contentShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                }
 
                 HStack(spacing: 10) {
                     NoteField(placeholder: "Título (opcional)", text: $title,

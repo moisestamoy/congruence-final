@@ -1,74 +1,109 @@
 import Foundation
 
+/// Los hechos del día, ya reconstruidos por la app.
+///
+/// El usuario no debería tener que acordarse de cuántos hábitos cumplió ni de
+/// cuántas tareas cerró: eso ya está guardado. Se muestran como contexto y lo
+/// único que se le pide es la interpretación.
+struct DiaryFacts {
+    var congruence: Int          // -1 si está en pausa
+    var habitsDone: Int
+    var habitsTotal: Int
+    var tasksDone: Int
+    /// Sólo cuando hay algo que decir: el día proyecta déficit.
+    var inDeficit: Bool
+
+    /// Una línea corta por hecho. Máximo tres: más que eso convierte el diario
+    /// en el panel de control que no debe ser.
+    var lines: [String] {
+        var out: [String] = []
+        if congruence >= 0 && habitsTotal > 0 {
+            out.append("Congruencia \(congruence)% · \(habitsDone)/\(habitsTotal) hábitos")
+        }
+        if tasksDone > 0 {
+            out.append("\(tasksDone) tarea\(tasksDone == 1 ? "" : "s") cerrada\(tasksDone == 1 ? "" : "s")")
+        }
+        if inDeficit {
+            out.append("Hoy en déficit")
+        }
+        return out
+    }
+}
+
 /// La pregunta del día en el Diario.
 ///
-/// Lo difícil de escribir un diario no es escribir: es la primera frase. Una
-/// caja en blanco te pide inventar el tema *y* las palabras. Así que la
-/// pregunta la pone la app, y la saca de lo que ya sabe de tu día — qué
-/// hábitos cumpliste, qué tareas cerraste, cuánto llevas de racha. Ninguna
-/// otra app de diario puede preguntarte eso, porque ninguna lo sabe.
+/// Lo difícil de un diario no es escribir: es la primera frase. Una caja en
+/// blanco te pide inventar el tema *y* las palabras. Así que la pregunta sale
+/// de la mayor discrepancia del día —entre lo que te comprometiste y lo que
+/// pasó—, que es un dato que la app ya tiene y ninguna otra app de diario
+/// puede conocer.
 struct DiaryPrompt {
     let text: String
-    /// Lo que el dato dice, en una línea. Va sobre la pregunta, más chico.
-    let context: String?
+    /// Lo que escribiste ayer y quedó pendiente de respuesta, si lo hay.
+    var promise: String?
 
-    /// - Parameters:
-    ///   - percentage: congruencia del día, o -1 si está en pausa.
-    ///   - missing: hábitos sin cumplir hoy.
-    ///   - streak: días seguidos.
-    ///   - tasksDone: tareas cerradas hoy.
-    ///   - writtenDays: días de los últimos siete con alguna nota.
-    static func forToday(percentage: Int,
+    /// Frases para arrancar. No son plantillas a rellenar: son el primer
+    /// empujón, y se pueden ignorar.
+    static let starters = ["Lo importante fue", "La brecha estuvo en", "Mañana"]
+
+    static func forToday(facts: DiaryFacts,
                          missing: [String],
                          streak: Int,
-                         tasksDone: Int,
                          writtenDays: Int,
+                         yesterdayPromise: String?,
                          isToday: Bool) -> DiaryPrompt {
         guard isToday else {
-            return DiaryPrompt(text: "¿Qué pasó ese día?", context: nil)
+            return DiaryPrompt(text: "¿Qué pasó ese día?")
         }
 
-        // El día entero cumplido pide explicar el acierto, no el fallo.
-        if percentage >= 100 {
-            return DiaryPrompt(
-                text: "Día completo. ¿Qué lo hizo posible?",
-                context: streak > 1 ? "\(streak) días seguidos" : nil
-            )
+        // Una promesa de ayer manda sobre todo lo demás: es lo único que ya
+        // tiene una respuesta pendiente, y contrastarla es de lo que trata
+        // esta app.
+        if let promise = yesterdayPromise {
+            return DiaryPrompt(text: "Ayer dijiste esto. ¿Qué pasó?", promise: promise)
+        }
+
+        // El déficit es la discrepancia más cara del día.
+        if facts.inDeficit {
+            return DiaryPrompt(text: "Hoy cierra en déficit. ¿Qué decisión lo explica?")
+        }
+
+        if facts.congruence >= 100 {
+            return DiaryPrompt(text: "Día completo. ¿Qué lo hizo posible?")
         }
 
         // Un hábito suelto sin cumplir es la pregunta más concreta que hay.
         if missing.count == 1, let solo = missing.first {
-            return DiaryPrompt(
-                text: "¿Qué pasó con \(solo.lowercased())?",
-                context: percentage >= 0 ? "Hoy vas \(percentage)%" : nil
-            )
+            return DiaryPrompt(text: "¿Qué hizo difícil \(solo.lowercased()) hoy?")
         }
 
-        if missing.count > 1 && percentage > 0 {
-            return DiaryPrompt(
-                text: "Quedaron \(missing.count) sin cumplir. ¿Cuál dolió más?",
-                context: "Hoy vas \(percentage)%"
-            )
+        if missing.count > 1 && facts.congruence > 0 {
+            return DiaryPrompt(text: "Quedaron \(missing.count) sin cumplir. ¿Cuál dolió más?")
         }
 
-        // Nada marcado todavía: la pregunta es por el día, no por los hábitos.
-        if percentage == 0 && tasksDone > 0 {
-            return DiaryPrompt(
-                text: "Cerraste \(tasksDone) tarea\(tasksDone == 1 ? "" : "s"). ¿Cuál importaba de verdad?",
-                context: nil
-            )
+        if facts.congruence == 0 && facts.tasksDone > 0 {
+            return DiaryPrompt(text: "Cerraste tareas pero no marcaste ningún hábito. ¿Qué pasó?")
         }
 
-        if percentage == 0 {
-            return DiaryPrompt(
-                text: "Todavía no marcaste nada. ¿En qué se te fue el día?",
-                context: writtenDays > 0 ? "Escribiste \(writtenDays) de los últimos 7 días" : nil
-            )
+        if facts.congruence == 0 {
+            return DiaryPrompt(text: "Todavía no marcaste nada. ¿En qué se te fue el día?")
         }
 
-        return DiaryPrompt(
-            text: "¿Qué entendiste hoy que ayer no?",
-            context: streak > 1 ? "\(streak) días seguidos" : nil
-        )
+        return DiaryPrompt(text: "¿Qué entendiste hoy que ayer no?")
+    }
+
+    /// Busca en una nota una promesa a futuro. Es una heurística deliberada y
+    /// no un modelo: basta con detectar la frase donde te comprometiste a algo
+    /// para poder devolvértela mañana.
+    static func findPromise(in note: String) -> String? {
+        let marcas = ["mañana", "voy a", "haré", "me comprometo", "la próxima",
+                      "a partir de mañana", "tengo que"]
+        for linea in note.split(whereSeparator: { $0 == "\n" || $0 == "." }) {
+            let texto = linea.trimmingCharacters(in: .whitespaces)
+            guard texto.count > 12, texto.count < 220 else { continue }
+            let bajo = texto.lowercased()
+            if marcas.contains(where: bajo.contains) { return texto }
+        }
+        return nil
     }
 }
