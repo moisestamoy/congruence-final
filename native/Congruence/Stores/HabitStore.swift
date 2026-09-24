@@ -20,6 +20,20 @@ final class HabitStore {
 
     private let fileURL: URL
 
+    /// Cuándo se escribió este documento en el disco por última vez. Es lo que
+    /// el primer login compara contra la nube para decidir quién manda.
+    var lastLocalWrite: Date? {
+        (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
+    }
+
+    /// Copia el archivo tal como está a `carpeta`. Se usa antes de entrar con
+    /// la cuenta: si la nube va a ganar, lo local no se pierde.
+    func backupFile(to carpeta: URL) {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        try? FileManager.default.copyItem(
+            at: fileURL, to: carpeta.appendingPathComponent(fileURL.lastPathComponent))
+    }
+
     init(fileURL: URL? = nil) {
         self.fileURL = fileURL ?? HabitStore.defaultFileURL()
         self.document = HabitStore.load(from: self.fileURL)

@@ -7,7 +7,14 @@ import CryptoKit
 ///
 /// 1. Nunca sube nada antes de haber bajado con éxito. Si la lectura falla o no
 ///    se entiende, no se escribe: un error nunca puede pisar la cuenta.
-/// 2. Al entrar con la cuenta, la nube manda: se adopta tal cual.
+/// 2. Al entrar con la cuenta gana lo más reciente, documento por documento:
+///    la hora de escritura del archivo local contra `updated_at` de la nube.
+///    Antes de decidir, los tres documentos locales se copian a
+///    backups/antes-de-entrar-…, así que lo que pierda no se pierde de verdad.
+///
+///    Antes la nube mandaba siempre. Eso tenía sentido cuando la app nativa
+///    estaba vacía; con días de trabajo en el Mac y una nube de hace meses,
+///    entrar habría pisado todo lo nuevo con lo viejo.
 /// 3. Hábitos, igual que la web: si hay cambios locales sin subir ganan; si no,
 ///    se adopta la nube. Subir hábitos no toca `updated_at`.
 /// 4. Finanzas, igual que la web: "el último que editó gana", comparando la
@@ -100,15 +107,35 @@ final class SyncService {
     }
 
     func didSignIn() async {
+        backupLocalBeforeSignIn()
         habitsPending = false
         habitsLastHash = nil
         financesPending = false
-        financesLocalEditAt = 0
         tasksPending = false
         tasksLastHash = nil
         finances.clearTombstones()
         hasPulled = false
-        await pull(adoptUnconditionally: true)
+        await pull(adoptUnconditionally: false, firstLogin: true)
+    }
+
+    /// Copia los tres documentos locales, tal cual, antes del primer login.
+    private func backupLocalBeforeSignIn() {
+        let sello = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let carpeta = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Congruence/backups/antes-de-entrar-\(sello)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
+        habits.backupFile(to: carpeta)
+        tasks.backupFile(to: carpeta)
+        finances.backupFile(to: carpeta)
+    }
+
+    /// En el primer login, un documento local escrito después de la última
+    /// escritura de la nube gana: se queda y se sube.
+    private func localIsNewer(_ fecha: Date?, than nubeMs: Double) -> Bool {
+        guard let fecha else { return false }
+        return fecha.timeIntervalSince1970 * 1000 > nubeMs
     }
 
     func signOut() {
@@ -153,7 +180,7 @@ final class SyncService {
 
     // MARK: - Bajar
 
-    private func pull(adoptUnconditionally force: Bool) async {
+    private func pull(adoptUnconditionally force: Bool, firstLogin: Bool = false) async {
         status = .syncing
         do {
             guard let row = try await fetchRow(columns: "habits_data,finances_data,tasks_data,updated_at") else {
@@ -166,6 +193,20 @@ final class SyncService {
                 return
             }
             hasPulled = true
+
+            if firstLogin {
+                // Lo pendiente no se adopta: se queda y se sube.
+                habitsPending = localIsNewer(habits.lastLocalWrite, than: row.updatedAt)
+                tasksPending = localIsNewer(tasks.lastLocalWrite, than: row.updatedAt)
+                if localIsNewer(finances.lastLocalWrite, than: row.updatedAt),
+                   let fecha = finances.lastLocalWrite {
+                    financesPending = true
+                    financesLocalEditAt = fecha.timeIntervalSince1970 * 1000
+                } else {
+                    financesLocalEditAt = 0
+                }
+            }
+
             applyHabits(row, force: force)
             applyFinances(row, force: force)
             applyTasks(row, force: force)
