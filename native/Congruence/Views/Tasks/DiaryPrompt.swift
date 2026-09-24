@@ -44,7 +44,7 @@ struct DiaryPrompt {
 
     /// Frases para arrancar. No son plantillas a rellenar: son el primer
     /// empujón, y se pueden ignorar.
-    static let starters = ["Lo importante fue", "La brecha estuvo en", "Mañana"]
+    static let starters = ["Me está dando vueltas", "Lo que no quiero perder", "Todavía no sé"]
 
     static func forToday(facts: DiaryFacts,
                          missing: [String],

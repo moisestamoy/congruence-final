@@ -100,8 +100,7 @@ struct TaskEditorSheet: View {
 /// formulario que se confirma: es algo que se escribe donde vive, así que
 /// ahora nace en la misma lista en la que va a quedar.
 struct NoteComposer: View {
-    /// El día en el que se guarda. El Diario se navega por día, y escribir
-    /// mientras miras el martes tiene que dejar la nota en el martes.
+    /// El día en el que se guarda.
     var day: Date = Date()
     /// Cambia cuando algo de afuera pide empezar a escribir.
     var focusToken: Int = 0
@@ -110,38 +109,169 @@ struct NoteComposer: View {
     @Environment(HabitStore.self) private var habits
     @Environment(FinanceStore.self) private var finances
 
-    @State private var title = ""
     @State private var content = ""
-    /// El id de la nota una vez creada. A partir de ahí se actualiza, no se
-    /// crea otra: guardar solo no debe dejar un rastro de notas sueltas.
     @State private var savedId: String?
     @State private var saving: Task<Void, Never>?
-    @State private var justSaved = false
-    @FocusState private var focused: Field?
+    @State private var phase: Phase = .writing
+    @FocusState private var writing: Bool
 
-    private enum Field { case title, body }
-
-    private var open: Bool {
-        focused != nil || !title.isEmpty || !content.isEmpty
+    /// Sacar lo que tienes en la cabeza y revisar el día son dos trabajos
+    /// distintos, y mezclarlos rompe el primero: si lo primero que ves al ir a
+    /// escribir es tu marcador, dejas de escribir lo que traías y empiezas a
+    /// justificar cómo quedaste. Así que van en dos tiempos.
+    private enum Phase {
+        /// Caja vacía. Ni porcentaje, ni hábitos, ni déficit, ni la promesa de
+        /// ayer. Nada que juzgar antes de la primera palabra.
+        case writing
+        /// Ya quedó registrado. Sólo entonces se ofrece el contraste.
+        case saved
+        /// Los datos del día, como contraste de lo que ya escribiste.
+        case review
     }
 
+    private var open: Bool { writing || !content.isEmpty || phase != .writing }
+
     private var hasSomething: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
-            || !content.trimmingCharacters(in: .whitespaces).isEmpty
+        !content.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var isToday: Bool {
         HabitDay.key(day) == HabitDay.key(HabitDay.current())
     }
 
-    /// Los hechos del día, tal como la app ya los tiene.
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if phase == .review { reviewHeader }
+
+            if phase == .saved {
+                savedStrip
+            } else {
+                NoteBody(text: $content,
+                         placeholder: "¿Qué está ocupando espacio en tu cabeza?",
+                         serif: true)
+                    .focused($writing)
+                    .frame(minHeight: open ? 170 : 26)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, open ? 10 : 12)
+
+                if open { footer }
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.035)))
+        .overlay(RoundedRectangle(cornerRadius: 14)
+            .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
+        .animation(.smooth(duration: 0.22), value: open)
+        .animation(.smooth(duration: 0.22), value: phase)
+        .contentShape(Rectangle())
+        .onTapGesture { if !open { writing = true } }
+        .onChange(of: focusToken) { _, _ in writing = true }
+        .onChange(of: content) { _, _ in scheduleSave() }
+        .onDisappear { saving?.cancel(); persist() }
+    }
+
+    // MARK: - Piezas
+
+    /// Los arranques son neutros a propósito: te dan el primer empujón sin
+    /// decirte cómo te fue. Uno que dijera "la brecha estuvo en" ya sería el
+    /// marcador colándose antes de tiempo.
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if content.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(DiaryPrompt.starters, id: \.self) { inicio in
+                        Button {
+                            content = inicio + " "
+                            writing = true
+                        } label: {
+                            Text(inicio)
+                                .font(.system(size: 11, design: .serif))
+                                .italic()
+                                .foregroundStyle(Palette.textMuted)
+                                .padding(.horizontal, 10)
+                                .frame(height: 24)
+                                .background(Capsule().fill(Palette.fill(0.05)))
+                                .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button(phase == .review ? "Terminar" : "Listo") { finish() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(hasSomething ? Palette.accent : Palette.textFaint)
+                    .disabled(!hasSomething)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+    }
+
+    private var savedStrip: some View {
+        HStack(spacing: 14) {
+            Text("Registrado")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.positive.opacity(0.85))
+            Spacer()
+            Button("Terminar") { reset() }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
+            Button("Revisar contra mi día") {
+                phase = .review
+                writing = true
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Palette.accent)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+    }
+
+    /// Los datos del día, sólo acá: ya escribiste, ahora hay contra qué
+    /// contrastar. La pregunta ya no define qué pensar, sólo ofrece el choque.
+    private var reviewHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !facts.lines.isEmpty {
+                Text(facts.lines.joined(separator: "  ·  "))
+                    .microLabelStyle(Palette.textFaint, size: 9)
+            }
+            Text(prompt.text)
+                .font(.system(size: 15, weight: .semibold, design: .serif))
+                .foregroundStyle(Palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let promise = prompt.promise {
+                Text("“\(promise)”")
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(Palette.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 10)
+                    .overlay(alignment: .leading) {
+                        Rectangle().fill(Palette.accent.opacity(0.5)).frame(width: 2)
+                    }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 4)
+    }
+
+    // MARK: - Datos del día
+
     private var facts: DiaryFacts {
         let key = HabitDay.key(day)
         let aplicables = habits.habits.filter { $0.logs[key]?.isPaused != true }
-        let cumplidos = aplicables.filter { $0.logs[key]?.completed == true }.count
         return DiaryFacts(
             congruence: habits.congruence(on: key),
-            habitsDone: cumplidos,
+            habitsDone: aplicables.filter { $0.logs[key]?.completed == true }.count,
             habitsTotal: aplicables.count,
             tasksDone: store.completedToday(),
             inDeficit: isToday
@@ -149,136 +279,20 @@ struct NoteComposer: View {
         )
     }
 
-    /// La pregunta del día, armada con lo que la app ya sabe.
     private var prompt: DiaryPrompt {
         let key = HabitDay.key(day)
         let missing = habits.habits
             .filter { $0.logs[key]?.completed != true && $0.logs[key]?.isPaused != true }
             .map(\.title)
-        let written = (0..<7).reduce(into: 0) { acc, i in
-            if !store.notes(on: HabitDay.adding(-i, to: day)).isEmpty { acc += 1 }
-        }
-        // Lo que prometiste ayer, para poder preguntarte hoy qué pasó.
         let ayer = store.notes(on: HabitDay.adding(-1, to: day))
             .compactMap { DiaryPrompt.findPromise(in: $0.content) }
             .first
-        return DiaryPrompt.forToday(facts: facts,
-                                    missing: missing,
-                                    streak: habits.streak(),
-                                    writtenDays: written,
-                                    yesterdayPromise: ayer,
-                                    isToday: isToday)
+        return DiaryPrompt.forToday(facts: facts, missing: missing,
+                                    streak: habits.streak(), writtenDays: 0,
+                                    yesterdayPromise: ayer, isToday: isToday)
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // La pregunta va arriba y es lo primero que se lee. Es lo que
-            // quita el peso de la página en blanco.
-            VStack(alignment: .leading, spacing: 6) {
-                // Los hechos los pone la app. Lo único que se te pide es la
-                // interpretación, que es lo que la app no puede saber.
-                if !facts.lines.isEmpty {
-                    Text(facts.lines.joined(separator: "  ·  "))
-                        .microLabelStyle(Palette.textFaint, size: 9)
-                }
-
-                Text(prompt.text)
-                    .font(.system(size: 17, weight: .semibold, design: .serif))
-                    .foregroundStyle(open ? Palette.text : Palette.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let promise = prompt.promise {
-                    Text("“\(promise)”")
-                        .font(.system(size: 13, design: .serif))
-                        .italic()
-                        .foregroundStyle(Palette.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.leading, 10)
-                        .overlay(alignment: .leading) {
-                            Rectangle().fill(Palette.accent.opacity(0.5)).frame(width: 2)
-                        }
-                        .padding(.top, 2)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, open ? 10 : 14)
-
-            if open {
-                Divider().overlay(Palette.hairlineFaint)
-
-                // El cuerpo va primero y el cursor cae acá. Pedir un título
-                // antes de haber escrito nada es pedir el resumen de algo que
-                // todavía no existe, y es donde la gente abandona.
-                NoteBody(text: $content, placeholder: "Escribe.", serif: true)
-                    .focused($focused, equals: .body)
-                    .frame(minHeight: 170)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
-
-                // El primer empujón. Desaparecen en cuanto escribes: no son
-                // plantillas que rellenar, sólo una forma de arrancar.
-                if content.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(DiaryPrompt.starters, id: \.self) { inicio in
-                            Button {
-                                content = inicio + " "
-                                focused = .body
-                            } label: {
-                                Text(inicio)
-                                    .font(.system(size: 11, design: .serif))
-                                    .italic()
-                                    .foregroundStyle(Palette.textMuted)
-                                    .padding(.horizontal, 10)
-                                    .frame(height: 24)
-                                    .background(Capsule().fill(Palette.fill(0.05)))
-                                    .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
-                                    .contentShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                }
-
-                HStack(spacing: 10) {
-                    NoteField(placeholder: "Título (opcional)", text: $title,
-                              size: 12, weight: .semibold)
-                        .focused($focused, equals: .title)
-                    Spacer(minLength: 8)
-                    if justSaved {
-                        Text("Guardado")
-                            .font(.system(size: 9, weight: .semibold))
-                            .tracking(0.8)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.positive.opacity(0.8))
-                            .transition(.opacity)
-                    }
-                    Button("Listo") { finish() }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.accent)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-            }
-        }
-        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.035)))
-        .overlay(RoundedRectangle(cornerRadius: 14)
-            .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
-        .animation(.smooth(duration: 0.22), value: open)
-        .contentShape(Rectangle())
-        .onTapGesture { if !open { focused = .body } }
-        .onChange(of: focusToken) { _, _ in focused = .body }
-        // Se guarda solo mientras escribes. Un diario no es un formulario que
-        // se confirma; que dependa de acordarse de pulsar Guardar es la forma
-        // más tonta de perder lo escrito.
-        .onChange(of: content) { _, _ in scheduleSave() }
-        .onChange(of: title) { _, _ in scheduleSave() }
-        .onDisappear { saving?.cancel(); persist() }
-    }
+    // MARK: - Guardado
 
     private func scheduleSave() {
         saving?.cancel()
@@ -289,38 +303,37 @@ struct NoteComposer: View {
         }
     }
 
-    /// Crea la nota la primera vez y la actualiza el resto. El título, si lo
-    /// dejaste vacío, sale de la primera línea.
+    /// Crea la nota la primera vez y la actualiza el resto. El título sale de
+    /// las primeras palabras: pedirlo antes sería pedir el resumen de algo que
+    /// todavía no existe.
     private func persist() {
         guard hasSomething else { return }
         let cuerpo = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        let puesto = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let titulo = puesto.isEmpty ? Self.derivedTitle(from: cuerpo) : puesto
-
+        let titulo = Self.derivedTitle(from: cuerpo)
         if let id = savedId {
             store.updateNote(id, title: titulo, content: cuerpo)
         } else {
             store.addNote(title: titulo, content: cuerpo, on: day)
             savedId = store.notes(on: day).first?.id
-            SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        }
-        withAnimation(.smooth(duration: 0.2)) { justSaved = true }
-        Task {
-            try? await Task.sleep(for: .seconds(1.6))
-            withAnimation(.smooth(duration: 0.3)) { justSaved = false }
         }
     }
 
     private func finish() {
         saving?.cancel()
         persist()
-        title = ""
-        content = ""
-        savedId = nil
-        focused = nil
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        writing = false
+        phase = phase == .review ? .writing : .saved
+        if phase == .writing { reset() }
     }
 
-    /// Las primeras palabras, sin cortar a mitad de una.
+    private func reset() {
+        content = ""
+        savedId = nil
+        phase = .writing
+        writing = false
+    }
+
     private static func derivedTitle(from body: String) -> String {
         let primera = body.split(separator: "\n").first.map(String.init) ?? body
         let palabras = primera.split(separator: " ").prefix(7).joined(separator: " ")

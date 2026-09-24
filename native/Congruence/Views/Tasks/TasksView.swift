@@ -407,7 +407,7 @@ struct TasksView: View {
 
             if notes.isEmpty {
                 VStack(spacing: 10) {
-                    empty(isToday ? "Todavía no escribiste hoy." : "Ese día no escribiste nada.") {
+                    empty(isToday ? "Nada todavía." : "Ese día no quedó nada escrito.") {
                         noteFocusToken += 1
                     }
                     // Ir de a un día hasta la última nota pueden ser cien
