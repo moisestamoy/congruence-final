@@ -21,6 +21,7 @@ struct RootView: View {
                 case .habits:   TodayView()
                 case .finances: FinancesView()
                 case .tasks:    TasksView()
+                case .stats:    StatsView()
                 default:        NotBuiltYet(section: section.wrappedValue)
                 }
             }
