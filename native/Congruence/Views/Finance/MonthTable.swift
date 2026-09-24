@@ -157,7 +157,7 @@ private struct DailyBudgetCell: View {
                     .onAppear { focused = true }
                     .onSubmit(commit)
                     .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
-                    .onExitCommand { isEditing = false }
+                    .onEscape { isEditing = false }
             } else {
                 Button {
                     draft = MonthTable.plain(value)

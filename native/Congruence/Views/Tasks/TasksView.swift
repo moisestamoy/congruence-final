@@ -417,7 +417,7 @@ struct TasksView: View {
         .overlay(Capsule().stroke(searching ? Palette.accent.opacity(0.35)
                                             : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.18), value: searching)
-        .onExitCommand { query = ""; searching = false }
+        .onEscape { query = ""; searching = false }
     }
 
     // MARK: - Hoy
@@ -1208,7 +1208,7 @@ struct TaskComposer: View {
                 composing = nil
             }
         }
-        .onExitCommand {
+        .onEscape {
             discarding = true
             composing = nil
         }

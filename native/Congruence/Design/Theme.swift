@@ -164,6 +164,17 @@ enum Palette {
 }
 
 extension View {
+    /// Escape en Mac. En iPhone no hay tecla: ahí lo que está abierto se
+    /// cierra tocando fuera, que ya funciona igual en las dos.
+    @ViewBuilder
+    func onEscape(_ action: @escaping () -> Void) -> some View {
+        #if os(macOS)
+        onExitCommand(perform: action)
+        #else
+        self
+        #endif
+    }
+
     /// Una tarjeta de la app: blanca y con sombra suave en claro, casi negra y
     /// con borde en oscuro. Los dos tokens se resuelven solos, así que la
     /// vista no tiene que saber en qué modo está.
