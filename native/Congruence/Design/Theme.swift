@@ -107,7 +107,10 @@ enum Palette {
 
     /// Fondo de los campos de texto. Dentro de una tarjeta blanca tiene que
     /// hundirse un poco para leerse como campo.
-    static let inputBackground = Color(light: Color(hex: "#f1f3f6"), dark: Color(hex: "#111111"))
+    /// En oscuro es un velo más claro que la tarjeta que lo contiene, no un
+    /// negro plano: sobre una tarjeta translúcida un `#111111` volvía a ser
+    /// el mismo agujero que tenían las tarjetas.
+    static let inputBackground = Color(light: Color(hex: "#f1f3f6"), dark: .white.opacity(0.11))
 
     // Líneas
     static let hairline = Color(light: .black.opacity(0.11), dark: .white.opacity(0.10))

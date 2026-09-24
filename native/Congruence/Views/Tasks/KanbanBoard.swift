@@ -9,6 +9,9 @@ struct KanbanBoard: View {
     let filterGroupId: String?
     let onlyPriority: Bool
     @Binding var composing: TaskColumn?
+    /// La tarjeta abierta, si hay alguna. Vive acá arriba para que sólo haya
+    /// una abierta y para que un clic fuera pueda cerrarla.
+    @Binding var openTask: String?
     let onEdit: (TodoTask) -> Void
     /// Tocar el vacío de una columna escribe una tarea que nace ahí.
     let onCompose: (TaskColumn) -> Void
@@ -22,12 +25,15 @@ struct KanbanBoard: View {
                 // Va como botón y no como gesto sobre un `Color.clear`: dentro
                 // de un ScrollView el gesto no llegaba.
                 Button {
-                    withAnimation(.smooth(duration: 0.2)) { composing = nil }
+                    withAnimation(.smooth(duration: 0.2)) {
+                        composing = nil
+                        openTask = nil
+                    }
                 } label: {
                     Color.clear.contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .disabled(composing == nil)
+                .disabled(composing == nil && openTask == nil)
 
             HStack(alignment: .top, spacing: 16) {
                 ForEach(TaskColumn.allCases, id: \.self) { column in
@@ -36,6 +42,7 @@ struct KanbanBoard: View {
                         tasks: store.column(column, groupId: filterGroupId,
                                             onlyPriority: onlyPriority),
                         composing: $composing,
+                        openTask: $openTask,
                         onEdit: onEdit,
                         onCompose: { onCompose(column) }
                     )
@@ -53,11 +60,13 @@ private struct KanbanColumn: View {
     let column: TaskColumn
     let tasks: [TodoTask]
     @Binding var composing: TaskColumn?
+    @Binding var openTask: String?
     let onEdit: (TodoTask) -> Void
     let onCompose: () -> Void
 
     @Environment(TaskStore.self) private var store
     @State private var targeted = false
+    @State private var confirmingClear = false
 
     private var accent: Color {
         switch column {
@@ -76,6 +85,15 @@ private struct KanbanColumn: View {
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Palette.textFaint)
                 Spacer()
+                if column == .done, !tasks.isEmpty {
+                    Button("Limpiar") { confirmingClear = true }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(0.8)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Palette.textFaint)
+                        .help("Borrar las tareas completadas")
+                }
             }
             .padding(.horizontal, 4)
 
@@ -86,6 +104,7 @@ private struct KanbanColumn: View {
 
                 ForEach(tasks) { task in
                     TaskCard(task: task, group: store.group(task.groupId),
+                             openTask: $openTask,
                              muted: column == .done, onEdit: { onEdit(task) })
                 }
 
@@ -141,6 +160,25 @@ private struct KanbanColumn: View {
             }
             return true
         } isTargeted: { targeted = $0 }
+        .confirmationDialog(clearPrompt, isPresented: $confirmingClear, titleVisibility: .visible) {
+            Button("Borrar", role: .destructive) {
+                SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                withAnimation(.smooth(duration: 0.3)) { store.clearCompleted() }
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Se borran para siempre, no sólo de esta columna.")
+        }
+    }
+
+    /// Limpiar borra TODAS las completadas, no sólo las de hoy: las viejas son
+    /// las que se acumulan sin que las veas. El aviso lo dice con números.
+    private var clearPrompt: String {
+        let total = store.document.tasks.filter(\.completed).count
+        let hoy = tasks.count
+        return total == hoy
+            ? "¿Borrar \(hoy) tarea\(hoy == 1 ? "" : "s") completada\(hoy == 1 ? "" : "s")?"
+            : "¿Borrar \(total) completadas? \(hoy) son de hoy."
     }
 }
 
@@ -148,14 +186,16 @@ private struct KanbanColumn: View {
 struct TaskCard: View {
     let task: TodoTask
     let group: TaskGroup?
+    @Binding var openTask: String?
     var muted = false
     let onEdit: () -> Void
 
     @Environment(TaskStore.self) private var store
-    @State private var expanded = false
     @State private var draft = ""
     @State private var hovering = false
     @FocusState private var writing: Bool
+
+    private var expanded: Bool { openTask == task.id }
 
     private var accent: Color {
         task.priority == .high ? Palette.negative
@@ -178,6 +218,8 @@ struct TaskCard: View {
 
             if expanded {
                 notesEditor
+                Divider().overlay(Palette.hairlineFaint)
+                TaskOptionsRow(task: task)
             } else if !task.notes.isEmpty {
                 Text(task.notes)
                     .font(.system(size: 11))
@@ -226,6 +268,17 @@ struct TaskCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .onTapGesture { toggleExpanded() }
+        // Se puede cerrar desde fuera (un clic en el fondo, otra tarjeta), así
+        // que la nota se guarda al cerrarse, no en el botón.
+        .onChange(of: expanded) { _, abierta in
+            if abierta {
+                draft = task.notes
+                writing = true
+            } else {
+                store.setNotes(draft.trimmingCharacters(in: .whitespacesAndNewlines),
+                               for: task.id)
+            }
+        }
         .contextMenu {
             Button("Editar…", action: onEdit)
             Button(expanded ? "Cerrar nota" : "Escribir dentro") { toggleExpanded() }
@@ -298,18 +351,13 @@ struct TaskCard: View {
     }
 
     private func toggleExpanded() {
-        if expanded {
-            closeNotes()
-        } else {
-            draft = task.notes
-            withAnimation(.smooth(duration: 0.22)) { expanded = true }
-            writing = true
+        withAnimation(.smooth(duration: 0.22)) {
+            openTask = expanded ? nil : task.id
         }
     }
 
     private func closeNotes() {
-        store.setNotes(draft.trimmingCharacters(in: .whitespacesAndNewlines), for: task.id)
-        withAnimation(.smooth(duration: 0.22)) { expanded = false }
+        withAnimation(.smooth(duration: 0.22)) { openTask = nil }
     }
 }
 
@@ -330,5 +378,52 @@ struct GroupTag: View {
         .padding(.horizontal, 6)
         .frame(height: 17)
         .background(Capsule().fill(tint.opacity(0.11)))
+    }
+}
+
+
+/// Los mismos ajustes que al crear una tarea, pero sobre una que ya existe.
+/// Viven dentro de la tarjeta abierta: si la abriste para escribirle, también
+/// vas a querer marcarla o moverla de grupo sin abrir otra cosa.
+struct TaskOptionsRow: View {
+    let task: TodoTask
+
+    @Environment(TaskStore.self) private var store
+
+    private var deadline: Binding<Date?> {
+        Binding(
+            get: { task.deadline.map(FinDate.date) },
+            set: { nueva in
+                store.modify(task.id) { $0.deadline = nueva.map(HabitDay.key) }
+            }
+        )
+    }
+
+    private var groupId: Binding<String?> {
+        Binding(
+            get: { task.groupId },
+            set: { nuevo in store.modify(task.id) { $0.groupId = nuevo } }
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Spacer(minLength: 0)
+            ForEach(TaskPriority.allCases, id: \.self) { p in
+                FlatOption(label: p == .normal ? "Normal" : p.rawValue,
+                           isSelected: task.priority == p,
+                           tint: p == .high ? Palette.negative
+                               : p == .medium ? Palette.warning : Palette.accent) {
+                    store.modify(task.id) { $0.priority = p }
+                }
+            }
+            Rectangle().fill(Palette.hairlineFaint)
+                .frame(width: 1, height: 14)
+                .padding(.horizontal, 4)
+            DeadlineField(date: deadline)
+            GroupPicker(groupId: groupId, groups: store.document.groups)
+            Spacer(minLength: 0)
+        }
+        .frame(height: 34)
     }
 }

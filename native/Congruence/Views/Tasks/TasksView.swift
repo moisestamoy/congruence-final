@@ -31,6 +31,8 @@ struct TasksView: View {
     /// La columna que está escribiendo ahora mismo, o ninguna. El campo no
     /// vive en la pantalla: aparece donde haces clic y se va al terminar.
     @State private var composing: TaskColumn?
+    /// La tarjeta o fila abierta. Sólo una a la vez, y un clic fuera la cierra.
+    @State private var openTask: String?
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -50,6 +52,7 @@ struct TasksView: View {
                     KanbanBoard(filterGroupId: filterGroupId,
                                 onlyPriority: onlyPriority,
                                 composing: $composing,
+                                openTask: $openTask,
                                 onEdit: { editing = $0 },
                                 onCompose: { compose($0) })
                 }
@@ -222,6 +225,7 @@ struct TasksView: View {
                             ForEach(entry.tasks) { task in
                                 TaskRow(task: task, group: store.group(task.groupId),
                                         sound: store.document.soundEnabled,
+                                        openTask: $openTask,
                                         onToggle: { store.toggleTask(task.id) },
                                         onEdit: { editing = task },
                                         onDelete: { store.removeTask(task.id) })
@@ -241,7 +245,13 @@ struct TasksView: View {
     /// El espacio de debajo de la lista también escribe. Sin esto, con tareas
     /// en pantalla no quedaría ningún sitio en blanco donde hacer clic.
     private var blankCatcher: some View {
-        Button { compose(.pending) } label: {
+        Button {
+            if openTask != nil {
+                withAnimation(.smooth(duration: 0.2)) { openTask = nil }
+            } else {
+                compose(.pending)
+            }
+        } label: {
             Color.clear
                 .frame(maxWidth: .infinity)
                 .frame(height: 220)
@@ -372,6 +382,7 @@ struct TasksView: View {
                 ForEach(list) { task in
                     TaskRow(task: task, group: store.group(task.groupId),
                             sound: store.document.soundEnabled,
+                            openTask: $openTask,
                             onToggle: { store.toggleTask(task.id) },
                             onEdit: { editing = task },
                             onDelete: { store.removeTask(task.id) })
@@ -522,20 +533,22 @@ struct TaskRow: View {
     let task: TodoTask
     let group: TaskGroup?
     let sound: Bool
+    @Binding var openTask: String?
     let onToggle: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
 
     @Environment(TaskStore.self) private var store
     @State private var hovering = false
-    /// Abierta para escribir dentro, igual que una tarjeta del tablero.
-    @State private var expanded = false
     @State private var draft = ""
     @FocusState private var writing: Bool
     /// Al completar, la tarea desaparece de la lista. Este instante deja ver
     /// el círculo llenarse antes de que se vaya; sin él el clic no tiene
     /// respuesta, sólo una fila que se esfuma.
     @State private var completing = false
+
+    /// Abierta para escribir dentro, igual que una tarjeta del tablero.
+    private var expanded: Bool { openTask == task.id }
 
     private var isOverdue: Bool {
         guard let d = task.deadline else { return false }
@@ -560,7 +573,12 @@ struct TaskRow: View {
         VStack(alignment: .leading, spacing: 0) {
             row
             if expanded {
-                notesEditor.padding(.leading, 39).padding(.trailing, 10).padding(.bottom, 10)
+                VStack(alignment: .leading, spacing: 8) {
+                    notesEditor
+                    Divider().overlay(Palette.hairlineFaint)
+                    TaskOptionsRow(task: task)
+                }
+                .padding(.leading, 39).padding(.trailing, 10).padding(.bottom, 10)
             } else if !task.notes.isEmpty {
                 Text(task.notes)
                     .font(.system(size: 11))
@@ -574,6 +592,16 @@ struct TaskRow: View {
         .background(hovering || expanded ? Palette.fill(0.035) : .clear,
                     in: RoundedRectangle(cornerRadius: 8))
         .onHover { hovering = $0 }
+        // Puede cerrarse desde fuera, así que la nota se guarda al cerrarse.
+        .onChange(of: expanded) { _, abierta in
+            if abierta {
+                draft = task.notes
+                writing = true
+            } else {
+                store.setNotes(draft.trimmingCharacters(in: .whitespacesAndNewlines),
+                               for: task.id)
+            }
+        }
         .transition(.asymmetric(
             insertion: .opacity.combined(with: .offset(y: -6)),
             removal: .opacity.combined(with: .offset(x: 30))
@@ -612,18 +640,11 @@ struct TaskRow: View {
     }
 
     private func toggleExpanded() {
-        if expanded {
-            closeNotes()
-        } else {
-            draft = task.notes
-            withAnimation(.smooth(duration: 0.22)) { expanded = true }
-            writing = true
-        }
+        withAnimation(.smooth(duration: 0.22)) { openTask = expanded ? nil : task.id }
     }
 
     private func closeNotes() {
-        store.setNotes(draft.trimmingCharacters(in: .whitespacesAndNewlines), for: task.id)
-        withAnimation(.smooth(duration: 0.22)) { expanded = false }
+        withAnimation(.smooth(duration: 0.22)) { openTask = nil }
     }
 
     private var row: some View {
@@ -870,6 +891,10 @@ struct GroupPickerSheet: View {
     @State private var newName = ""
     @State private var colorIndex = 0
     @FocusState private var newFocused: Bool
+    /// El grupo que estás editando ahí mismo, si hay alguno.
+    @State private var editing: String?
+    @State private var editName = ""
+    @State private var editColor = ""
 
     /// La misma paleta que ya usan los grupos existentes.
     static let palette = ["#5b8dd9", "#c8920a", "#3aada8", "#a56ad4",
@@ -886,9 +911,18 @@ struct GroupPickerSheet: View {
                     dismiss()
                 }
                 ForEach(groups) { g in
-                    row(color: g.color, name: g.name, selected: groupId == g.id) {
-                        groupId = g.id
-                        dismiss()
+                    if editing == g.id {
+                        groupEditor(g)
+                    } else {
+                        row(color: g.color, name: g.name, selected: groupId == g.id,
+                            onEdit: {
+                                editName = g.name
+                                editColor = g.color
+                                withAnimation(.smooth(duration: 0.2)) { editing = g.id }
+                            }) {
+                            groupId = g.id
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -952,25 +986,93 @@ struct GroupPickerSheet: View {
     }
 
     private func row(color: String, name: String, selected: Bool,
+                     onEdit: (() -> Void)? = nil,
                      action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 9) {
-                Circle().fill(Color.tint(color)).frame(width: 7, height: 7)
-                Text(name).font(.system(size: 13)).foregroundStyle(Palette.text)
-                Spacer()
-                if selected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Palette.accent)
+        HStack(spacing: 9) {
+            Button(action: action) {
+                HStack(spacing: 9) {
+                    Circle().fill(Color.tint(color)).frame(width: 7, height: 7)
+                    Text(name).font(.system(size: 13)).foregroundStyle(Palette.text)
+                    Spacer()
+                    if selected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Palette.accent)
+                    }
                 }
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 10)
-            .frame(height: 34)
-            .background(selected ? Palette.fill(0.04) : .clear,
-                        in: RoundedRectangle(cornerRadius: 8))
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+
+            if let onEdit {
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.textFaint)
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Cambiar nombre y color")
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .frame(height: 34)
+        .background(selected ? Palette.fill(0.04) : .clear,
+                    in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Editar un grupo donde está, sin abrir otra ventana: nombre, color y
+    /// borrarlo.
+    private func groupEditor(_ g: TaskGroup) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            DarkField(placeholder: "Nombre", text: $editName)
+
+            HStack(spacing: 10) {
+                ForEach(Self.palette, id: \.self) { hex in
+                    Button { editColor = hex } label: {
+                        Circle()
+                            .fill(Color.tint(hex))
+                            .frame(width: 16, height: 16)
+                            .overlay(
+                                Circle()
+                                    .stroke(Palette.text, lineWidth: editColor == hex ? 1.5 : 0)
+                                    .padding(-3)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 12) {
+                Button("Borrar grupo") {
+                    withAnimation(.smooth(duration: 0.25)) {
+                        store.removeGroup(g.id)
+                        editing = nil
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Palette.negative.opacity(0.85))
+                Spacer()
+                Button("Cancelar") { withAnimation { editing = nil } }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Palette.textMuted)
+                Button("Guardar") {
+                    store.updateGroup(g.id, name: editName, color: editColor)
+                    withAnimation { editing = nil }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.accent)
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 9).fill(Palette.fill(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 9)
+            .stroke(Palette.accent.opacity(0.3), lineWidth: 1))
     }
 }
 

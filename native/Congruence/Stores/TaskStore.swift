@@ -202,6 +202,14 @@ final class TaskStore {
         commit()
     }
 
+    /// Cambia un campo suelto de una tarea. Evita tener que reescribir todos
+    /// los demás para tocar uno, que es como se pierden cosas.
+    func modify(_ id: String, _ change: (inout TodoTask) -> Void) {
+        guard let i = document.tasks.firstIndex(where: { $0.id == id }) else { return }
+        change(&document.tasks[i])
+        commit()
+    }
+
     func removeTask(_ id: String) {
         document.tasks.removeAll { $0.id == id }
         commit()
@@ -221,6 +229,25 @@ final class TaskStore {
         document.groups.append(group)
         commit()
         return group.id
+    }
+
+    func updateGroup(_ id: String, name: String, color: String) {
+        guard let i = document.groups.firstIndex(where: { $0.id == id }) else { return }
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        document.groups[i].name = name
+        document.groups[i].color = color
+        commit()
+    }
+
+    /// Borra las completadas. Devuelve cuántas se fueron.
+    @discardableResult
+    func clearCompleted() -> Int {
+        let antes = document.tasks.count
+        document.tasks.removeAll { $0.completed }
+        let fueron = antes - document.tasks.count
+        if fueron > 0 { commit() }
+        return fueron
     }
 
     /// Al borrar un grupo, sus tareas quedan sueltas (no se borran).
