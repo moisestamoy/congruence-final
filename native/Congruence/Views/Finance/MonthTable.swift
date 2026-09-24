@@ -61,7 +61,7 @@ struct MonthTable: View {
                 }
             }
         }
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 22))
+        .background(Palette.panel, in: RoundedRectangle(cornerRadius: 22))
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.hairline, lineWidth: 1))
     }

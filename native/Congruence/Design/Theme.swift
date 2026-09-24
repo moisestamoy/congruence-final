@@ -83,13 +83,27 @@ enum Palette {
     // dos eran casi blancas no se distinguía una de otra y todo quedaba en
     // una papilla gris sin profundidad.
     static let base = Color(light: Color(hex: "#e9ebef"), dark: Color(hex: "#0a0a0a"))
+
+    /// Fondo sólido: hojas modales y la barra lateral. Son ventanas o chrome,
+    /// no contenido dentro del lienzo.
     static let surface = Color(light: .white, dark: Color(hex: "#050505"))
-    static let surfaceRaised = Color(light: .white, dark: Color(hex: "#080808"))
+
+    /// Un contenedor grande dentro de la ventana: el panel de hábitos, una
+    /// tarjeta de Finanzas.
+    ///
+    /// En oscuro es un velo claro y no un negro plano. Con la ventana
+    /// translúcida el fondo pasa a ser gris medio, así que un `#080808`
+    /// quedaba más oscuro que la página: se leía como un agujero en vez de
+    /// como algo apoyado encima.
+    static let panel = Color(light: .white, dark: .white.opacity(0.04))
+
+    /// Una tarjeta suelta sobre el lienzo o dentro de una columna.
+    static let surfaceRaised = Color(light: .white, dark: .white.opacity(0.085))
 
     /// Una fila o celda dentro de una tarjeta. En claro se hunde, porque la
     /// tarjeta ya es blanca y dos blancos no se distinguen; en oscuro sube
     /// apenas sobre el fondo de la tarjeta.
-    static let nested = Color(light: Color(hex: "#f2f4f7"), dark: Color(hex: "#080808"))
+    static let nested = Color(light: Color(hex: "#f2f4f7"), dark: .white.opacity(0.06))
 
     /// Fondo de los campos de texto. Dentro de una tarjeta blanca tiene que
     /// hundirse un poco para leerse como campo.
@@ -151,7 +165,7 @@ extension View {
     /// con borde en oscuro. Los dos tokens se resuelven solos, así que la
     /// vista no tiene que saber en qué modo está.
     func cardSurface(_ cornerRadius: CGFloat = 16, raised: Bool = false) -> some View {
-        background(raised ? Palette.surfaceRaised : Palette.surface,
+        background(raised ? Palette.surfaceRaised : Palette.panel,
                    in: RoundedRectangle(cornerRadius: cornerRadius))
             .overlay(RoundedRectangle(cornerRadius: cornerRadius)
                 .stroke(Palette.hairlineFaint, lineWidth: 1))

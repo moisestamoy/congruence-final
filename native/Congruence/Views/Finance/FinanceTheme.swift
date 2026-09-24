@@ -31,7 +31,7 @@ struct FinCard<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Palette.surface)
+                    .fill(Palette.panel)
                     .overlay {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(LinearGradient(colors: [Palette.fill(0.04), Palette.fill(0.012)],
