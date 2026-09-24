@@ -627,6 +627,7 @@ struct TaskRow: View {
             if expanded {
                 VStack(alignment: .leading, spacing: 8) {
                     notesEditor
+                    SubtaskList(task: task)
                     Divider().overlay(Palette.hairlineFaint)
                     TaskOptionsRow(task: task)
                 }
@@ -743,6 +744,9 @@ struct TaskRow: View {
 
             Spacer(minLength: 8)
 
+            if !task.subtasks.isEmpty && !expanded {
+                SubtaskProgress(subtasks: task.subtasks)
+            }
             if let deadline = task.deadline {
                 DeadlineChip(deadline: deadline)
             }

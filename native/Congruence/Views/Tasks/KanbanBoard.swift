@@ -350,6 +350,7 @@ struct TaskCard: View {
                         .foregroundStyle(Palette.textFaint)
                 }
                 notesEditor
+                SubtaskList(task: task)
                 Divider().overlay(Palette.hairlineFaint)
                 TaskOptionsRow(task: task)
             } else if !task.notes.isEmpty {
@@ -361,7 +362,8 @@ struct TaskCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if group != nil || task.deadline != nil || task.priority != .normal {
+            if group != nil || task.deadline != nil || task.priority != .normal
+                || !task.subtasks.isEmpty {
                 HStack(spacing: 6) {
                     if let group {
                         GroupTag(group: group).opacity(muted ? 0.65 : 1)
@@ -371,6 +373,9 @@ struct TaskCard: View {
                             .font(.system(size: 10, weight: .black))
                             .foregroundStyle((task.priority == .high ? Palette.negative : Palette.warning)
                                 .opacity(muted ? 0.5 : 1))
+                    }
+                    if !task.subtasks.isEmpty && !expanded {
+                        SubtaskProgress(subtasks: task.subtasks)
                     }
                     Spacer(minLength: 4)
                     if let deadline = task.deadline, !muted {
@@ -632,5 +637,126 @@ struct DeadlineChip: View {
                 Capsule().fill(urgency == .later ? .clear : tint.opacity(0.13))
             )
             .help(DateFormatter.es("EEEE d 'de' MMMM").string(from: FinDate.date(deadline)))
+    }
+}
+
+
+/// Los pasos de una tarea, dentro de la tarjeta abierta.
+struct SubtaskList: View {
+    let task: TodoTask
+
+    @Environment(TaskStore.self) private var store
+    @State private var nuevo = ""
+    @State private var hovering: String?
+    @FocusState private var escribiendo: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(task.subtasks) { paso in
+                HStack(spacing: 8) {
+                    Button { toggle(paso) } label: {
+                        Image(systemName: paso.done ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(paso.done ? Palette.positive : Palette.textFaint)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Text(paso.text)
+                        .font(.system(size: 12))
+                        .foregroundStyle(paso.done ? Palette.textFaint : Palette.text)
+                        .strikethrough(paso.done, color: Palette.textFaint)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 4)
+
+                    if hovering == paso.id {
+                        Button { remove(paso) } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(Palette.textFaint)
+                                .frame(width: 14, height: 14)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 ? paso.id : (hovering == paso.id ? nil : hovering) }
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(escribiendo ? Palette.accent : Palette.textFaint)
+                    .frame(width: 12)
+                ZStack(alignment: .leading) {
+                    if nuevo.isEmpty {
+                        Text(task.subtasks.isEmpty ? "Dividir en pasos" : "Añadir paso")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textFaint.opacity(0.8))
+                            .allowsHitTesting(false)
+                    }
+                    TextField("", text: $nuevo)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.text)
+                        .focused($escribiendo)
+                        .onSubmit(add)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .animation(.smooth(duration: 0.2), value: task.subtasks)
+    }
+
+    /// Enter añade y deja el cursor ahí: los pasos se escriben de corrido.
+    private func add() {
+        let texto = nuevo.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !texto.isEmpty else { return }
+        store.modify(task.id) { $0.subtasks.append(Subtask(text: texto)) }
+        nuevo = ""
+        escribiendo = true
+    }
+
+    private func toggle(_ paso: Subtask) {
+        store.modify(task.id) { t in
+            var pasos = t.subtasks
+            guard let i = pasos.firstIndex(where: { $0.id == paso.id }) else { return }
+            pasos[i].done.toggle()
+            t.subtasks = pasos
+        }
+        if !paso.done {
+            SoundEffects.shared.play(.key, enabled: store.document.soundEnabled)
+        }
+    }
+
+    private func remove(_ paso: Subtask) {
+        store.modify(task.id) { t in t.subtasks.removeAll { $0.id == paso.id } }
+    }
+}
+
+/// Cuánto va de una tarea con pasos, para la tarjeta cerrada.
+struct SubtaskProgress: View {
+    let subtasks: [Subtask]
+
+    private var hechos: Int { subtasks.filter(\.done).count }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.fill(0.10))
+                    Capsule().fill(Palette.positive.opacity(0.8))
+                        .frame(width: geo.size.width * CGFloat(hechos) / CGFloat(max(subtasks.count, 1)))
+                }
+            }
+            .frame(width: 34, height: 3)
+            Text("\(hechos)/\(subtasks.count)")
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(hechos == subtasks.count ? Palette.positive : Palette.textFaint)
+        }
+        .help("\(hechos) de \(subtasks.count) pasos hechos")
     }
 }

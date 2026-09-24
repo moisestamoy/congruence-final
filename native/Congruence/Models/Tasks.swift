@@ -50,6 +50,25 @@ enum TaskColumn: String, CaseIterable, Hashable {
     }
 }
 
+/// Un paso dentro de una tarea grande.
+struct Subtask: Identifiable, Hashable {
+    var id: String
+    var text: String
+    var done: Bool
+
+    init(text: String) {
+        id = UUID().uuidString
+        self.text = text
+        done = false
+    }
+
+    init(id: String, text: String, done: Bool) {
+        self.id = id
+        self.text = text
+        self.done = done
+    }
+}
+
 /// Una tarea. Se llama `TodoTask` y no `Task` porque `Task` ya existe en Swift
 /// (el de la concurrencia) y chocaría en todos lados.
 struct TodoTask: JSONRecord, Identifiable {
@@ -109,6 +128,28 @@ struct TodoTask: JSONRecord, Identifiable {
     var fromNote: String? {
         get { string("fromNote") }
         set { set("fromNote", newValue.map(JSONValue.string) ?? .null) }
+    }
+
+    /// Los pasos de una tarea que en realidad son varias. "Propuesta nueva
+    /// Anto" es una tarjeta y seis pasos; sin esto, o se escriben seis
+    /// tarjetas que llenan la columna o una que no dice por dónde vas.
+    var subtasks: [Subtask] {
+        get {
+            guard case let .array(items)? = raw["subtasks"] else { return [] }
+            return items.compactMap { item in
+                guard case let .object(o) = item,
+                      case let .string(id)? = o["id"],
+                      case let .string(text)? = o["text"] else { return nil }
+                var done = false
+                if case let .bool(b)? = o["done"] { done = b }
+                return Subtask(id: id, text: text, done: done)
+            }
+        }
+        set {
+            set("subtasks", newValue.isEmpty ? .null : .array(newValue.map {
+                .object(["id": .string($0.id), "text": .string($0.text), "done": .bool($0.done)])
+            }))
+        }
     }
 
     /// Posición elegida a mano dentro de su columna del tablero. Sólo existe
