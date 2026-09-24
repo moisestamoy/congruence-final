@@ -264,4 +264,10 @@ enum Money {
         f.maximumFractionDigits = 2
         return symbol(for: doc.config.currency) + (f.string(from: NSNumber(value: abs)) ?? "\(abs)")
     }
+
+    /// Igual, pero con el signo menos delante cuando es negativo: para ejes
+    /// y saldos sueltos, donde no hay una columna que diga de qué lado está.
+    static func signed(_ n: Double, doc: FinancesDocument) -> String {
+        (n < 0 ? "-" : "") + format(n, doc: doc)
+    }
 }

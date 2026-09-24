@@ -300,4 +300,38 @@ final class FinanceStore {
         document.overrides = document.overrides.filter { !$0.date.hasPrefix(ym + "-") }
         commit()
     }
+
+    // MARK: - Ahorro y presupuestos por categoría (SavingsGoalsModal, CategoryBudgetsPanel)
+
+    enum GoalKind { case annual, monthly }
+
+    func setSavingsGoal(_ kind: GoalKind, _ amount: Double) {
+        guard amount >= 0 else { return }
+        switch kind {
+        case .annual:  document.annualGoal = amount
+        case .monthly: document.monthlyGoal = amount
+        }
+        commit()
+    }
+
+    /// Los aportes nuevos van primero, como en la web.
+    func addSavingsEntry(amount: Double, note: String) {
+        guard amount > 0 else { return }
+        document.savingsEntries.insert(
+            SavingsEntry(amount: amount, note: note.trimmingCharacters(in: .whitespaces)), at: 0)
+        commit()
+    }
+
+    func deleteSavingsEntry(_ id: String) {
+        document.savingsEntries.removeAll { $0.id == id }
+        commit()
+    }
+
+    func setCategoryBudget(_ category: String, _ amount: Double) {
+        guard amount >= 0 else { return }
+        var budgets = document.categoryBudgets
+        budgets[category] = amount
+        document.categoryBudgets = budgets
+        commit()
+    }
 }

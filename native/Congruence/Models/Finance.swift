@@ -71,6 +71,22 @@ struct SavingsEntry: JSONRecord, Identifiable {
     /// ISO completo (con hora), como lo guarda la web.
     var date: String { string("date") ?? "" }
     var amount: Double { double("amount") ?? 0 }
+    var note: String { string("note") ?? "" }
+
+    /// Un aporte nuevo, fechado ahora, con la misma forma que los de la web.
+    init(amount: Double, note: String) {
+        raw = [:]
+        set("id", .string(UUID().uuidString))
+        set("date", .string(ISO8601DateFormatter().string(from: Date())))
+        set("amount", .number(amount))
+        if !note.isEmpty { set("note", .string(note)) }
+    }
+
+    var parsedDate: Date? {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.date(from: date) ?? ISO8601DateFormatter().date(from: date)
+    }
 }
 
 /// `FinancialConfig` de la web.
@@ -125,14 +141,36 @@ struct FinancesDocument: JSONRecord {
         get { [DailyRealExpense](json: raw["realExpenses"]) }
         set { raw["realExpenses"] = newValue.json }
     }
-    var savingsEntries: [SavingsEntry] { [SavingsEntry](json: raw["savingsEntries"]) }
+    var savingsEntries: [SavingsEntry] {
+        get { [SavingsEntry](json: raw["savingsEntries"]) }
+        set { raw["savingsEntries"] = newValue.json }
+    }
 
     var annualGoal: Double {
-        let v = raw["savingsGoals"]?.objectValue?["annual"]?.doubleValue ?? 20000
-        return v == 0 ? 20000 : v   // `savingsGoals?.annual || 20000` en la web
+        get {
+            let v = raw["savingsGoals"]?.objectValue?["annual"]?.doubleValue ?? 20000
+            return v == 0 ? 20000 : v   // `savingsGoals?.annual || 20000` en la web
+        }
+        set { setGoal("annual", newValue) }
     }
     var monthlyGoal: Double {
-        raw["savingsGoals"]?.objectValue?["monthly"]?.doubleValue ?? 0
+        get { raw["savingsGoals"]?.objectValue?["monthly"]?.doubleValue ?? 0 }
+        set { setGoal("monthly", newValue) }
+    }
+
+    /// Cambia una meta sin pisar la otra, como el `{...state.savingsGoals}` de la web.
+    private mutating func setGoal(_ key: String, _ value: Double) {
+        var goals = raw["savingsGoals"]?.objectValue ?? [:]
+        goals[key] = .number(value)
+        raw["savingsGoals"] = .object(goals)
+    }
+
+    /// Límite de gasto mensual por categoría. 0 o ausente es "sin límite".
+    var categoryBudgets: [String: Double] {
+        get {
+            (raw["categoryBudgets"]?.objectValue ?? [:]).compactMapValues(\.doubleValue)
+        }
+        set { raw["categoryBudgets"] = .object(newValue.mapValues { .number($0) }) }
     }
 
     /// Marca que pone una corrección hecha desde el servidor para que todos los

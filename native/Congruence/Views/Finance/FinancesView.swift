@@ -11,6 +11,8 @@ struct FinancesView: View {
     @State private var newTransaction = false
     @State private var editingBudget = false
     @State private var restarting = false
+    @State private var showingGoals = false
+    @State private var showingAlerts = false
 
     init() {
         let c = FinanceEngine.calendar.dateComponents([.year, .month], from: Date())
@@ -26,8 +28,10 @@ struct FinancesView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                header
-                MetricCards(doc: doc, stats: viewed, onSetBalance: { store.setCurrentBalance($0) })
+                header(alerts: FinanceAlerts.scan(months))
+                MetricCards(doc: doc, stats: viewed,
+                            onSetBalance: { store.setCurrentBalance($0) },
+                            onOpenGoals: { showingGoals = true })
                 controlBar
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 560), spacing: 22, alignment: .top)],
@@ -39,8 +43,20 @@ struct FinancesView: View {
                     }
                 }
 
-                CategoryBreakdown(stats: viewed, doc: doc,
-                                  title: FinDate.monthTitle(viewYear, viewMonth))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 520), spacing: 22, alignment: .top)],
+                          spacing: 22) {
+                    if let primero = months.first {
+                        CashFlowCard(month: primero, doc: doc)
+                    }
+                    AnnualCard(doc: doc)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 520), spacing: 22, alignment: .top)],
+                          spacing: 22) {
+                    CategoryBreakdown(stats: viewed, doc: doc,
+                                      title: FinDate.monthTitle(viewYear, viewMonth))
+                    CategoryBudgetsPanel(stats: viewed, doc: doc)
+                }
             }
             .padding(28)
             .frame(maxWidth: 1800)
@@ -56,6 +72,17 @@ struct FinancesView: View {
         .sheet(isPresented: $editingBudget) {
             BudgetSheet(year: viewYear, month: viewMonth)
         }
+        .sheet(isPresented: $showingGoals) { SavingsGoalsSheet() }
+        #if DEBUG
+        // open Congruence.app --args -debugOpenGoals YES
+        .onAppear {
+            if UserDefaults.standard.bool(forKey: "debugOpenGoals") { showingGoals = true }
+        }
+        #endif
+        .sheet(isPresented: $showingAlerts) {
+            AlertsSheet(alerts: FinanceAlerts.scan(
+                FinanceEngine.months(from: viewYear, viewMonth, horizon: horizon, doc: doc)), doc: doc)
+        }
         .sheet(isPresented: $restarting) {
             RestartSheet(budget: doc.config.monthlyFixedBudget)
         }
@@ -63,7 +90,7 @@ struct FinancesView: View {
 
     // MARK: - Encabezado
 
-    private var header: some View {
+    private func header(alerts: [FinanceAlerts.Alert]) -> some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Finanzas")
@@ -75,6 +102,7 @@ struct FinancesView: View {
                     .foregroundStyle(FinPalette.accent.opacity(0.6))
             }
             Spacer()
+            alertsButton(alerts)
             Button { newTransaction = true } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus").font(.system(size: 10, weight: .bold))
@@ -90,6 +118,34 @@ struct FinancesView: View {
             .keyboardShortcut("n", modifiers: .command)
             .help("Nuevo ingreso o gasto (⌘N)")
         }
+    }
+
+    /// La campana cuenta los tramos en riesgo o en déficit de lo que estás
+    /// viendo. Roja si alguno cae por debajo de cero.
+    private func alertsButton(_ alerts: [FinanceAlerts.Alert]) -> some View {
+        let criticas = alerts.contains(where: \.critical)
+        return Button { showingAlerts = true } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: alerts.isEmpty ? "bell" : "bell.badge")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(alerts.isEmpty ? Palette.textFaint
+                                     : criticas ? FinPalette.expense : Palette.warning)
+                    .frame(width: 36, height: 36)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.04)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairlineFaint, lineWidth: 1))
+                if !alerts.isEmpty {
+                    Text("\(alerts.count)")
+                        .font(.system(size: 8, weight: .black)).monospacedDigit()
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .frame(minWidth: 15, minHeight: 15)
+                        .background(Capsule().fill(criticas ? FinPalette.expense : Palette.warning))
+                        .offset(x: 5, y: -5)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .help(alerts.isEmpty ? "Sin alertas" : alerts.count == 1 ? "1 tramo en riesgo o déficit" : "\(alerts.count) tramos en riesgo o déficit")
     }
 
     // MARK: - Barra de control
@@ -196,6 +252,7 @@ struct MetricCards: View {
     let doc: FinancesDocument
     let stats: FinanceEngine.MonthStats
     let onSetBalance: (Double) -> Void
+    var onOpenGoals: () -> Void = {}
 
     @State private var editingBalance = false
     @State private var draft = ""
@@ -434,12 +491,20 @@ struct MetricCards: View {
                     .monospacedDigit()
                     ProgressLine(value: progress, color: FinPalette.goal)
                     HStack {
+                        Text("Ver metas y aportes")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(FinPalette.goal.opacity(0.8))
                         Spacer()
                         Text("meta: \(money(goal))").font(.system(size: 9)).foregroundStyle(Palette.textFaint)
                     }
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onOpenGoals)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Ver metas y aportes", onOpenGoals)
+        .help("Metas de ahorro y aportes")
     }
 }
 
