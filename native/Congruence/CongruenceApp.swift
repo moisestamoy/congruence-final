@@ -49,5 +49,15 @@ struct CongruenceApp: App {
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentMinSize)
         #endif
+
+        #if os(macOS)
+        // En la barra de menú: el porcentaje del día a la vista, y la app viva
+        // aunque cierres la ventana, que es lo que mantiene el atajo de captura.
+        MenuBarExtra {
+            MenuBarContent().environment(store)
+        } label: {
+            MenuBarLabel().environment(store)
+        }
+        #endif
     }
 }
