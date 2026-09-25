@@ -119,12 +119,7 @@ struct SavingsGoalsSheet: View {
         return VStack(spacing: 10) {
             Text(label).microLabelStyle(Palette.textFaint, size: 9)
             ZStack {
-                Circle().stroke(Palette.fill(0.08), lineWidth: 8)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(FinPalette.income, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.smooth(duration: 0.5), value: progress)
+                GoalRing(progress: progress)
                 VStack(spacing: 2) {
                     Text("\(Int((progress * 100).rounded()))%")
                         .font(.system(size: 22, weight: .black)).monospacedDigit()
@@ -305,6 +300,11 @@ struct CashFlowCard: View {
     let month: MonthProjection
     let doc: FinancesDocument
 
+    /// Cuánto de la línea está dibujado, de 0 a 1.
+    @State private var reveal: CGFloat = 0
+    /// El punto donde cruza a cero late una vez al terminar de dibujarse.
+    @State private var pulse = false
+
     var body: some View {
         let puntos = month.days.map { (day: Int($0.date.suffix(2)) ?? 0, balance: $0.balance) }
         let minimo = puntos.map(\.balance).min() ?? 0
@@ -333,10 +333,24 @@ struct CashFlowCard: View {
                     RuleMark(y: .value("Cero", 0))
                         .foregroundStyle(Palette.hairline)
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    if let cruce = crossing, cruce.day == p.day {
+                        PointMark(x: .value("Día", cruce.day), y: .value("Saldo", cruce.balance))
+                            .symbolSize(pulse ? 220 : 50)
+                            .foregroundStyle(FinPalette.expense.opacity(pulse ? 0.55 : 1))
+                    }
                 }
                 .chartXAxis {
                     AxisMarks(values: .stride(by: 5)) { _ in
                         AxisValueLabel().font(.system(size: 9))
+                    }
+                }
+                // La línea se dibuja de izquierda a derecha: el mes se lee
+                // como lo que es, algo que pasa en orden.
+                .chartPlotStyle { plot in
+                    plot.mask(alignment: .leading) {
+                        GeometryReader { g in
+                            Rectangle().frame(width: g.size.width * reveal)
+                        }
                     }
                 }
                 .chartYAxis {
@@ -348,6 +362,26 @@ struct CashFlowCard: View {
                     }
                 }
                 .frame(height: 170)
+            }
+        }
+        .onAppear(perform: draw)
+        .onChange(of: month.id) { _, _ in draw() }
+    }
+
+    private var crossing: (day: Int, balance: Double)? {
+        month.days.first { $0.balance < 0 }
+            .map { (Int($0.date.suffix(2)) ?? 0, $0.balance) }
+    }
+
+    private func draw() {
+        reveal = 0
+        pulse = false
+        withAnimation(.easeOut(duration: 1.1)) { reveal = 1 }
+        guard crossing != nil else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            withAnimation(.easeOut(duration: 0.35)) { pulse = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.easeIn(duration: 0.4)) { pulse = false }
             }
         }
     }
@@ -566,5 +600,227 @@ struct AlertsSheet: View {
 
     private func fecha(_ key: String) -> String {
         DateFormatter.es("d 'de' MMMM").string(from: FinDate.date(key))
+    }
+}
+
+// MARK: - Por pagar este mes
+
+/// Los gastos fijos del mes, con un check al pagarlos. Pagar no mueve el
+/// saldo —la proyección ya los cuenta el día que caen—; es para ver de un
+/// vistazo qué falta.
+struct PayablesCard: View {
+    let month: MonthProjection
+    let doc: FinancesDocument
+
+    @Environment(FinanceStore.self) private var store
+
+    private struct Item: Identifiable {
+        let event: FinancialEvent
+        let date: String
+        let paid: Bool
+        var id: String { event.id }
+    }
+
+    private var yearMonth: String { month.id }
+
+    private var items: [Item] {
+        month.days.flatMap { day in
+            FinanceEngine.events(doc.events, on: day.date)
+                .filter { $0.type == .expense }
+                .map { Item(event: $0, date: day.date,
+                            paid: doc.paidFixed.contains("\($0.id)|\(yearMonth)")) }
+        }
+        // Lo que falta arriba, por fecha; lo pagado abajo.
+        .sorted { ($0.paid ? 1 : 0, $0.date) < ($1.paid ? 1 : 0, $1.date) }
+    }
+
+    var body: some View {
+        let lista = items
+        let falta = lista.filter { !$0.paid }.reduce(0) { $0 + $1.event.amount }
+        FinCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Por pagar · \(FinDate.monthTitle(month.year, month.month))")
+                        .microLabelStyle(Palette.textFaint, size: 9)
+                    Spacer()
+                    if !lista.isEmpty {
+                        Text(falta > 0 ? "Quedan \(Money.format(falta, doc: doc))" : "Todo pagado")
+                            .font(.system(size: 11, weight: .bold)).monospacedDigit()
+                            .foregroundStyle(falta > 0 ? Palette.textMuted : FinPalette.income)
+                            .contentTransition(.numericText(value: falta))
+                    }
+                }
+                if lista.isEmpty {
+                    Text("Sin gastos fijos este mes. Se agregan con Movimiento, marcando que se repite cada mes.")
+                        .font(.system(size: 12)).foregroundStyle(Palette.textFaint)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(spacing: 2) {
+                        ForEach(lista) { item in row(item) }
+                    }
+                }
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: lista.map(\.paid))
+    }
+
+    private func row(_ item: Item) -> some View {
+        let vencido = !item.paid && item.date < FinDate.todayKey()
+        return Button {
+            SoundEffects.shared.play(item.paid ? .pop : .bell, enabled: true)
+            withAnimation(.smooth(duration: 0.35)) {
+                store.togglePaid(item.event.id, yearMonth: yearMonth)
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: item.paid ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 15))
+                    .foregroundStyle(item.paid ? FinPalette.income : Palette.textFaint)
+                    .contentTransition(.symbolEffect(.replace))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.event.note.flatMap { $0.isEmpty ? nil : $0 } ?? item.event.category)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(item.paid ? Palette.textFaint : Palette.text)
+                        .strikethrough(item.paid, color: Palette.textFaint)
+                        .lineLimit(1)
+                    Text(vencido ? "Vencía el \(DateFormatter.es("d").string(from: FinDate.date(item.date)))"
+                                 : "El \(DateFormatter.es("d 'de' MMMM").string(from: FinDate.date(item.date)))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(vencido ? Palette.warning : Palette.textFaint)
+                }
+                Spacer()
+                Text(Money.format(item.event.amount, doc: doc))
+                    .font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(item.paid ? Palette.textFaint : FinPalette.expense)
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Cierre del día
+
+/// Una sola pregunta, sin juicio: ¿quedó algo sin anotar? Aparece por la
+/// noche para hoy, y durante el día siguiente para ayer, sólo si ese día no
+/// tiene nada anotado. Es lo que evita que un día sin gastos se cobre el
+/// presupuesto entero.
+struct DayCloseBanner: View {
+    let onAddExpense: (String) -> Void
+
+    @Environment(FinanceStore.self) private var store
+    /// Los días que dejaste para después en este equipo.
+    @AppStorage("fin.closeDay.later") private var laterRaw = ""
+
+    /// Desde qué hora se pregunta por el día de hoy.
+    private static let eveningHour = 19
+
+    private var pending: String? {
+        let ahora = Date()
+        let hoy = FinDate.todayKey(ahora)
+        let ayer = FinDate.todayKey(FinanceEngine.calendar.date(byAdding: .day, value: -1, to: ahora)!)
+        let inicio = store.document.config.cycleStartYearMonth ?? ""
+        let pospuestos = Set(laterRaw.split(separator: ",").map(String.init))
+        let candidatos = [ayer] + (FinanceEngine.calendar.component(.hour, from: ahora) >= Self.eveningHour ? [hoy] : [])
+        return candidatos.first { dia in
+            dia >= inicio && !store.isDayAccounted(dia) && !pospuestos.contains(dia)
+        }
+    }
+
+    var body: some View {
+        if let dia = pending {
+            let esHoy = dia == FinDate.todayKey()
+            // En una línea si entra; en el teléfono, la pregunta arriba y los
+            // botones abajo.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    question(esHoy)
+                    Spacer(minLength: 8)
+                    buttons(dia)
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    question(esHoy)
+                    buttons(dia)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14).fill(FinPalette.daily.opacity(0.07)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(FinPalette.daily.opacity(0.22), lineWidth: 1))
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+    }
+
+    private func question(_ esHoy: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: esHoy ? "moon.stars" : "sunrise")
+                .font(.system(size: 15))
+                .foregroundStyle(FinPalette.daily)
+            Text(esHoy ? "¿Hoy gastaste algo que no anotaste?" : "¿Ayer gastaste algo que no anotaste?")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Palette.text)
+                .fixedSize()
+        }
+    }
+
+    private func buttons(_ dia: String) -> some View {
+        HStack(spacing: 14) {
+            Button("No, nada") {
+                SoundEffects.shared.play(.bell, enabled: true)
+                withAnimation(.smooth(duration: 0.3)) { store.closeDayWithoutSpending(dia) }
+            }
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Palette.onAccent)
+            .padding(.horizontal, 12).frame(height: 28)
+            .background(Capsule().fill(FinPalette.accent))
+            Button("Sí, anotar") { onAddExpense(dia) }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(FinPalette.income)
+            Button("Después") {
+                withAnimation(.smooth(duration: 0.3)) {
+                    laterRaw = (laterRaw.isEmpty ? "" : laterRaw + ",") + dia
+                }
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(Palette.textFaint)
+        }
+        .fixedSize()
+    }
+}
+
+
+/// El anillo de una meta. Se llena con un pequeño rebote al abrir y, al
+/// llegar al 100 %, destella una vez.
+private struct GoalRing: View {
+    let progress: Double
+
+    @State private var shown: Double = 0
+    @State private var flash = false
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Palette.fill(0.08), lineWidth: 8)
+            Circle()
+                .trim(from: 0, to: shown)
+                .stroke(FinPalette.income, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .shadow(color: FinPalette.income.opacity(flash ? 0.8 : 0), radius: flash ? 14 : 0)
+        }
+        .scaleEffect(flash ? 1.04 : 1)
+        .onAppear { fill(to: progress) }
+        .onChange(of: progress) { _, nuevo in fill(to: nuevo) }
+    }
+
+    private func fill(to value: Double) {
+        withAnimation(.spring(response: 0.9, dampingFraction: 0.72)) { shown = value }
+        guard value >= 1 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(.easeOut(duration: 0.6)) { flash = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                withAnimation(.easeIn(duration: 0.5)) { flash = false }
+            }
+        }
     }
 }

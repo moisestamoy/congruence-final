@@ -406,6 +406,8 @@ struct BudgetSheet: View {
                 Text("Borra los ajustes diarios que hayas hecho en ese mes.")
                     .font(.system(size: 11)).foregroundStyle(Palette.textFaint)
             }
+            currencyPicker
+
             HStack {
                 Spacer()
                 Button("Cancelar") { dismiss() }
@@ -430,5 +432,33 @@ struct BudgetSheet: View {
         .sheetWidth(420)
         .background(Palette.base)
         .onAppear { text = MonthTable.plain(currentBudget) }
+    }
+
+    /// Se aplica al instante, como en la web: no es parte del presupuesto
+    /// que se guarda con el botón.
+    private var currencyPicker: some View {
+        let actual = Currency(rawValue: store.document.config.currency ?? "EUR") ?? .EUR
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Moneda").microLabelStyle(Palette.textFaint, size: 9)
+            HStack(spacing: 6) {
+                ForEach(Currency.allCases) { c in
+                    Button { store.setCurrency(c) } label: {
+                        VStack(spacing: 2) {
+                            Text(c.symbol).font(.system(size: 13, weight: .bold, design: .monospaced))
+                            Text(c.rawValue).font(.system(size: 9, weight: .bold)).tracking(0.6)
+                        }
+                        .foregroundStyle(actual == c ? FinPalette.income : Palette.textMuted)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(RoundedRectangle(cornerRadius: 10)
+                            .fill(actual == c ? FinPalette.accent.opacity(0.14) : Palette.fill(0.04)))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(actual == c ? FinPalette.accent.opacity(0.45) : Palette.hairlineFaint,
+                                    lineWidth: 1))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }

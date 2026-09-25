@@ -116,8 +116,34 @@ struct FinancialConfig: JSONRecord {
         get { string("cycleStartYearMonth") }
         set { set("cycleStartYearMonth", .from(newValue)) }
     }
-    var currency: String? { string("currency") }
-    var currencyLocale: String? { string("currencyLocale") }
+    var currency: String? {
+        get { string("currency") }
+        set { set("currency", .from(newValue)) }
+    }
+    var currencyLocale: String? {
+        get { string("currencyLocale") }
+        set { set("currencyLocale", .from(newValue)) }
+    }
+}
+
+/// Las monedas que ofrece la web (CURRENCIES en BudgetModal.tsx), con el
+/// mismo código y la misma configuración regional, para que las dos apps
+/// escriban exactamente lo mismo.
+enum Currency: String, CaseIterable, Identifiable {
+    case EUR, USD, MXN, COP, GBP, BRL
+    var id: String { rawValue }
+
+    var locale: String {
+        switch self {
+        case .EUR: return "de-DE"
+        case .USD: return "en-US"
+        case .MXN: return "es-MX"
+        case .COP: return "es-CO"
+        case .GBP: return "en-GB"
+        case .BRL: return "pt-BR"
+        }
+    }
+    var symbol: String { Money.symbol(for: rawValue) }
 }
 
 /// Exactamente lo que guarda la columna `finances_data`.
@@ -166,6 +192,14 @@ struct FinancesDocument: JSONRecord {
     }
 
     /// Límite de gasto mensual por categoría. 0 o ausente es "sin límite".
+    /// Los fijos que ya pagaste, como "idDelMovimiento|AAAA-MM": un mismo
+    /// arriendo recurrente se paga una vez por mes. Campo propio de la app
+    /// nativa; la web no lo conoce y lo deja pasar.
+    var paidFixed: Set<String> {
+        get { Set((raw["paidFixed"]?.arrayValue ?? []).compactMap(\.stringValue)) }
+        set { raw["paidFixed"] = .array(newValue.sorted().map { .string($0) }) }
+    }
+
     var categoryBudgets: [String: Double] {
         get {
             (raw["categoryBudgets"]?.objectValue ?? [:]).compactMapValues(\.doubleValue)

@@ -129,11 +129,16 @@ struct MonthTable: View {
 
             DailyBudgetCell(value: day.plannedExpense) { onSetDaily(day.date, $0) }
 
+            // Al anotar algo, los saldos de los días siguientes cambian uno
+            // tras otro: se ve hasta dónde llega la consecuencia.
             Text((day.balance < 0 ? "-" : "") + Money.format(day.balance, doc: doc))
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundStyle(day.balance >= 0 ? FinPalette.accent : FinPalette.expense)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .contentTransition(.numericText(value: day.balance))
+                .animation(.smooth(duration: 0.35)
+                    .delay(Double(Int(day.date.suffix(2)) ?? 0) * 0.018), value: day.balance)
 
             if isCompact {
                 Circle().fill(FinPalette.status(day.status)).frame(width: 7, height: 7)

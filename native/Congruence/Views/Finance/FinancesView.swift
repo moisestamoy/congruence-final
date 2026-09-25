@@ -14,6 +14,10 @@ struct FinancesView: View {
     @State private var restarting = false
     @State private var showingGoals = false
     @State private var showingAlerts = false
+    @AppStorage("fin.alerts.seen") private var seenAlerts = 0
+    @State private var bellBounce = 0
+    /// El día para el que "Sí, anotar" abrió un gasto.
+    @State private var addingOn: String?
 
     init() {
         let c = FinanceEngine.calendar.dateComponents([.year, .month], from: Date())
@@ -30,6 +34,7 @@ struct FinancesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header(alerts: FinanceAlerts.scan(months))
+                DayCloseBanner(onAddExpense: { addingOn = $0 })
                 MetricCards(doc: doc, stats: viewed,
                             onSetBalance: { store.setCurrentBalance($0) },
                             onOpenGoals: { showingGoals = true })
@@ -45,6 +50,7 @@ struct FinancesView: View {
 
                 LazyVGrid(columns: grid(520), spacing: 22) {
                     if let primero = months.first {
+                        PayablesCard(month: primero, doc: doc)
                         CashFlowCard(month: primero, doc: doc)
                     }
                     AnnualCard(doc: doc)
@@ -63,6 +69,10 @@ struct FinancesView: View {
         .sheet(item: Binding(get: { dayDetails.map(DayKey.init) },
                              set: { dayDetails = $0?.id })) { key in
             DayDetailsSheet(date: key.id)
+        }
+        .sheet(item: Binding(get: { addingOn.map(DayKey.init) },
+                             set: { addingOn = $0?.id })) { key in
+            TransactionSheet(mode: .new(date: key.id, type: .expense, askDate: false))
         }
         .sheet(isPresented: $newTransaction) {
             TransactionSheet(mode: .new(date: FinDate.todayKey(), type: .expense, askDate: true))
@@ -131,9 +141,13 @@ struct FinancesView: View {
     /// viendo. Roja si alguno cae por debajo de cero.
     private func alertsButton(_ alerts: [FinanceAlerts.Alert]) -> some View {
         let criticas = alerts.contains(where: \.critical)
-        return Button { showingAlerts = true } label: {
+        return Button {
+            seenAlerts = alerts.count
+            showingAlerts = true
+        } label: {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: alerts.isEmpty ? "bell" : "bell.badge")
+                    .symbolEffect(.bounce, value: bellBounce)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(alerts.isEmpty ? Palette.textFaint
                                      : criticas ? FinPalette.expense : Palette.warning)
@@ -152,7 +166,18 @@ struct FinancesView: View {
             }
         }
         .buttonStyle(.plain)
+        // Se mueve una sola vez por cada aviso que no habías visto, no cada
+        // vez que abres la pantalla.
+        .onAppear { ringIfNew(alerts.count) }
+        .onChange(of: alerts.count) { _, n in ringIfNew(n) }
         .help(alerts.isEmpty ? "Sin alertas" : alerts.count == 1 ? "1 tramo en riesgo o déficit" : "\(alerts.count) tramos en riesgo o déficit")
+    }
+
+    private func ringIfNew(_ count: Int) {
+        if count > seenAlerts {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { bellBounce += 1 }
+        }
+        seenAlerts = count
     }
 
     // MARK: - Barra de control
@@ -370,6 +395,8 @@ struct MetricCards: View {
         Text(text).microLabelStyle(Palette.textFaint, size: 9)
     }
 
+    /// Los números grandes cuentan hasta el nuevo valor en vez de saltar:
+    /// registrar un gasto se ve como lo que es, un cambio.
     private func bigNumber(_ text: String, color: Color) -> some View {
         Text(text)
             .font(.system(size: 32, weight: .black))
@@ -378,6 +405,8 @@ struct MetricCards: View {
             .foregroundStyle(color)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
+            .contentTransition(.numericText())
+            .animation(.smooth(duration: 0.5), value: text)
     }
 
     private var projectedCard: some View {

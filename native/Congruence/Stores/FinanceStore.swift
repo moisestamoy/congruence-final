@@ -202,6 +202,28 @@ final class FinanceStore {
         commit()
     }
 
+    /// Un fijo del mes, pagado o no.
+    func togglePaid(_ eventId: String, yearMonth: String) {
+        let clave = "\(eventId)|\(yearMonth)"
+        var pagados = document.paidFixed
+        if pagados.contains(clave) { pagados.remove(clave) } else { pagados.insert(clave) }
+        document.paidFixed = pagados
+        commit()
+    }
+
+    /// Cerrar un día sin gastos: el diario de ese día queda en 0. Sin esto,
+    /// un día sin nada anotado se cobra el presupuesto entero, porque la app
+    /// no distingue "no gasté" de "no anoté".
+    func closeDayWithoutSpending(_ dateStr: String) {
+        setDailyBudget(0, on: dateStr)
+    }
+
+    /// Un día está cerrado si tiene algo anotado o un ajuste propio.
+    func isDayAccounted(_ dateStr: String) -> Bool {
+        document.realExpenses.contains { $0.date == dateStr }
+            || document.overrides.contains { $0.date == dateStr }
+    }
+
     /// "Saldo actual": se recalcula el saldo inicial para que hoy dé lo que
     /// ingresaste, sin restar dos veces lo ya gastado (saveCurrentBalance en la web).
     /// A diferencia de la web, usa la proyección de hoy aunque estés mirando otro mes.
@@ -285,6 +307,16 @@ final class FinanceStore {
         if let data = try? JSONEncoder().encode(document) {
             try? data.write(to: dir.appendingPathComponent("finances-antes-de-reiniciar-\(f.string(from: Date())).json"))
         }
+    }
+
+    /// La moneda de todas las pantallas de Finanzas. Sólo cambia cómo se
+    /// escriben los números, no los convierte.
+    func setCurrency(_ currency: Currency) {
+        var config = document.config
+        config.currency = currency.rawValue
+        config.currencyLocale = currency.locale
+        document.config = config
+        commit()
     }
 
     /// El presupuesto mensual desde un mes en adelante (setMonthlyDailyBudget):
