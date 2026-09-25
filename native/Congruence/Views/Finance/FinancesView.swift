@@ -363,8 +363,13 @@ struct MetricCards: View {
             // llegar a la planilla.
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 12) {
-                    Group { projectedCard; netFlowCard; paceCard; goalCard }
-                        .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 12)
+                    Group {
+                        projectedCard.staggeredAppear(0)
+                        netFlowCard.staggeredAppear(1)
+                        paceCard.staggeredAppear(2)
+                        goalCard.staggeredAppear(3)
+                    }
+                    .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 12)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .scrollTargetLayout()
@@ -376,15 +381,22 @@ struct MetricCards: View {
             // Las cuatro a la misma altura: en fila si entran, si no de a dos.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 16) {
-                    projectedCard; netFlowCard; paceCard; goalCard
+                    projectedCard.staggeredAppear(0)
+                    netFlowCard.staggeredAppear(1)
+                    paceCard.staggeredAppear(2)
+                    goalCard.staggeredAppear(3)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minWidth: 1000)
 
                 VStack(spacing: 16) {
-                    HStack(alignment: .top, spacing: 16) { projectedCard; netFlowCard }
+                    HStack(alignment: .top, spacing: 16) {
+                        projectedCard.staggeredAppear(0); netFlowCard.staggeredAppear(1)
+                    }
                         .fixedSize(horizontal: false, vertical: true)
-                    HStack(alignment: .top, spacing: 16) { paceCard; goalCard }
+                    HStack(alignment: .top, spacing: 16) {
+                        paceCard.staggeredAppear(2); goalCard.staggeredAppear(3)
+                    }
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

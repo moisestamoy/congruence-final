@@ -54,6 +54,7 @@ struct Sidebar: View {
     @Environment(AuthService.self) private var auth
     @Environment(SyncService.self) private var sync
     @AppStorage("translucency") private var translucencyRaw = Translucency.medium.rawValue
+    @Namespace private var nav
 
     private var translucency: Translucency {
         Translucency(rawValue: translucencyRaw) ?? .medium
@@ -202,16 +203,22 @@ struct Sidebar: View {
     private func navButton(_ section: AppSection) -> some View {
         let isActive = selection == section
         return Button {
-            selection = section
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) { selection = section }
         } label: {
             Image(systemName: section.symbol)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(isActive ? Palette.accent : Palette.textFaint)
+                .symbolEffect(.bounce, value: isActive)
                 .frame(width: 34, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(isActive ? Palette.accent.opacity(0.10) : .clear)
-                )
+                .background {
+                    // Un solo indicador que se desliza entre secciones, en
+                    // vez de apagarse en una y encenderse en otra.
+                    if isActive {
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Palette.accent.opacity(0.10))
+                            .matchedGeometryEffect(id: "sección", in: nav)
+                    }
+                }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

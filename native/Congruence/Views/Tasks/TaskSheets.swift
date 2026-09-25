@@ -126,6 +126,8 @@ struct NoteComposer: View {
     @State private var helpLevel = 0
     @State private var openingIndex = 0
     @State private var ladder: Task<Void, Never>?
+    /// Mientras lo escrito se pliega hacia la lista.
+    @State private var folding = false
     /// Dónde va el barrido, si lo pediste.
     @State private var sweepIndex: Int?
     /// La pregunta que estás contestando: queda a la vista mientras escribes.
@@ -181,6 +183,9 @@ struct NoteComposer: View {
                          placeholder: "¿Qué está ocupando espacio en tu cabeza?",
                          serif: true)
                     .focused($writing)
+                    .scaleEffect(x: folding ? 0.92 : 1, y: folding ? 0.25 : 1, anchor: .bottom)
+                    .offset(y: folding ? 40 : 0)
+                    .opacity(folding ? 0 : 1)
                     .frame(minHeight: open ? 170 : 26)
                     .padding(.horizontal, 12)
                     .padding(.vertical, open ? 10 : 12)
@@ -344,7 +349,10 @@ struct NoteComposer: View {
                 .foregroundStyle(Palette.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .id(i)
-                .transition(.opacity)
+                // "Otra" la reemplaza deslizando, sin salto.
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)))
             HStack(spacing: 14) {
                 Button("Escribir sobre esto") {
                     withAnimation(.smooth(duration: 0.2)) {
@@ -357,7 +365,9 @@ struct NoteComposer: View {
                 .foregroundStyle(Palette.accent)
                 // Sin contador: "1 de 9" convertía la ayuda en otra
                 // lista que completar.
-                Button("Otra") { sweepIndex = (i + 1) % lista.count }
+                Button("Otra") {
+                    withAnimation(.smooth(duration: 0.5)) { sweepIndex = (i + 1) % lista.count }
+                }
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                 Spacer()
@@ -366,8 +376,11 @@ struct NoteComposer: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
         .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.04)))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairlineFaint, lineWidth: 1))
+        // Aparece despacio: una pregunta suave no llega de golpe.
+        .transition(.opacity.animation(.easeInOut(duration: 0.7)))
     }
 
     private func chip(_ texto: String, action: @escaping () -> Void) -> some View {
@@ -569,9 +582,21 @@ struct NoteComposer: View {
         }
     }
 
+    /// Terminar se ve: lo escrito se pliega y baja hacia la lista, como un
+    /// papel que guardas en un cajón. Ya no lo cargas tú.
     private func finish() {
+        guard !folding else { return }
+        withAnimation(.easeIn(duration: 0.32)) { folding = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            settle()
+            folding = false
+        }
+    }
+
+    private func settle() {
         saving?.cancel()
         persist()
+        store.markSettled(savedId)
         lastWritten = content
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         writing = false
@@ -610,8 +635,14 @@ struct NoteCard: View {
     @State private var content = ""
     @State private var confirmingDelete = false
     @State private var hovering = false
+    @State private var inkToken = 0
 
     private var dirty: Bool { title != note.title || content != note.content }
+
+    private var justSettled: Bool {
+        guard let s = store.settled, s.id == note.id else { return false }
+        return Date().timeIntervalSince(s.at) < 3
+    }
 
     var body: some View {
         Group {
@@ -625,6 +656,9 @@ struct NoteCard: View {
             }
         }
         .animation(.smooth(duration: 0.22), value: expanded)
+        // La nota que acabas de terminar se asienta como tinta en la lista.
+        .onAppear { if justSettled { inkToken += 1 } }
+        .onChange(of: store.settled?.at) { _, _ in if justSettled { inkToken += 1 } }
         .confirmationDialog("¿Borrar esta nota?", isPresented: $confirmingDelete) {
             Button("Borrar", role: .destructive) {
                 SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
@@ -679,6 +713,7 @@ struct NoteCard: View {
                     .lineSpacing(4)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
+                    .inkReveal(trigger: inkToken)
             }
         }
         .padding(16)

@@ -14,6 +14,9 @@ struct HabitRow: View {
     var onMove: (Int) -> Void = { _ in }
     var onDelete: () -> Void = {}
 
+    /// La onda que sale del círculo al marcarlo.
+    @State private var burst = false
+
     private var log: HabitLog? { habit.log(on: day) }
     private var isDone: Bool { log?.completed == true }
     private var isPaused: Bool { log?.isPaused == true }
@@ -42,8 +45,11 @@ struct HabitRow: View {
                 .font(.system(size: 12, weight: .bold))
                 .tracking(1.1)
                 .foregroundStyle(weeklyMet && !isDone ? Palette.textFaint : statusColor)
-                .strikethrough(isPaused || weeklyMet, color: Palette.textFaint)
                 .lineLimit(1)
+                // El tachado corre después de que los segmentos de la semana
+                // se unen: primero se cumple, después se cierra.
+                .animatedStrike(isPaused || weeklyMet, color: Palette.textFaint,
+                                delay: weeklyMet ? 0.35 : 0)
 
             Spacer(minLength: 10)
 
@@ -68,6 +74,17 @@ struct HabitRow: View {
         .shadow(color: isDone ? Palette.nightGlow(tint, 0.20) : .clear, radius: 14, y: 3)
         .opacity(isPaused ? 0.5 : 1)
         .animation(.smooth(duration: 0.3), value: isDone)
+        .animation(.easeInOut(duration: 0.8), value: isPaused)
+        // Un toque suave al marcar: en el iPhone vibra, en la Mac el trackpad.
+        .sensoryFeedback(.impact(weight: .light), trigger: isDone)
+        .onChange(of: isDone) { _, hecho in
+            guard hecho else { return }
+            burst = false
+            // En la vuelta siguiente, para que la onda arranque de cero.
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.55)) { burst = true }
+            }
+        }
         // Toda la fila marca el hábito, no sólo el círculo. Los botones de
         // adentro (el propio círculo, el +/-) se comen el toque antes.
         .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -125,11 +142,21 @@ struct HabitRow: View {
                 .stroke(isDone ? tint : Palette.hairline, lineWidth: 1.5)
                 .frame(width: 20, height: 20)
 
+            // La onda: un anillo del color del hábito que se abre y se apaga.
+            Circle()
+                .stroke(tint, lineWidth: 1.5)
+                .frame(width: 20, height: 20)
+                .scaleEffect(burst ? 2.1 : 1)
+                .opacity(burst ? 0 : (isDone ? 0.7 : 0))
+                .allowsHitTesting(false)
+
             if isDone {
                 Circle()
                     .fill(tint)
                     .frame(width: 10, height: 10)
                     .shadow(color: Palette.nightGlow(tint, 0.6), radius: 6)
+                    .transition(.scale(scale: 0.1).combined(with: .opacity)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.55)))
             } else if isPaused {
                 Rectangle()
                     .fill(Palette.textFaint)
@@ -153,13 +180,17 @@ struct HabitRow: View {
     private var weeklyCount: some View {
         let target = habit.weeklyTarget ?? 0
         return HStack(spacing: 6) {
-            HStack(spacing: 3) {
+            // Al cumplir el mínimo, los segmentos se juntan en una sola línea.
+            HStack(spacing: weeklyMet ? 0 : 3) {
                 ForEach(0..<max(target, 1), id: \.self) { i in
                     Capsule()
                         .fill(i < weekCount ? tint.opacity(0.85) : Palette.fill(0.10))
-                        .frame(width: 8, height: 3)
+                        .frame(width: weeklyMet ? 11 : 8, height: 3)
                 }
             }
+            .clipShape(Capsule())
+            .animation(.spring(response: 0.45, dampingFraction: 0.75), value: weeklyMet)
+            .animation(.smooth(duration: 0.3), value: weekCount)
             Text("\(min(weekCount, target))/\(target)")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundStyle(weeklyMet ? tint : Palette.textFaint)

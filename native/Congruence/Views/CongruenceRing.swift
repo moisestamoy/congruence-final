@@ -47,6 +47,16 @@ struct CongruenceRing: View {
     let percentage: Int
     var size: CGFloat = 160
     var level: Int = 1
+    /// Sube cuando el día se completa: los anillos se encienden de adentro
+    /// hacia afuera y sale una onda, como una piedra en el agua.
+    var celebrate: Int = 0
+
+    @State private var lit: [Bool] = [false, false, false]
+
+    private struct Wave {
+        var scale: CGFloat = 0.6
+        var opacity: Double = 0
+    }
 
     /// Siempre se dibuja a este tamaño y después se escala. Los radios y los
     /// grosores de trazo no son animables por su cuenta, así que si cambiara
@@ -82,26 +92,65 @@ struct CongruenceRing: View {
                        height: Self.nominal * (level >= 3 ? 1.0 : 0.55))
                 .blur(radius: Self.nominal * (level >= 3 ? 0.25 : 0.14))
 
-            ForEach(Array(ringSpecs.enumerated()), id: \.offset) { _, spec in
+            ForEach(Array(ringSpecs.enumerated()), id: \.offset) { i, spec in
                 if spec.radius > 0 {
+                    // El índice 2 es el de adentro: se enciende primero.
+                    let encendido = lit[2 - i]
                     ZStack {
                         RingTrack(radius: spec.radius)
                             .stroke(colors.track, lineWidth: Self.stroke)
 
                         RingArc(radius: spec.radius, progress: progress)
                             .stroke(
-                                colors.primary.opacity(spec.opacity),
+                                colors.primary.opacity(encendido ? 1 : spec.opacity),
                                 style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round)
                             )
                             .shadow(color: colors.glow, radius: colors.glowRadius)
+                            .shadow(color: encendido ? colors.primary.opacity(0.8) : .clear,
+                                    radius: encendido ? 26 : 0)
+                            // De adentro hacia afuera, con un rebote corto:
+                            // el anillo interior llega primero.
+                            .animation(.spring(response: 0.7, dampingFraction: 0.68)
+                                .delay(Double(2 - i) * 0.07), value: progress)
                     }
                 }
             }
+
+            // La onda del día completo: invisible hasta que el último anillo
+            // se enciende, y entonces se abre y se apaga.
+            Circle()
+                .stroke(colors.primary, lineWidth: Self.stroke * 0.35)
+                .frame(width: Self.baseRadius * 2, height: Self.baseRadius * 2)
+                .keyframeAnimator(initialValue: Wave(), trigger: celebrate) { vista, w in
+                    vista.scaleEffect(w.scale).opacity(w.opacity)
+                } keyframes: { _ in
+                    KeyframeTrack(\.scale) {
+                        LinearKeyframe(0.6, duration: 0.55)
+                        CubicKeyframe(1.45, duration: 1.3)
+                    }
+                    KeyframeTrack(\.opacity) {
+                        LinearKeyframe(0, duration: 0.5)
+                        LinearKeyframe(0.6, duration: 0.05)
+                        CubicKeyframe(0, duration: 1.3)
+                    }
+                }
+                .allowsHitTesting(false)
         }
         .frame(width: Self.nominal, height: Self.nominal)
         .scaleEffect(size / Self.nominal)
         .frame(width: size, height: size)
-        .animation(.easeOut(duration: 0.6), value: progress)
+        .onChange(of: celebrate) { _, _ in celebrateDay() }
+    }
+
+    private func celebrateDay() {
+        for i in 0..<3 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15 + Double(i) * 0.16) {
+                withAnimation(.easeOut(duration: 0.3)) { lit[i] = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+                    withAnimation(.easeIn(duration: 0.6)) { lit[i] = false }
+                }
+            }
+        }
     }
 }
 
@@ -111,6 +160,7 @@ struct CongruenceDial: View {
     let level: Int
     var size: CGFloat = 260
     var phrase: String?
+    var celebrate: Int = 0
 
     private var isPaused: Bool { percentage == -1 }
     private var colors: LevelColors { LevelColors.forLevel(level) }
@@ -122,13 +172,18 @@ struct CongruenceDial: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CongruenceRing(percentage: percentage, size: size, level: level)
+            CongruenceRing(percentage: percentage, size: size, level: level, celebrate: celebrate)
+                // Un día en pausa se duerme despacio, no se apaga de golpe.
+                .opacity(isPaused ? 0.35 : 1)
+                .saturation(isPaused ? 0.2 : 1)
+                .animation(.easeInOut(duration: 1.2), value: isPaused)
 
             VStack(spacing: 8) {
                 Text(isPaused ? "—" : "\(max(percentage, 0))%")
                     .font(.system(size: percentSize, weight: .bold))
                     .monospacedDigit()
                     .contentTransition(.numericText())
+                    .animation(.smooth(duration: 0.5), value: percentage)
                     .foregroundStyle(isPaused ? Palette.textMuted : colors.primary)
                     .shadow(color: Palette.nightGlow(colors.primary, 0.35), radius: 18)
 

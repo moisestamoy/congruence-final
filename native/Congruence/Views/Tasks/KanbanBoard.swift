@@ -309,13 +309,14 @@ private struct KanbanColumn: View {
                     TaskComposer(column: column, composing: $composing, compact: true)
                 }
 
-                ForEach(tasks) { task in
+                ForEach(Array(tasks.enumerated()), id: \.element.id) { indice, task in
                     TaskCard(task: task, group: store.group(task.groupId),
                              openTask: $openTask,
                              selected: $selected,
                              muted: column == .done,
                              column: column,
                              onEdit: { onEdit(task) })
+                        .staggeredAppear(indice)
                 }
 
                 if tasks.isEmpty && composing != column {
@@ -330,6 +331,9 @@ private struct KanbanColumn: View {
                     }
                     .buttonStyle(.plain)
                     .help("Clic para escribir una tarea acá")
+                    // Cuando una columna se vacía, el texto llega despacio:
+                    // un respiro, no un aviso.
+                    .transition(.opacity.animation(.easeInOut(duration: 0.9).delay(0.3)))
                 } else if composing != column {
                     // Debajo de las tarjetas también se escribe.
                     Button(action: onCompose) {
@@ -410,8 +414,19 @@ struct TaskCard: View {
     /// Algo viene cayendo justo encima: se abre hueco arriba.
     @State private var dropAbove = false
     @FocusState private var writing: Bool
+    /// Recién llegada de otra columna: se ilumina un instante.
+    @State private var arrived = false
+    @Environment(\.focusTask) private var focusTask
 
     private var expanded: Bool { openTask == task.id }
+
+    private var allStepsDone: Bool {
+        !task.subtasks.isEmpty && task.subtasks.allSatisfy(\.done)
+    }
+
+    private var arrivalTint: Color {
+        group.map { Color.tint($0.color) } ?? Palette.accent
+    }
     private var isSelected: Bool { selected == task.id }
 
     /// De dónde salió, si salió del diario.
@@ -501,13 +516,34 @@ struct TaskCard: View {
                     : hovering ? Palette.hairline : Palette.hairlineFaint,
                     lineWidth: isSelected ? 1.5 : 1))
         .shadow(color: Palette.cardShadowSoft, radius: hovering ? 6 : 2, y: 1)
+        // Al llegar a una columna nueva, una estela del color de su grupo
+        // que se apaga.
+        .shadow(color: arrived ? arrivalTint.opacity(0.55) : .clear, radius: arrived ? 16 : 0)
+        .overlay(RoundedRectangle(cornerRadius: 10)
+            .stroke(arrivalTint.opacity(arrived ? 0.7 : 0), lineWidth: 1.5))
+        .onAppear {
+            guard let movida = store.lastMoved, movida.id == task.id,
+                  Date().timeIntervalSince(movida.at) < 1.5 else { return }
+            arrived = true
+            withAnimation(.easeOut(duration: 1.1).delay(0.25)) { arrived = false }
+        }
+        // Al terminar el último paso, la tarjeta late una vez.
+        .keyframeAnimator(initialValue: 1.0, trigger: allStepsDone) { vista, escala in
+            vista.scaleEffect(escala)
+        } keyframes: { _ in
+            SpringKeyframe(allStepsDone ? 1.035 : 1.0, duration: 0.16)
+            SpringKeyframe(1.0, duration: 0.35, spring: .bouncy)
+        }
+        // Mientras algo viene cayendo encima, la tarjeta baja y le abre lugar.
+        .padding(.top, dropAbove ? 16 : 0)
         .overlay(alignment: .top) {
             // La línea marca dónde va a caer, que es lo único que hace falta
             // saber mientras arrastras.
             if dropAbove {
                 Capsule().fill(Palette.accent)
                     .frame(height: 3)
-                    .offset(y: -6)
+                    .offset(y: 5)
+                    .transition(.opacity)
             }
         }
         .dropDestination(for: String.self) { ids, _ in
@@ -524,7 +560,7 @@ struct TaskCard: View {
             }
             return true
         } isTargeted: { dropAbove = $0 }
-        .animation(.smooth(duration: 0.15), value: dropAbove)
+        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: dropAbove)
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .onTapGesture { selected = task.id; toggleExpanded() }
@@ -542,6 +578,9 @@ struct TaskCard: View {
         .contextMenu {
             Button("Editar…", action: onEdit)
             Button(expanded ? "Cerrar nota" : "Escribir dentro") { toggleExpanded() }
+            if !task.completed {
+                Button("Enfocar") { focusTask(task.id) }
+            }
             Divider()
             ForEach(TaskColumn.allCases, id: \.self) { c in
                 if c != task.column {
@@ -568,6 +607,11 @@ struct TaskCard: View {
                 .background(muted ? Palette.nested : Palette.surfaceRaised,
                     in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.5), lineWidth: 1.5))
+                // Levantada: con sombra y un poco inclinada, como una tarjeta
+                // de verdad entre los dedos.
+                .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
+                .rotationEffect(.degrees(-2.5))
+                .padding(18)
         }
         // Entra y sale con una caída corta: al soltarla en Hecho, la tarjeta
         // se encoge y se apaga en lugar de desaparecer de golpe.
@@ -852,10 +896,115 @@ struct SubtaskProgress: View {
                 }
             }
             .frame(width: 34, height: 3)
+            .animation(.spring(response: 0.45, dampingFraction: 0.7), value: hechos)
             Text("\(hechos)/\(subtasks.count)")
+                .contentTransition(.numericText())
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .foregroundStyle(hechos == subtasks.count ? Palette.positive : Palette.textFaint)
         }
         .help("\(hechos) de \(subtasks.count) pasos hechos")
+    }
+}
+
+
+// MARK: - Enfocar
+
+/// Abrir una tarea en foco, desde cualquier tarjeta.
+private struct FocusTaskKey: EnvironmentKey {
+    static let defaultValue: (String) -> Void = { _ in }
+}
+
+extension EnvironmentValues {
+    var focusTask: (String) -> Void {
+        get { self[FocusTaskKey.self] }
+        set { self[FocusTaskKey.self] = newValue }
+    }
+}
+
+/// Una sola tarea en el centro, el resto del tablero desenfocado detrás.
+///
+/// Cuenta el tiempo hacia arriba, no hacia abajo: una cuenta atrás es una
+/// fecha límite más, y esto es para quedarse, no para correr.
+struct FocusTaskView: View {
+    let taskId: String
+    let onClose: () -> Void
+
+    @Environment(TaskStore.self) private var store
+    @State private var started = Date()
+    @State private var done = false
+
+    private var task: TodoTask? { store.document.tasks.first { $0.id == taskId } }
+
+    var body: some View {
+        if let task {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text("En foco").microLabelStyle(Palette.accent, size: 10)
+                    Spacer()
+                    TimelineView(.periodic(from: started, by: 1)) { ctx in
+                        Text(elapsed(ctx.date))
+                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(Palette.textFaint)
+                            .contentTransition(.numericText())
+                    }
+                }
+                Text(task.text)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(done ? Palette.textFaint : Palette.text)
+                    .animatedStrike(done, color: Palette.textFaint)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !task.notes.isEmpty {
+                    Text(task.notes)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                SubtaskList(task: task)
+                HStack(spacing: 16) {
+                    Button {
+                        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { done = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                            withAnimation(.smooth(duration: 0.32)) {
+                                store.setColumn(.done, for: task.id)
+                            }
+                            onClose()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            DrawnCheck(checked: done, size: 16, tint: Palette.positive)
+                            Text("Hecho").font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundStyle(Palette.positive)
+                        .padding(.horizontal, 16).frame(height: 36)
+                        .background(Capsule().fill(Palette.positive.opacity(0.12)))
+                    }
+                    .buttonStyle(.plain)
+                    Button("Salir", action: onClose)
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.textMuted)
+                        .keyboardShortcut(.cancelAction)
+                    Spacer()
+                }
+            }
+            .padding(30)
+            .frame(maxWidth: 560)
+            .background(RoundedRectangle(cornerRadius: 22).fill(Palette.surfaceRaised))
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.accent.opacity(0.35), lineWidth: 1))
+            .shadow(color: .black.opacity(0.4), radius: 40, y: 20)
+            .padding(24)
+            .sensoryFeedback(.success, trigger: done) { _, ahora in ahora }
+            .onAppear {
+                // Enfocar algo pendiente es empezarlo.
+                if task.column == .pending { store.setColumn(.doing, for: task.id) }
+            }
+        }
+    }
+
+    private func elapsed(_ now: Date) -> String {
+        let s = Int(now.timeIntervalSince(started))
+        return s < 3600 ? String(format: "%d:%02d", s / 60, s % 60)
+                        : String(format: "%d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60)
     }
 }

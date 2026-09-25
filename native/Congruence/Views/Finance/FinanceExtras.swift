@@ -673,16 +673,14 @@ struct PayablesCard: View {
             }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: item.paid ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 15))
-                    .foregroundStyle(item.paid ? FinPalette.income : Palette.textFaint)
-                    .contentTransition(.symbolEffect(.replace))
+                // El check se dibuja al pagar.
+                DrawnCheck(checked: item.paid, size: 15, tint: FinPalette.income)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(item.event.note.flatMap { $0.isEmpty ? nil : $0 } ?? item.event.category)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(item.paid ? Palette.textFaint : Palette.text)
-                        .strikethrough(item.paid, color: Palette.textFaint)
                         .lineLimit(1)
+                        .animatedStrike(item.paid, color: Palette.textFaint, delay: 0.15)
                     Text(vencido ? "Vencía el \(DateFormatter.es("d").string(from: FinDate.date(item.date)))"
                                  : "El \(DateFormatter.es("d 'de' MMMM").string(from: FinDate.date(item.date)))")
                         .font(.system(size: 10))
@@ -692,6 +690,7 @@ struct PayablesCard: View {
                 Text(Money.format(item.event.amount, doc: doc))
                     .font(.system(size: 12, weight: .semibold)).monospacedDigit()
                     .foregroundStyle(item.paid ? Palette.textFaint : FinPalette.expense)
+                    .animatedStrike(item.paid, color: Palette.textFaint, delay: 0.25)
             }
             .padding(.vertical, 6)
             .contentShape(Rectangle())
@@ -749,7 +748,11 @@ struct DayCloseBanner: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: 14).fill(FinPalette.daily.opacity(0.07)))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(FinPalette.daily.opacity(0.22), lineWidth: 1))
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            // Al responder se retira como un suspiro: se encoge y se apaga,
+            // mientras los saldos de abajo suben en cascada.
+            .transition(.asymmetric(
+                insertion: .opacity.combined(with: .move(edge: .top)),
+                removal: .scale(scale: 0.94).combined(with: .opacity)))
         }
     }
 

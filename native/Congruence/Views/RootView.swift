@@ -7,6 +7,7 @@ import AppKit
 struct RootView: View {
     @AppStorage("section") private var sectionRaw = AppSection.habits.rawValue
     @State private var isLoggingIn = false
+    @Environment(HabitStore.self) private var habits
 
     private var section: Binding<AppSection> {
         Binding(
@@ -34,6 +35,7 @@ struct RootView: View {
             }
             .environment(\.isCompact, compact)
         }
+        .background(alignment: .top) { dayGlow }
         .sheet(isPresented: $isLoggingIn) { LoginSheet() }
         #if DEBUG && os(macOS)
         .onAppear {
@@ -59,6 +61,28 @@ struct RootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // La pantalla nueva entra desde el lado de la barra, que es de
+        // donde la pediste; la anterior sólo se apaga.
+        .id(section.wrappedValue)
+        .transition(.asymmetric(
+            insertion: .opacity.combined(with: .offset(x: -16)),
+            removal: .opacity))
+    }
+
+    /// El color de tu día, muy tenue, arriba de todo. Gris al empezar, en el
+    /// color de tu nivel cuando lo cierras. Se nota sin mirarlo.
+    private var dayGlow: some View {
+        let hoy = max(0, habits.congruence(on: HabitDay.key(HabitDay.current())))
+        let color = LevelColors.forLevel(habits.level(for: habits.streak())).primary
+        return Ellipse()
+            .fill(RadialGradient(colors: [Palette.nightGlow(color, 0.16 * Double(hoy) / 100), .clear],
+                                 center: .center, startRadius: 0, endRadius: 520))
+            .frame(width: 1100, height: 420)
+            .offset(y: -210)
+            .blur(radius: 30)
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 2.5), value: hoy)
+            .ignoresSafeArea()
     }
 }
 

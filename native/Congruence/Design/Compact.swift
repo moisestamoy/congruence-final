@@ -49,6 +49,7 @@ struct PhoneTabBar: View {
     @AppStorage("appearance") private var appearanceRaw = Appearance.system.rawValue
     @Environment(AuthService.self) private var auth
     @Environment(SyncService.self) private var sync
+    @Namespace private var nav
 
     private var appearance: Appearance { Appearance(rawValue: appearanceRaw) ?? .system }
 
@@ -57,11 +58,20 @@ struct PhoneTabBar: View {
             ForEach(AppSection.allCases) { section in
                 let activa = selection == section
                 Button {
-                    selection = section
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) { selection = section }
                 } label: {
                     VStack(spacing: 4) {
                         Image(systemName: section.symbol)
                             .font(.system(size: 17, weight: .medium))
+                            .symbolEffect(.bounce, value: activa)
+                            .background {
+                                if activa {
+                                    Capsule()
+                                        .fill(Palette.accent.opacity(0.12))
+                                        .frame(width: 52, height: 30)
+                                        .matchedGeometryEffect(id: "sección", in: nav)
+                                }
+                            }
                         Text(section.label)
                             .font(.system(size: 9, weight: .semibold))
                             .lineLimit(1)

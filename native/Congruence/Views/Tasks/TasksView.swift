@@ -26,6 +26,8 @@ struct TasksView: View {
     @AppStorage("tasksLayout") private var layoutRaw = TaskLayout.list.rawValue
     /// El día que estás mirando en el Diario.
     @State private var diaryDay = HabitDay.current()
+    /// Hacia dónde gira la hoja al cambiar de día.
+    @State private var flipForward = true
     /// Sube cada vez que algo pide escribir una nota; el compositor lo mira
     /// para tomar el foco.
     @State private var noteFocusToken = 0
@@ -46,6 +48,8 @@ struct TasksView: View {
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
     @State private var editing: TodoTask?
+    /// La tarea en foco, si hay una.
+    @State private var focused: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -82,6 +86,22 @@ struct TasksView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+        }
+        // En foco, todo lo demás se aleja y se desenfoca.
+        .blur(radius: focused == nil ? 0 : 10)
+        .scaleEffect(focused == nil ? 1 : 0.97)
+        .opacity(focused == nil ? 1 : 0.45)
+        .allowsHitTesting(focused == nil)
+        .overlay {
+            if let focused {
+                FocusTaskView(taskId: focused) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { self.focused = nil }
+                }
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+        }
+        .environment(\.focusTask) { id in
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { focused = id }
         }
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
@@ -533,8 +553,12 @@ struct TasksView: View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                ForEach(notes) { note in
+                ForEach(Array(notes.enumerated()), id: \.element.id) { indice, note in
                     NoteCard(note: note)
+                        .staggeredAppear(indice)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity.combined(with: .scale(scale: 0.96))))
                 }
             }
         }
@@ -555,12 +579,17 @@ struct TasksView: View {
     /// un diario sin días no es un diario: es un cajón.
     private var diaryHeader: some View {
         HStack(spacing: 10) {
-            Text(dayLabel)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Palette.text)
-                + Text(isToday ? ", \(DateFormatter.es("d 'de' MMMM").string(from: diaryDay))" : "")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Palette.textFaint)
+            // La fecha gira como la hoja de un calendario de escritorio.
+            ZStack(alignment: .leading) {
+                (Text(dayLabel)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Palette.text)
+                    + Text(isToday ? ", \(DateFormatter.es("d 'de' MMMM").string(from: diaryDay))" : "")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Palette.textFaint))
+                    .id(HabitDay.key(diaryDay))
+                    .transition(.pageFlip(forward: flipForward))
+            }
 
             Spacer()
 
@@ -593,7 +622,8 @@ struct TasksView: View {
 
     private func dayStep(_ offset: Int, _ symbol: String) -> some View {
         Button {
-            withAnimation(.smooth(duration: 0.22)) {
+            flipForward = offset > 0
+            withAnimation(.smooth(duration: 0.45)) {
                 diaryDay = HabitDay.adding(offset, to: diaryDay)
             }
         } label: {
@@ -639,6 +669,7 @@ struct TaskRow: View {
     let onDelete: () -> Void
 
     @Environment(TaskStore.self) private var store
+    @Environment(\.focusTask) private var focusTask
     @State private var hovering = false
     @State private var draft = ""
     @FocusState private var writing: Bool
@@ -663,9 +694,11 @@ struct TaskRow: View {
     private func complete() {
         guard !completing else { return }
         SoundEffects.shared.play(.bell, enabled: sound)
-        withAnimation(.spring(duration: 0.25)) { completing = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
-            withAnimation(.smooth(duration: 0.28)) { onToggle() }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { completing = true }
+        // Primero se llena el círculo, después el tachado corre sobre el
+        // texto, y recién entonces la fila se va: un final, no un parpadeo.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            withAnimation(.smooth(duration: 0.32)) { onToggle() }
         }
     }
 
@@ -703,9 +736,10 @@ struct TaskRow: View {
                                for: task.id)
             }
         }
+        .sensoryFeedback(.success, trigger: completing) { _, ahora in ahora }
         .transition(.asymmetric(
             insertion: .opacity.combined(with: .offset(y: -6)),
-            removal: .opacity.combined(with: .offset(x: 30))
+            removal: .opacity.combined(with: .scale(scale: 0.94, anchor: .leading))
         ))
     }
 
@@ -782,7 +816,8 @@ struct TaskRow: View {
             Text(task.text)
                 .font(.system(size: 14))
                 .foregroundStyle(completing ? Palette.textFaint : Palette.text)
-                .strikethrough(completing, color: Palette.textFaint)
+                .animation(.smooth(duration: 0.3).delay(0.15), value: completing)
+                .animatedStrike(completing, color: Palette.textFaint, delay: 0.12)
 
             if task.priority != .normal {
                 Text(task.priority.rawValue)
@@ -821,6 +856,7 @@ struct TaskRow: View {
         .contextMenu {
             Button("Editar…", action: onEdit)
             Button(expanded ? "Cerrar nota" : "Escribir dentro") { toggleExpanded() }
+            Button("Enfocar") { focusTask(task.id) }
             Button(task.inProgress ? "Marcar como pendiente" : "Marcar en progreso") {
                 withAnimation(.smooth(duration: 0.25)) {
                     store.setColumn(task.inProgress ? .pending : .doing, for: task.id)

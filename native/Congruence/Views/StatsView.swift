@@ -13,6 +13,10 @@ struct StatsView: View {
 
     private var period: StatsEngine.Period { .init(rawValue: periodRaw) ?? .week }
 
+    /// Los gráficos se construyen al entrar y al cambiar de período: la
+    /// curva se dibuja, las barras crecen, los días se encienden.
+    @State private var built = false
+
     private var engine: StatsEngine {
         StatsEngine(habits: store.habits,
                     congruence: { store.congruence(on: $0) },
@@ -40,6 +44,15 @@ struct StatsView: View {
             .padding(isCompact ? 16 : 28)
             .frame(maxWidth: 980, alignment: .leading)
             .frame(maxWidth: .infinity)
+        }
+        .onAppear(perform: build)
+        .onChange(of: periodRaw) { _, _ in build() }
+    }
+
+    private func build() {
+        built = false
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: 1.0)) { built = true }
         }
     }
 
@@ -76,8 +89,11 @@ struct StatsView: View {
     private func pulse(_ e: StatsEngine, _ dias: [Date]) -> some View {
         HStack(spacing: isCompact ? 8 : 14) {
             tile("Congruencia", "\(e.average(dias))%", "promedio del período", accent: true)
+                .staggeredAppear(0)
             tile("Días activos", "\(e.activeDays(dias))", "de \(dias.count) días")
+                .staggeredAppear(1)
             tile("Racha actual", "\(e.streak)d", "días consecutivos")
+                .staggeredAppear(2)
         }
         // Las tres a la altura de la más alta.
         .fixedSize(horizontal: false, vertical: true)
@@ -130,6 +146,11 @@ struct StatsView: View {
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel().font(.system(size: 9))
+                }
+            }
+            .chartPlotStyle { plot in
+                plot.mask(alignment: .leading) {
+                    GeometryReader { g in Rectangle().frame(width: g.size.width * (built ? 1 : 0)) }
                 }
             }
             .frame(height: 190)
@@ -215,10 +236,14 @@ struct StatsView: View {
     /// trazo fallado, apenas visible sin registro.
     private func sparkline(_ marks: [StatsEngine.Mark], tint: Color) -> some View {
         HStack(spacing: 2) {
-            ForEach(Array(marks.enumerated()), id: \.offset) { _, m in
+            ForEach(Array(marks.enumerated()), id: \.offset) { i, m in
                 Capsule()
                     .fill(color(for: m, tint: tint))
                     .frame(width: 5, height: m == .done ? 14 : m == .paused ? 9 : 5)
+                    .scaleEffect(y: built ? 1 : 0.1, anchor: .bottom)
+                    .opacity(built ? 1 : 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7)
+                        .delay(Double(i) * 0.03), value: built)
             }
         }
         .frame(height: 14, alignment: .bottom)
@@ -252,8 +277,10 @@ struct StatsView: View {
                     dayOfWeekCard(e)
                     trendCard(e)
                     if let mejor = e.bestWeek {
+                        let reciente = HabitDay.adding(-7, to: HabitDay.current()) <= mejor.start
                         insight("Récord histórico", "\(mejor.avg)%",
                                 "la semana del \(DateFormatter.es("d 'de' MMM").string(from: mejor.start))")
+                            .overlay { if reciente { RecordTrace() } }
                     }
                     if let s = e.solidity {
                         insight("Más sólido", s.solid.title.capitalized,
@@ -277,7 +304,7 @@ struct StatsView: View {
         return card {
             Text("Por día de la semana").microLabelStyle(Palette.textFaint, size: 9)
             Chart(Array(datos.enumerated()), id: \.offset) { _, d in
-                BarMark(x: .value("Día", d.label), y: .value("Promedio", d.avg ?? 0))
+                BarMark(x: .value("Día", d.label), y: .value("Promedio", built ? (d.avg ?? 0) : 0))
                     .foregroundStyle(d.label == mejor?.0 ? Palette.positive
                                      : d.label == peor?.0 ? Palette.negative.opacity(0.7)
                                      : Palette.accent.opacity(0.45))
@@ -304,7 +331,9 @@ struct StatsView: View {
                     VStack(spacing: 4) {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(i == 3 ? Palette.accent : Palette.accent.opacity(0.35))
-                            .frame(height: max(4, CGFloat(v) * 0.8))
+                            .frame(height: built ? max(4, CGFloat(v) * 0.8) : 4)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.72)
+                                .delay(Double(i) * 0.08), value: built)
                         Text("\(v)%").font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(Palette.textFaint)
                     }
@@ -375,5 +404,23 @@ struct StatsView: View {
             .foregroundStyle(Palette.textFaint)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 60)
+    }
+}
+
+
+/// Un récord nuevo: una línea recorre el borde de la tarjeta una vez y se
+/// queda como un contorno tenue.
+private struct RecordTrace: View {
+    @State private var trazo: CGFloat = 0
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 14)
+            .trim(from: 0, to: trazo)
+            .stroke(Palette.accent, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+            .opacity(trazo >= 1 ? 0.45 : 1)
+            .allowsHitTesting(false)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.6).delay(0.4)) { trazo = 1 }
+            }
     }
 }

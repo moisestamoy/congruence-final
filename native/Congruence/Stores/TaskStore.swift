@@ -156,9 +156,14 @@ final class TaskStore {
 
     /// Mueve una tarea de columna. Salir de "Hecho" limpia `completedAt`,
     /// para que no siga contando como completada hoy.
+    /// La última tarjeta que cambió de columna, para que al llegar a la
+    /// nueva se ilumine un instante. No se guarda: es sólo para la vista.
+    private(set) var lastMoved: (id: String, at: Date)?
+
     func setColumn(_ column: TaskColumn, for id: String) {
         guard let i = document.tasks.firstIndex(where: { $0.id == id }),
               document.tasks[i].column != column else { return }
+        lastMoved = (id, Date())
         switch column {
         case .pending:
             document.tasks[i].completed = false
@@ -334,6 +339,15 @@ final class TaskStore {
         document.notes.insert(DiaryNote(title: title, content: content, on: day), at: 0)
         document.notes.sort { $0.createdAt > $1.createdAt }
         commit()
+    }
+
+    /// La nota que se acaba de terminar de escribir, para que en la lista
+    /// aparezca asentándose como tinta. No se guarda.
+    private(set) var settled: (id: String, at: Date)?
+
+    func markSettled(_ id: String?) {
+        guard let id else { return }
+        settled = (id, Date())
     }
 
     /// Las notas de un día, la última primero.

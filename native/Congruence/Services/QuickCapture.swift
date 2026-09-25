@@ -129,8 +129,29 @@ final class QuickCapture {
         let limpio = texto.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !limpio.isEmpty, let store else { close(); return }
         store.addNote(title: Self.title(from: limpio), content: limpio)
+        store.markSettled(store.document.notes.first?.id)
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        close()
+        flyAway()
+    }
+
+    /// Guardar se ve: el panel se encoge hasta un punto y sube a la barra de
+    /// menú, donde vive Congruence. Lo que escribiste se fue a un lugar.
+    private func flyAway() {
+        guard let panel, let pantalla = panel.screen ?? NSScreen.main else { close(); return }
+        let destino = NSRect(x: pantalla.visibleFrame.maxX - 120,
+                             y: pantalla.frame.maxY - 14, width: 12, height: 12)
+        NSAnimationContext.runAnimationGroup({ ctx in
+            ctx.duration = 0.38
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().setFrame(destino, display: true)
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                panel.orderOut(nil)
+                panel.alphaValue = 1
+                panel.setContentSize(NSSize(width: 580, height: 132))
+            }
+        })
     }
 
     private func close() {

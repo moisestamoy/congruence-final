@@ -22,6 +22,9 @@ struct TodayView: View {
     /// basta: un aviso que insiste deja de ser una señal y pasa a ser ruido.
     @AppStorage("closeNudge.day") private var nudgedDay = ""
     @State private var showCloseNudge = false
+    /// Una vez por día: los anillos celebran al completarse.
+    @AppStorage("ring.celebratedDay") private var celebratedDay = ""
+    @State private var celebrate = 0
 
     @AppStorage("ring_layout") private var layoutRaw = RingLayout.central.rawValue
 
@@ -164,8 +167,10 @@ struct TodayView: View {
                 percentage: congruence,
                 level: level,
                 size: size,
-                phrase: "La consistencia no es perfección. Es simplemente no rendirse nunca."
+                phrase: "La consistencia no es perfección. Es simplemente no rendirse nunca.",
+                celebrate: celebrate
             )
+            .sensoryFeedback(.impact(weight: .heavy), trigger: celebrate)
 
             Spacer(minLength: 0)
 
@@ -177,6 +182,17 @@ struct TodayView: View {
                         .font(.system(size: 11, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Palette.textMuted)
+                        .contentTransition(.numericText())
+                        // Al subir, el número se asienta con un golpe corto.
+                        .keyframeAnimator(initialValue: 1.0, trigger: streak) { vista, escala in
+                            vista.scaleEffect(escala)
+                        } keyframes: { _ in
+                            SpringKeyframe(1.35, duration: 0.14)
+                            SpringKeyframe(1.0, duration: 0.4, spring: .bouncy)
+                        }
+                        // Cada siete días, un brillo discreto.
+                        .shadow(color: streak % 7 == 0 ? Palette.accent.opacity(0.7) : .clear,
+                                radius: 6)
                     Text(streak == 1 ? "día" : "días")
                         .microLabelStyle(Palette.textFaint, size: 9)
                 }
@@ -223,7 +239,7 @@ struct TodayView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 8) {
-                        ForEach(store.habits) { habit in
+                        ForEach(Array(store.habits.enumerated()), id: \.element.id) { indice, habit in
                             HabitRow(
                                 habit: habit,
                                 day: dayKey,
@@ -240,6 +256,7 @@ struct TodayView: View {
                                 },
                                 onDelete: { deletingHabit = habit }
                             )
+                            .staggeredAppear(indice)
                             // Arrastrar una fila sobre otra la pone en su lugar.
                             .draggable(habit.id)
                             .dropDestination(for: String.self) { ids, _ in
@@ -341,6 +358,10 @@ struct TodayView: View {
     /// la investigación sobre hábitos pide: un momento que ya existe, no una
     /// hora cualquiera. Ahí se ofrece escribir una frase, una vez.
     private func checkDayClosed(from antes: Int, to ahora: Int) {
+        if ahora >= 100, antes < 100, celebratedDay != todayKey, isToday {
+            celebratedDay = todayKey
+            celebrate += 1
+        }
         guard ahora >= 100, antes < 100,
               nudgedDay != todayKey,
               tasks.notes(on: HabitDay.current()).isEmpty
