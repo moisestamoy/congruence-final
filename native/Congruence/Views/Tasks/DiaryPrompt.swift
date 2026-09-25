@@ -64,52 +64,28 @@ struct DiaryPrompt {
                            "Algo que me pesa aunque no parezca importante es…",
                            "No sé exactamente qué me pasa, pero…"]
 
-    // MARK: - El barrido
+    // MARK: - Una pregunta, si la pides
 
-    /// Una pregunta del barrido y el tema con el que empieza la nota si la
-    /// eliges.
+    /// Una pregunta suave y su tema en una palabra.
     struct SweepQuestion: Equatable {
         let question: String
         let topic: String
     }
 
-    /// Para cuando no sabes qué escribir y lo pides. No es un tema que haya
-    /// que inventar: es una lista de lugares donde mirar, una pregunta a la
-    /// vez, que es como se vacía una cabeza llena (el "barrido mental").
+    /// Para cuando no sabes qué escribir y lo pides.
     ///
-    /// Primero lo que ya está abierto —las tareas en curso, el mes en rojo—
-    /// porque eso es lo que más ocupa sin que lo notes. Después, lugares
-    /// comunes donde se esconden los pendientes.
-    static func sweep(doing: [String], oldestPending: String?,
-                      inDeficit: Bool) -> [SweepQuestion] {
-        var out: [SweepQuestion] = []
-        for tarea in doing.prefix(2) {
-            out.append(.init(question: "Tienes «\(tarea)» en curso. ¿Qué falta, o qué la frena?",
-                             topic: tarea))
-        }
-        if inDeficit {
-            out.append(.init(question: "El mes va en rojo. ¿Qué gasto o cobro te está rondando?",
-                             topic: "Dinero"))
-        }
-        if let tarea = oldestPending, !doing.contains(tarea) {
-            out.append(.init(question: "«\(tarea)» sigue pendiente. ¿Qué la traba?",
-                             topic: tarea))
-        }
-        out += [
-            .init(question: "¿Hay alguien a quien le debas una respuesta?", topic: "Pendiente con alguien"),
-            .init(question: "¿Qué conversación estás postergando?", topic: "Conversación"),
-            .init(question: "¿Qué decisión tienes a medio tomar?", topic: "Decisión"),
-            .init(question: "¿Cómo está el cuerpo: sueño, energía, comida?", topic: "Cuerpo"),
-            .init(question: "¿Algo de la casa o algún trámite que te ronde?", topic: "Trámite"),
-            .init(question: "¿Una idea que no quieres perder?", topic: "Idea"),
-            .init(question: "¿Qué te preocupa de mañana?", topic: "Mañana")
-        ]
-        if !inDeficit {
-            out.insert(.init(question: "¿Algo de dinero: un pago, un cobro, una compra?",
-                             topic: "Dinero"), at: min(out.count, doing.count + 3))
-        }
-        return out
-    }
+    /// Preguntas sobre cómo estás, no sobre lo que debes. Una versión anterior
+    /// empezaba por las tareas en curso y el mes en rojo, y en vez de vaciar
+    /// la cabeza la llenaba de pendientes: justo lo contrario de este lugar.
+    /// Nada de tareas, dinero ni hábitos aquí. Eso tiene su momento después.
+    static let gentleQuestions: [SweepQuestion] = [
+        .init(question: "¿Cómo estás ahora mismo, en una palabra?", topic: "Ahora"),
+        .init(question: "¿Qué sientes en el cuerpo en este momento?", topic: "Cuerpo"),
+        .init(question: "¿Qué te gustaría soltar hoy?", topic: "Soltar"),
+        .init(question: "¿Qué salió bien hoy, aunque sea pequeño?", topic: "Algo bueno"),
+        .init(question: "¿Qué necesitas ahora?", topic: "Necesito"),
+        .init(question: "¿Qué te hizo sonreír últimamente?", topic: "Sonrisa")
+    ]
 
     static func forToday(facts: DiaryFacts,
                          missing: [String],

@@ -215,7 +215,9 @@ struct NoteComposer: View {
     /// marcador colándose antes de tiempo.
     private var footer: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if content.isEmpty {
+            // Si ya elegiste una pregunta, la ayuda se calla: la pregunta
+            // está arriba y lo que sigue es tuyo.
+            if content.isEmpty && answering == nil {
                 helpLadder
             }
 
@@ -329,66 +331,38 @@ struct NoteComposer: View {
         .animation(.smooth(duration: 0.3), value: openingIndex)
     }
 
-    private var sweep: [DiaryPrompt.SweepQuestion] {
-        DiaryPrompt.sweep(
-            doing: store.column(.doing).map(\.text),
-            oldestPending: store.pending().min { $0.createdAt < $1.createdAt }?.text,
-            inDeficit: isToday && FinanceEngine.today(doc: finances.document)?.status == .critical
-        )
-    }
+    private var sweep: [DiaryPrompt.SweepQuestion] { DiaryPrompt.gentleQuestions }
 
-    /// Una pregunta a la vez. Contestarla empieza la nota con su tema; si no
-    /// te dice nada, la siguiente. Al final queda la salida de siempre.
+    /// Una pregunta a la vez. Si te dice algo, queda arriba mientras
+    /// escribes; si no, otra.
     private func sweepCard(_ i: Int) -> some View {
         let lista = sweep
         return VStack(alignment: .leading, spacing: 10) {
-            if i < lista.count {
-                let q = lista[i]
-                Text(q.question)
-                    .font(.system(size: 15, design: .serif))
-                    .foregroundStyle(Palette.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .id(i)
-                    .transition(.opacity)
-                HStack(spacing: 14) {
-                    Button("Escribir sobre esto") {
-                        withAnimation(.smooth(duration: 0.2)) {
-                            answering = q.question
-                            content = q.topic + ": "
-                            sweepIndex = nil
-                        }
-                        writing = true
+            let q = lista[i]
+            Text(q.question)
+                .font(.system(size: 15, design: .serif))
+                .foregroundStyle(Palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .id(i)
+                .transition(.opacity)
+            HStack(spacing: 14) {
+                Button("Escribir sobre esto") {
+                    withAnimation(.smooth(duration: 0.2)) {
+                        answering = q.question
+                        sweepIndex = nil
                     }
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Palette.accent)
-                    Button("Otra") { sweepIndex = i + 1 }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Palette.textMuted)
-                    Spacer()
-                    Text("\(i + 1) de \(lista.count)")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(Palette.textFaint)
+                    writing = true
                 }
-                .buttonStyle(.plain)
-            } else {
-                Text("Ya miraste en todos lados. A veces la cabeza está tranquila, y eso también se anota.")
-                    .font(.system(size: 13, design: .serif))
-                    .italic()
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Palette.accent)
+                // Sin contador: "1 de 9" convertía la ayuda en otra
+                // lista que completar.
+                Button("Otra") { sweepIndex = (i + 1) % lista.count }
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 14) {
-                    Button("No sé qué escribir todavía.") {
-                        content = "No sé qué escribir todavía."
-                        finish()
-                    }
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Palette.accent)
-                    Button("Volver a empezar") { sweepIndex = 0 }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Palette.textMuted)
-                }
-                .buttonStyle(.plain)
+                Spacer()
             }
+            .buttonStyle(.plain)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
