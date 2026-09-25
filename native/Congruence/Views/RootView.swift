@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// El marco de la app: la barra lateral y la sección elegida.
 struct RootView: View {
@@ -13,23 +16,83 @@ struct RootView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Sidebar(selection: section, onLogin: { isLoggingIn = true })
-
+        GeometryReader { geo in
+            let compact = isCompact(width: geo.size.width)
             Group {
-                switch section.wrappedValue {
-                case .habits:   TodayView()
-                case .finances: FinancesView()
-                case .tasks:    TasksView()
-                case .stats:    StatsView()
-                default:        NotBuiltYet(section: section.wrappedValue)
+                if compact {
+                    // En el teléfono la navegación va abajo, bajo el pulgar.
+                    content
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            PhoneTabBar(selection: section, onLogin: { isLoggingIn = true })
+                        }
+                } else {
+                    HStack(spacing: 0) {
+                        Sidebar(selection: section, onLogin: { isLoggingIn = true })
+                        content
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .environment(\.isCompact, compact)
         }
         .sheet(isPresented: $isLoggingIn) { LoginSheet() }
+        #if DEBUG && os(macOS)
+        .onAppear {
+            if Compact.debugPhone { PhoneWindow.shrink() } else { PhoneWindow.restoreIfShrunk() }
+        }
+        #endif
+    }
+
+    private func isCompact(width: CGFloat) -> Bool {
+        #if DEBUG
+        if Compact.debugPhone { return true }
+        #endif
+        return width < Compact.threshold
+    }
+
+    private var content: some View {
+        Group {
+            switch section.wrappedValue {
+            case .habits:   TodayView()
+            case .finances: FinancesView()
+            case .tasks:    TasksView()
+            case .stats:    StatsView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+#if DEBUG && os(macOS)
+/// Achica la ventana principal a un iPhone 16 (393 × 852), y al volver a
+/// abrir sin el modo de prueba le devuelve el tamaño que tenía: macOS
+/// recuerda el último tamaño y si no, la app quedaría angosta para siempre.
+enum PhoneWindow {
+    private static let savedKey = "debugPhone.previousFrame"
+
+    private static var mainWindow: NSWindow? {
+        NSApp.windows.first(where: { !($0 is NSPanel) && $0.canBecomeMain })
+    }
+
+    static func shrink() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            guard let ventana = mainWindow else { return }
+            if UserDefaults.standard.string(forKey: savedKey) == nil {
+                UserDefaults.standard.set(NSStringFromRect(ventana.frame), forKey: savedKey)
+            }
+            ventana.contentMinSize = NSSize(width: 320, height: 480)
+            ventana.setContentSize(NSSize(width: 393, height: 852))
+        }
+    }
+
+    static func restoreIfShrunk() {
+        guard let guardado = UserDefaults.standard.string(forKey: savedKey) else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            mainWindow?.setFrame(NSRectFromString(guardado), display: true, animate: false)
+            UserDefaults.standard.removeObject(forKey: savedKey)
+        }
+    }
+}
+#endif
 
 /// Las secciones que todavía viven sólo en la web. Mejor decirlo que dejar un
 /// botón que no hace nada.

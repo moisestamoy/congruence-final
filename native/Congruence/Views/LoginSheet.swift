@@ -86,7 +86,7 @@ struct LoginSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 420)
+        .sheetWidth(420)
         .background(Palette.base)
     }
 

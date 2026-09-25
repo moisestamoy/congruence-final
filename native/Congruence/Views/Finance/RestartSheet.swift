@@ -97,7 +97,7 @@ struct RestartSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 520)
+        .sheetWidth(520)
         .background(Palette.base)
         .animation(.smooth(duration: 0.2), value: mode)
         .confirmationDialog("¿Borrar todo tu historial financiero?", isPresented: $confirmingReset) {

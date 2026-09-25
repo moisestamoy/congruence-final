@@ -8,6 +8,7 @@ import SwiftUI
 /// claves no viven en el código de esta app.
 struct StatsView: View {
     @Environment(HabitStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
     @AppStorage("stats.period") private var periodRaw = StatsEngine.Period.week.rawValue
 
     private var period: StatsEngine.Period { .init(rawValue: periodRaw) ?? .week }
@@ -36,7 +37,7 @@ struct StatsView: View {
                     patterns(e)
                 }
             }
-            .padding(28)
+            .padding(isCompact ? 16 : 28)
             .frame(maxWidth: 980, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
@@ -57,24 +58,29 @@ struct StatsView: View {
     }
 
     private var periodPicker: some View {
-        HStack(spacing: 16) {
-            ForEach(StatsEngine.Period.allCases) { p in
-                FilterLabel(text: p.label, isSelected: period == p, tint: Palette.accent) {
-                    withAnimation(.smooth(duration: 0.25)) { periodRaw = p.rawValue }
+        ScrollView(.horizontal) {
+            HStack(spacing: 16) {
+                ForEach(StatsEngine.Period.allCases) { p in
+                    FilterLabel(text: p.label, isSelected: period == p, tint: Palette.accent) {
+                        withAnimation(.smooth(duration: 0.25)) { periodRaw = p.rawValue }
+                    }
                 }
             }
-            Spacer()
         }
+        .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
     // MARK: - Pulso
 
     private func pulse(_ e: StatsEngine, _ dias: [Date]) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: isCompact ? 8 : 14) {
             tile("Congruencia", "\(e.average(dias))%", "promedio del período", accent: true)
             tile("Días activos", "\(e.activeDays(dias))", "de \(dias.count) días")
             tile("Racha actual", "\(e.streak)d", "días consecutivos")
         }
+        // Las tres a la altura de la más alta.
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func tile(_ label: String, _ value: String, _ sub: String,
@@ -82,16 +88,19 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).microLabelStyle(Palette.textFaint, size: 9)
             Text(value)
-                .font(.system(size: 30, weight: .black))
+                .font(.system(size: isCompact ? 24 : 30, weight: .black))
                 .monospacedDigit()
                 .foregroundStyle(accent ? Palette.accent : Palette.text)
                 .contentTransition(.numericText())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(sub)
-                .font(.system(size: 11))
+                .font(.system(size: isCompact ? 10 : 11))
                 .foregroundStyle(Palette.textFaint)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(isCompact ? 12 : 18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .cardSurface(14)
     }
 
@@ -133,36 +142,73 @@ struct StatsView: View {
         section("Hábitos en detalle") {
             VStack(spacing: 2) {
                 ForEach(e.habitStats(dias)) { s in
-                    HStack(spacing: 14) {
-                        if let icon = s.habit.icon, !icon.isEmpty {
-                            Text(icon).font(.system(size: 14))
+                    if isCompact {
+                        compactHabitRow(s)
+                    } else {
+                        HStack(spacing: 14) {
+                            if let icon = s.habit.icon, !icon.isEmpty {
+                                Text(icon).font(.system(size: 14))
+                            }
+                            Text(s.habit.title)
+                                .font(.system(size: 12, weight: .bold))
+                                .tracking(1)
+                                .textCase(.uppercase)
+                                .foregroundStyle(Palette.text)
+                                .lineLimit(1)
+                            Spacer(minLength: 10)
+                            sparkline(s.sparkline, tint: .tint(s.habit.color))
+                            VStack(alignment: .trailing, spacing: 1) {
+                                Text("racha \(s.currentStreak) · récord \(s.recordStreak)")
+                                    .font(.system(size: 9, design: .monospaced))
+                                    .foregroundStyle(Palette.textFaint)
+                            }
+                            .frame(width: 118, alignment: .trailing)
+                            Text("\(s.rate)%")
+                                .font(.system(size: 15, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(s.rate >= 70 ? Palette.positive
+                                                 : s.rate >= 40 ? Palette.warning : Palette.textMuted)
+                                .frame(width: 46, alignment: .trailing)
                         }
-                        Text(s.habit.title)
-                            .font(.system(size: 12, weight: .bold))
-                            .tracking(1)
-                            .textCase(.uppercase)
-                            .foregroundStyle(Palette.text)
-                            .lineLimit(1)
-                        Spacer(minLength: 10)
-                        sparkline(s.sparkline, tint: .tint(s.habit.color))
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text("racha \(s.currentStreak) · récord \(s.recordStreak)")
-                                .font(.system(size: 9, design: .monospaced))
-                                .foregroundStyle(Palette.textFaint)
-                        }
-                        .frame(width: 118, alignment: .trailing)
-                        Text("\(s.rate)%")
-                            .font(.system(size: 15, weight: .bold))
-                            .monospacedDigit()
-                            .foregroundStyle(s.rate >= 70 ? Palette.positive
-                                             : s.rate >= 40 ? Palette.warning : Palette.textMuted)
-                            .frame(width: 46, alignment: .trailing)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 4)
                     }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 4)
                 }
             }
         }
+    }
+
+    /// En el teléfono la fila va en dos líneas: el nombre y el porcentaje
+    /// arriba, los catorce días y la racha abajo.
+    private func compactHabitRow(_ s: StatsEngine.HabitStat) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                if let icon = s.habit.icon, !icon.isEmpty {
+                    Text(icon).font(.system(size: 14))
+                }
+                Text(s.habit.title)
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(1)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text("\(s.rate)%")
+                    .font(.system(size: 15, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(s.rate >= 70 ? Palette.positive
+                                     : s.rate >= 40 ? Palette.warning : Palette.textMuted)
+            }
+            HStack {
+                sparkline(s.sparkline, tint: .tint(s.habit.color))
+                Spacer()
+                Text("racha \(s.currentStreak) · récord \(s.recordStreak)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(Palette.textFaint)
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
     }
 
     /// Los últimos 14 días de un hábito: lleno cumplido, medio en pausa, un
@@ -201,8 +247,8 @@ struct StatsView: View {
             }
         } else {
             section("Patrones · todo el historial") {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14),
-                                    GridItem(.flexible(), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14),
+                                         count: isCompact ? 1 : 2), spacing: 14) {
                     dayOfWeekCard(e)
                     trendCard(e)
                     if let mejor = e.bestWeek {

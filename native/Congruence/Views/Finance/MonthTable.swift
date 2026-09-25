@@ -8,15 +8,33 @@ struct MonthTable: View {
     let onOpenDay: (String) -> Void
     let onSetDaily: (String, Double) -> Void
 
-    private let columns: [GridItem] = [
-        GridItem(.fixed(46), alignment: .leading),     // fecha
-        GridItem(.fixed(40), alignment: .leading),     // día
-        GridItem(.flexible(), alignment: .trailing),   // entradas
-        GridItem(.flexible(), alignment: .trailing),   // salidas
-        GridItem(.flexible(), alignment: .trailing),   // diario
-        GridItem(.fixed(108), alignment: .trailing),   // saldo
-        GridItem(.fixed(104), alignment: .trailing)    // estado
-    ]
+    @Environment(\.isCompact) private var isCompact
+
+    private var columns: [GridItem] {
+        if isCompact {
+            // En el teléfono la fecha lleva el día debajo y el estado es un
+            // punto de color: siete columnas no entran en 360 puntos.
+            return [
+                GridItem(.fixed(34), alignment: .leading),     // fecha y día
+                GridItem(.flexible(), alignment: .trailing),   // entradas
+                GridItem(.flexible(), alignment: .trailing),   // salidas
+                GridItem(.fixed(58), alignment: .trailing),    // diario
+                GridItem(.fixed(84), alignment: .trailing),    // saldo
+                GridItem(.fixed(10), alignment: .trailing)     // estado
+            ]
+        }
+        return [
+            GridItem(.fixed(46), alignment: .leading),     // fecha
+            GridItem(.fixed(40), alignment: .leading),     // día
+            GridItem(.flexible(), alignment: .trailing),   // entradas
+            GridItem(.flexible(), alignment: .trailing),   // salidas
+            GridItem(.flexible(), alignment: .trailing),   // diario
+            GridItem(.fixed(108), alignment: .trailing),   // saldo
+            GridItem(.fixed(104), alignment: .trailing)    // estado
+        ]
+    }
+
+    private var sidePadding: CGFloat { isCompact ? 12 : 20 }
 
     private var todayKey: String { FinDate.todayKey() }
 
@@ -30,23 +48,34 @@ struct MonthTable: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Palette.text)
                 Spacer()
-                Text("Proyección mensual").microLabelStyle(Palette.textFaint.opacity(0.6), size: 9)
+                if !isCompact {
+                    Text("Proyección mensual").microLabelStyle(Palette.textFaint.opacity(0.6), size: 9)
+                }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, sidePadding)
             .padding(.vertical, 16)
             .background(Palette.surfaceRaised)
 
             Divider().overlay(Palette.hairline)
 
             LazyVGrid(columns: columns, spacing: 0) {
-                head("Fecha"); head("Día")
-                head("Entradas", FinPalette.income.opacity(0.8))
-                head("Salidas", FinPalette.expense.opacity(0.8))
-                head("Diario", FinPalette.daily.opacity(0.8))
-                head("Saldo", Palette.text.opacity(0.8))
-                head("Estado")
+                if isCompact {
+                    head("Día")
+                    head("Entra", FinPalette.income.opacity(0.8))
+                    head("Sale", FinPalette.expense.opacity(0.8))
+                    head("Diario", FinPalette.daily.opacity(0.8))
+                    head("Saldo", Palette.text.opacity(0.8))
+                    Color.clear.frame(width: 1, height: 1)
+                } else {
+                    head("Fecha"); head("Día")
+                    head("Entradas", FinPalette.income.opacity(0.8))
+                    head("Salidas", FinPalette.expense.opacity(0.8))
+                    head("Diario", FinPalette.daily.opacity(0.8))
+                    head("Saldo", Palette.text.opacity(0.8))
+                    head("Estado")
+                }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, sidePadding)
             .padding(.vertical, 12)
             // Tapa las filas que pasan por debajo al hacer scroll. No puede
             // ser el color base opaco o abre un agujero en lo translúcido.
@@ -75,13 +104,25 @@ struct MonthTable: View {
         let date = FinDate.date(day.date)
         let out = day.fixedExpense + day.realExpense
         return LazyVGrid(columns: columns, spacing: 0) {
-            Text(DateFormatter.es("dd").string(from: date))
-                .font(.system(size: 13, weight: .bold, design: .monospaced))
-                .foregroundStyle(isToday ? FinPalette.daily : Palette.textFaint)
-            Text(DateFormatter.es("EEE").string(from: date).uppercased())
-                .font(.system(size: 10, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(Palette.textFaint.opacity(0.8))
+            if isCompact {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(DateFormatter.es("dd").string(from: date))
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundStyle(isToday ? FinPalette.daily : Palette.textFaint)
+                    Text(DateFormatter.es("EEE").string(from: date).uppercased())
+                        .font(.system(size: 7, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundStyle(Palette.textFaint.opacity(0.8))
+                }
+            } else {
+                Text(DateFormatter.es("dd").string(from: date))
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundStyle(isToday ? FinPalette.daily : Palette.textFaint)
+                Text(DateFormatter.es("EEE").string(from: date).uppercased())
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1)
+                    .foregroundStyle(Palette.textFaint.opacity(0.8))
+            }
 
             amountCell(day.income, color: FinPalette.income) { onOpenDay(day.date) }
             amountCell(out, color: FinPalette.expense) { onOpenDay(day.date) }
@@ -94,9 +135,14 @@ struct MonthTable: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            StatusBadge(status: day.status)
+            if isCompact {
+                Circle().fill(FinPalette.status(day.status)).frame(width: 7, height: 7)
+                    .accessibilityLabel(day.status.label)
+            } else {
+                StatusBadge(status: day.status)
+            }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, sidePadding)
         .padding(.vertical, 8)
         .background(isToday ? FinPalette.daily.opacity(0.06) : .clear)
     }
@@ -176,7 +222,7 @@ private struct DailyBudgetCell: View {
                 .help("Presupuesto para gastos variables de este día · clic para editar")
             }
         }
-        .frame(width: 60, height: 22)
+        .frame(width: 50, height: 22)
         .padding(.horizontal, 4)
         .background(RoundedRectangle(cornerRadius: 4)
             .fill(isEditing ? FinPalette.daily.opacity(0.10) : .clear))

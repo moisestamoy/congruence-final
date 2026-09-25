@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FinancesView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
 
     @AppStorage("fin_horizon") private var horizon = 2
     @State private var viewYear: Int
@@ -34,8 +35,7 @@ struct FinancesView: View {
                             onOpenGoals: { showingGoals = true })
                 controlBar
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 560), spacing: 22, alignment: .top)],
-                          spacing: 22) {
+                LazyVGrid(columns: grid(560), spacing: 22) {
                     ForEach(months) { month in
                         MonthTable(month: month, doc: doc,
                                    onOpenDay: { dayDetails = $0 },
@@ -43,22 +43,20 @@ struct FinancesView: View {
                     }
                 }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 520), spacing: 22, alignment: .top)],
-                          spacing: 22) {
+                LazyVGrid(columns: grid(520), spacing: 22) {
                     if let primero = months.first {
                         CashFlowCard(month: primero, doc: doc)
                     }
                     AnnualCard(doc: doc)
                 }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 520), spacing: 22, alignment: .top)],
-                          spacing: 22) {
+                LazyVGrid(columns: grid(520), spacing: 22) {
                     CategoryBreakdown(stats: viewed, doc: doc,
                                       title: FinDate.monthTitle(viewYear, viewMonth))
                     CategoryBudgetsPanel(stats: viewed, doc: doc)
                 }
             }
-            .padding(28)
+            .padding(isCompact ? 16 : 28)
             .frame(maxWidth: 1800)
             .frame(maxWidth: .infinity)
         }
@@ -88,18 +86,27 @@ struct FinancesView: View {
         }
     }
 
+    /// Varias columnas si entran; en el teléfono, una.
+    private func grid(_ minimum: CGFloat) -> [GridItem] {
+        isCompact
+            ? [GridItem(.flexible(), alignment: .top)]
+            : [GridItem(.adaptive(minimum: minimum), spacing: 22, alignment: .top)]
+    }
+
     // MARK: - Encabezado
 
     private func header(alerts: [FinanceAlerts.Alert]) -> some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Finanzas")
-                    .font(.system(size: 40, weight: .black))
+                    .font(.system(size: isCompact ? 30 : 40, weight: .black))
                     .tracking(-1)
                     .foregroundStyle(Palette.text)
-                Text("Realidad financiera · tú decides qué hacer con ella")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(FinPalette.accent.opacity(0.6))
+                if !isCompact {
+                    Text("Realidad financiera · tú decides qué hacer con ella")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(FinPalette.accent.opacity(0.6))
+                }
             }
             Spacer()
             alertsButton(alerts)
@@ -109,7 +116,7 @@ struct FinancesView: View {
                     Text("Movimiento").font(.system(size: 11, weight: .bold)).tracking(1).textCase(.uppercase)
                 }
                 .foregroundStyle(Palette.onAccent)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, isCompact ? 12 : 16)
                 .frame(height: 36)
                 .background(FinPalette.accent, in: RoundedRectangle(cornerRadius: 12))
                 .shadow(color: FinPalette.accent.opacity(0.3), radius: 12)
@@ -150,70 +157,100 @@ struct FinancesView: View {
 
     // MARK: - Barra de control
 
+    @ViewBuilder
     private var controlBar: some View {
-        HStack(spacing: 10) {
-            Button { restarting = true } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(FinPalette.expense)
-                    .frame(width: 34, height: 34)
-                    .background(FinPalette.expense.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.expense.opacity(0.2), lineWidth: 1))
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Reiniciar: nuevo ciclo o borrado total")
-
-            HStack(spacing: 4) {
-                ForEach([1, 2, 3, 4, 12], id: \.self) { m in
-                    Button { withAnimation(.smooth(duration: 0.3)) { horizon = m } } label: {
-                        Text(m == 12 ? "1A" : "\(m)M")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.4)
-                            .foregroundStyle(horizon == m ? FinPalette.income : Palette.textFaint)
-                            .frame(minWidth: 34, minHeight: 28)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(horizon == m ? FinPalette.accent.opacity(0.18) : .clear)
-                            )
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+        if isCompact {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    restartButton
+                    horizonPicker
+                    Spacer(minLength: 0)
+                    budgetButton
                 }
+                monthNavigator
             }
-            .padding(3)
-            .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.07), lineWidth: 1))
+        } else {
+            HStack(spacing: 10) {
+                restartButton
+                horizonPicker
+                Spacer()
+                budgetButton
+                monthNavigator
+            }
+        }
+    }
 
-            Spacer()
+    private var restartButton: some View {
+        Button { restarting = true } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(FinPalette.expense)
+                .frame(width: 34, height: 34)
+                .background(FinPalette.expense.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.expense.opacity(0.2), lineWidth: 1))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Reiniciar: nuevo ciclo o borrado total")
+    }
 
-            Button { editingBudget = true } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "function").font(.system(size: 10, weight: .bold))
+    private var horizonPicker: some View {
+        HStack(spacing: 4) {
+            ForEach([1, 2, 3, 4, 12], id: \.self) { m in
+                Button { withAnimation(.smooth(duration: 0.3)) { horizon = m } } label: {
+                    Text(m == 12 ? "1A" : "\(m)M")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(horizon == m ? FinPalette.income : Palette.textFaint)
+                        .frame(minWidth: isCompact ? 30 : 34, minHeight: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(horizon == m ? FinPalette.accent.opacity(0.18) : .clear)
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.07), lineWidth: 1))
+    }
+
+    private var budgetButton: some View {
+        Button { editingBudget = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "function").font(.system(size: 10, weight: .bold))
+                if !isCompact {
                     Text("Presupuesto").font(.system(size: 10, weight: .bold)).tracking(1.4).textCase(.uppercase)
                 }
-                .foregroundStyle(FinPalette.income)
-                .padding(.horizontal, 14)
-                .frame(height: 34)
-                .background(FinPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.accent.opacity(0.2), lineWidth: 1))
             }
-            .buttonStyle(.plain)
-
-            HStack(spacing: 0) {
-                navButton("chevron.left") { shift(-1) }
-                Text(rangeTitle)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.8)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Palette.text.opacity(0.85))
-                    .frame(minWidth: 190)
-                navButton("chevron.right") { shift(1) }
-            }
-            .padding(3)
-            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.05), lineWidth: 1))
+            .foregroundStyle(FinPalette.income)
+            .padding(.horizontal, 14)
+            .frame(height: 34)
+            .background(FinPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.accent.opacity(0.2), lineWidth: 1))
         }
+        .buttonStyle(.plain)
+        .help("Presupuesto del mes")
+    }
+
+    private var monthNavigator: some View {
+        HStack(spacing: 0) {
+            navButton("chevron.left") { shift(-1) }
+            Text(rangeTitle)
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(Palette.text.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(minWidth: 190, maxWidth: isCompact ? .infinity : nil)
+            navButton("chevron.right") { shift(1) }
+        }
+        .padding(3)
+        .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.05), lineWidth: 1))
     }
 
     private var rangeTitle: String {
@@ -256,6 +293,7 @@ struct MetricCards: View {
 
     @State private var editingBalance = false
     @State private var draft = ""
+    @Environment(\.isCompact) private var isCompact
 
     private func money(_ n: Double) -> String { Money.format(n, doc: doc) }
 
@@ -294,6 +332,21 @@ struct MetricCards: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+        } else if isCompact {
+            // En el teléfono, un carrusel: se ve una entera y asoma la
+            // siguiente. Una debajo de otra se comían dos pantallas antes de
+            // llegar a la planilla.
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    Group { projectedCard; netFlowCard; paceCard; goalCard }
+                        .containerRelativeFrame(.horizontal, count: 10, span: 9, spacing: 12)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollIndicators(.hidden)
+            .scrollClipDisabled()
         } else {
             // Las cuatro a la misma altura: en fila si entran, si no de a dos.
             ViewThatFits(in: .horizontal) {

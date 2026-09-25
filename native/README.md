@@ -17,9 +17,11 @@ O abrir `Congruence.xcodeproj` en Xcode y darle ▶.
 
 ## Correr en iPhone
 
-Falta el runtime del simulador (Xcode → Settings → Components, ~10 GB). Sin él
-se puede compilar igual conectando el iPhone por cable y eligiéndolo como destino
-en Xcode. Hace falta poner un equipo de firma en **Signing & Capabilities**.
+Hace falta el componente **iOS** de Xcode (Xcode → Settings → Components, o
+`xcodebuild -downloadPlatform iOS`, unos 8 GB). Sin él Xcode no compila para
+ningún iPhone, ni el simulador ni uno conectado por cable. Para instalarla en
+tu teléfono además: tu Apple ID en Xcode → Settings → Accounts, ese equipo en
+**Signing & Capabilities**, y el Modo desarrollador activado en el iPhone.
 
 El código Swift ya compila limpio contra el SDK de iOS:
 
@@ -27,6 +29,20 @@ El código Swift ya compila limpio contra el SDK de iOS:
 xcrun swiftc -typecheck -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
   -target arm64-apple-ios17.0 $(find Congruence -name "*.swift")
 ```
+
+### El diseño del teléfono
+
+Se decide por el ancho, no por la plataforma (`Design/Compact.swift`): por
+debajo de 700 puntos la barra lateral pasa a ser una barra de pestañas abajo
+y cada pantalla se acomoda en una columna. Así se puede revisar en la Mac,
+sin simulador:
+
+```bash
+open Congruence.app --args -debugPhone YES
+```
+
+abre la ventana del tamaño de un iPhone 16. Al volver a abrirla sin el
+argumento recupera el tamaño que tenía.
 
 ## Dónde vive la data
 

@@ -16,6 +16,7 @@ struct TasksView: View {
     }
 
     @Environment(TaskStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
 
     @State private var tab: Tab = .tareas
     @State private var filterGroupId: String?
@@ -73,6 +74,7 @@ struct TasksView: View {
                     }
                     .padding(.vertical, 28)
                     .frame(maxWidth: 672, alignment: .leading)
+                    .padding(.horizontal, sideMargin)
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -99,15 +101,13 @@ struct TasksView: View {
                 .foregroundStyle(Palette.textMuted)
             HStack(alignment: .firstTextBaseline) {
                 Text("Tareas")
-                    .font(.system(size: 34, weight: .black))
+                    .font(.system(size: isCompact ? 30 : 34, weight: .black))
                     .tracking(-0.8)
                     .foregroundStyle(Palette.text)
                 Spacer()
-                #if os(macOS)
                 layoutSwitch
                     .opacity(tab == .tareas ? 1 : 0)
                     .disabled(tab != .tareas)
-                #endif
                 Button { store.toggleSound() } label: {
                     Text(store.document.soundEnabled ? "♪" : "♩")
                         .font(.system(size: 15))
@@ -120,12 +120,17 @@ struct TasksView: View {
             }
         }
         .frame(maxWidth: 672, alignment: .leading)
+        .padding(.horizontal, sideMargin)
         .frame(maxWidth: .infinity)
-        .padding(.top, 28)
+        .padding(.top, isCompact ? 16 : 28)
         .padding(.bottom, 18)
     }
 
     private var layout: TaskLayout { TaskLayout(rawValue: layoutRaw) ?? .list }
+
+    /// El margen a los lados. En la Mac la columna de 672 ya queda centrada
+    /// con aire; en el teléfono sin esto el texto tocaría el borde.
+    private var sideMargin: CGFloat { isCompact ? 18 : 28 }
 
     /// Lista o tablero. Dos iconos, no dos palabras: es un cambio de forma,
     /// no una sección nueva.
@@ -160,8 +165,8 @@ struct TasksView: View {
         Group {
             if !store.document.groups.isEmpty { filters }
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 20)
+        .padding(.horizontal, isCompact ? 16 : 28)
+        .padding(.top, isCompact ? 12 : 20)
         .padding(.bottom, 4)
     }
 
@@ -187,6 +192,7 @@ struct TasksView: View {
             Spacer()
         }
         .frame(maxWidth: 672, alignment: .leading)
+        .padding(.horizontal, sideMargin)
         .frame(maxWidth: .infinity)
     }
 
@@ -354,7 +360,29 @@ struct TasksView: View {
     /// Los filtros hablan el idioma de las pestañas de arriba — etiqueta
     /// chica en mayúsculas, sin cápsula — para que no compitan con la
     /// tarjeta de escribir, que es lo único con forma de control acá.
+    @ViewBuilder
     private var filters: some View {
+        if isCompact {
+            // En el teléfono los filtros se deslizan y el buscador va aparte:
+            // en una sola fila no entraban ni la mitad.
+            VStack(alignment: .leading, spacing: 10) {
+                searchField
+                ScrollView(.horizontal) {
+                    filterLabels.padding(.horizontal, 2)
+                }
+                .scrollIndicators(.hidden)
+            }
+        } else {
+            HStack(spacing: 16) {
+                filterLabels
+                Spacer()
+                searchField
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+
+    private var filterLabels: some View {
         HStack(spacing: 16) {
             FilterLabel(text: "Todo", isSelected: filterGroupId == nil && !onlyPriority,
                         tint: Palette.text) {
@@ -375,10 +403,7 @@ struct TasksView: View {
                     filterGroupId = filterGroupId == g.id ? nil : g.id
                 }
             }
-            Spacer()
-            searchField
         }
-        .padding(.horizontal, 2)
     }
 
     /// Buscar en el texto, en la nota de dentro y en el nombre del grupo.
@@ -400,7 +425,8 @@ struct TasksView: View {
                     .foregroundStyle(Palette.text)
                     .focused($searching)
             }
-            .frame(width: 120)
+            .frame(width: isCompact ? nil : 120)
+            .frame(maxWidth: isCompact ? .infinity : nil)
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -412,7 +438,7 @@ struct TasksView: View {
             }
         }
         .padding(.horizontal, 9)
-        .frame(height: 26)
+        .frame(height: isCompact ? 34 : 26)
         .background(Capsule().fill(Palette.fill(searching ? 0.07 : 0.04)))
         .overlay(Capsule().stroke(searching ? Palette.accent.opacity(0.35)
                                             : Palette.hairlineFaint, lineWidth: 1))
@@ -1026,7 +1052,7 @@ struct GroupPickerSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 400)
+        .sheetWidth(400)
         .background(Palette.base)
         .onAppear { colorIndex = groups.count % Self.palette.count }
     }

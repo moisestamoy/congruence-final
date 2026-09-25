@@ -19,8 +19,53 @@ struct KanbanBoard: View {
     let onCompose: (TaskColumn) -> Void
 
     @Environment(TaskStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
+    /// En el teléfono se ve una columna a la vez; ésta es la que se ve.
+    @AppStorage("tasksPhoneColumn") private var phoneColumnRaw = TaskColumn.pending.rawValue
 
     var body: some View {
+        if isCompact { phoneBoard } else { desktopBoard }
+    }
+
+    // MARK: - Teléfono
+
+    private var phoneColumn: TaskColumn { TaskColumn(rawValue: phoneColumnRaw) ?? .pending }
+
+    /// Tres columnas en 360 puntos serían tres cintas. Arriba se elige cuál
+    /// ver; soltar una tarjeta sobre el nombre de otra la manda ahí.
+    private var phoneBoard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                ForEach(TaskColumn.allCases, id: \.self) { column in
+                    PhoneColumnTab(column: column,
+                                   count: tasks(column).count,
+                                   isSelected: phoneColumn == column) {
+                        withAnimation(.smooth(duration: 0.2)) { phoneColumnRaw = column.rawValue }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            ScrollView {
+                KanbanColumn(
+                    column: phoneColumn,
+                    tasks: tasks(phoneColumn),
+                    composing: $composing,
+                    openTask: $openTask,
+                    selected: $selected,
+                    onEdit: onEdit,
+                    onCompose: { onCompose(phoneColumn) }
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+        }
+    }
+
+    // MARK: - Escritorio
+
+    private var desktopBoard: some View {
         ScrollView {
             ZStack(alignment: .top) {
                 // Todo lo que no es columna cierra lo que estés escribiendo.
@@ -149,6 +194,55 @@ struct KanbanBoard: View {
     }
 }
 
+/// Una pestaña del tablero en el teléfono: el nombre de la columna y cuántas
+/// tiene. También recibe tarjetas, así moverlas no exige abrir un menú.
+private struct PhoneColumnTab: View {
+    let column: TaskColumn
+    let count: Int
+    let isSelected: Bool
+    let action: () -> Void
+
+    @Environment(TaskStore.self) private var store
+    @State private var targeted = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(column.label)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.8)
+                    .textCase(.uppercase)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("\(count)")
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Palette.textFaint)
+            }
+            .foregroundStyle(isSelected ? Palette.text : Palette.textFaint)
+            .frame(maxWidth: .infinity, minHeight: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(targeted ? Palette.accent.opacity(0.14)
+                          : isSelected ? Palette.fill(0.07) : .clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(targeted ? Palette.accent.opacity(0.5) : Palette.hairlineFaint, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .dropDestination(for: String.self) { ids, _ in
+            guard let id = ids.first else { return false }
+            if column == .done {
+                SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+            }
+            withAnimation(.smooth(duration: 0.32)) { store.setColumn(column, for: id) }
+            return true
+        } isTargeted: { targeted = $0 }
+    }
+}
+
 private struct KanbanColumn: View {
     let column: TaskColumn
     let tasks: [TodoTask]
@@ -159,6 +253,7 @@ private struct KanbanColumn: View {
     let onCompose: () -> Void
 
     @Environment(TaskStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
     @State private var targeted = false
     @State private var confirmingClear = false
 
@@ -179,31 +274,35 @@ private struct KanbanColumn: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 7) {
-                Circle().fill(accent).frame(width: 5, height: 5)
-                Text(column.label).microLabelStyle(Palette.textMuted, size: 9)
-                Text("\(tasks.count)")
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(overloaded ? Palette.warning : Palette.textFaint)
-                if overloaded {
-                    // No es un bloqueo: es que ocho cosas "en progreso" son
-                    // cero cosas en progreso, y esta app se llama Congruence.
-                    Text("· demasiadas a la vez")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Palette.warning.opacity(0.75))
+            // En el teléfono la pestaña de arriba ya dice cuál es y cuántas
+            // tiene; el título sólo aparece si trae algo más.
+            if !isCompact || overloaded || (column == .done && !tasks.isEmpty) {
+                HStack(spacing: 7) {
+                    Circle().fill(accent).frame(width: 5, height: 5)
+                    Text(column.label).microLabelStyle(Palette.textMuted, size: 9)
+                    Text("\(tasks.count)")
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(overloaded ? Palette.warning : Palette.textFaint)
+                    if overloaded {
+                        // No es un bloqueo: es que ocho cosas "en progreso" son
+                        // cero cosas en progreso, y esta app se llama Congruence.
+                        Text("· demasiadas a la vez")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Palette.warning.opacity(0.75))
+                    }
+                    Spacer()
+                    if column == .done, !tasks.isEmpty {
+                        Button("Limpiar") { confirmingClear = true }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(0.8)
+                            .textCase(.uppercase)
+                            .foregroundStyle(Palette.textFaint)
+                            .help("Borrar las tareas completadas")
+                    }
                 }
-                Spacer()
-                if column == .done, !tasks.isEmpty {
-                    Button("Limpiar") { confirmingClear = true }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 9, weight: .bold))
-                        .tracking(0.8)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Palette.textFaint)
-                        .help("Borrar las tareas completadas")
-                }
+                .padding(.horizontal, 4)
             }
-            .padding(.horizontal, 4)
 
             VStack(spacing: 10) {
                 if composing == column {

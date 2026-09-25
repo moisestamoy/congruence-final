@@ -145,6 +145,8 @@ struct CongruenceDial: View {
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
                     .frame(maxWidth: 420)
+                    // En angosto la frase va en dos líneas, no cortada.
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 36)
             }
         }

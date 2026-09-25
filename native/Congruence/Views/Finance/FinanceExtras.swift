@@ -96,7 +96,7 @@ struct SavingsGoalsSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 560)
+        .sheetWidth(560)
         .background(Palette.surface)
     }
 
@@ -560,7 +560,7 @@ struct AlertsSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 520)
+        .sheetWidth(520)
         .background(Palette.surface)
     }
 

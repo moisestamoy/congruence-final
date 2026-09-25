@@ -364,7 +364,7 @@ struct SheetShell<Content: View>: View {
             }
         }
         .padding(26)
-        .frame(width: 480)
+        .sheetWidth(480)
         .background(Palette.base)
     }
 }

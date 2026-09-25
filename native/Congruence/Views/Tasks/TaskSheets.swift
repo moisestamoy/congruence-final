@@ -74,7 +74,7 @@ struct TaskEditorSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 460)
+        .sheetWidth(460)
         .background(Palette.base)
         .confirmationDialog("¿Borrar esta tarea?", isPresented: $confirmingDelete) {
             Button("Borrar", role: .destructive) {

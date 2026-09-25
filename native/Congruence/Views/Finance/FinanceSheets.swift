@@ -41,7 +41,7 @@ struct DayDetailsSheet: View {
             section(.expense)
         }
         .padding(26)
-        .frame(width: 440)
+        .sheetWidth(440)
         .background(Palette.base)
         .sheet(item: $editing) { tx in
             TransactionSheet(mode: .edit(tx, onDate: date))
@@ -287,7 +287,7 @@ struct TransactionSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 480)
+        .sheetWidth(480)
         .background(Palette.base)
         .animation(.smooth(duration: 0.2), value: type)
         .confirmationDialog("¿Eliminar este registro?", isPresented: $confirmingDelete) {
@@ -427,7 +427,7 @@ struct BudgetSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 420)
+        .sheetWidth(420)
         .background(Palette.base)
         .onAppear { text = MonthTable.plain(currentBudget) }
     }

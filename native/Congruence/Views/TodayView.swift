@@ -17,6 +17,7 @@ enum RingLayout: String {
 struct TodayView: View {
     @Environment(HabitStore.self) private var store
     @Environment(TaskStore.self) private var tasks
+    @Environment(\.isCompact) private var isCompact
     /// El día en que ya se ofreció escribir al cerrar. Una vez por día y
     /// basta: un aviso que insiste deja de ser una señal y pasa a ser ruido.
     @AppStorage("closeNudge.day") private var nudgedDay = ""
@@ -83,10 +84,13 @@ struct TodayView: View {
                     }
                     .padding(24)
                 } else {
+                    // En el teléfono el anillo cede lugar: los hábitos son lo
+                    // que se toca, y tienen que asomar sin hacer scroll.
+                    let heroH: CGFloat = isCompact ? 480 : 560
                     ScrollView {
                         VStack(spacing: 24) {
-                            ringHero(size: ringDiameter(width: w - 40, height: 560))
-                                .frame(height: 560)
+                            ringHero(size: ringDiameter(width: w - 40, height: heroH))
+                                .frame(height: heroH)
                             habitsColumn(maxListHeight: 4000)
                             leftColumn
                         }
@@ -284,8 +288,10 @@ struct TodayView: View {
 
             Spacer(minLength: 8)
 
-            layoutToggle
-                .padding(.trailing, 8)
+            if !isCompact {
+                layoutToggle
+                    .padding(.trailing, 8)
+            }
 
             HStack(spacing: 2) {
                 dateButton("chevron.left") { shiftDay(-1) }
