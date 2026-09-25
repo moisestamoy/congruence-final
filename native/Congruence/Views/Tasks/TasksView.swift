@@ -38,6 +38,10 @@ struct TasksView: View {
     /// La tarjeta elegida con el teclado.
     @State private var selected: String?
     @FocusState private var searching: Bool
+    /// El buscador es un botón hasta que haces clic en él. Si fuera un campo
+    /// siempre, macOS le daría el foco al abrir Tareas y aparecería activo
+    /// sin que lo pidieras.
+    @State private var searchOpen = false
     /// Grupos plegados, separados por coma. Se guarda para que al volver a
     /// abrir la app siga plegado lo que plegaste.
     @AppStorage("tasksCollapsedGroups") private var collapsedRaw = ""
@@ -92,7 +96,7 @@ struct TasksView: View {
             Button("") { tab = .tareas; compose(.pending) }
                 .keyboardShortcut("n", modifiers: .command)
                 .opacity(0)
-            Button("") { tab = .tareas; searching = true }
+            Button("") { tab = .tareas; openSearch() }
                 .keyboardShortcut("f", modifiers: .command)
                 .opacity(0)
         }
@@ -425,14 +429,17 @@ struct TasksView: View {
                         .foregroundStyle(Palette.textFaint.opacity(0.8))
                         .allowsHitTesting(false)
                 }
-                TextField("", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Palette.text)
-                    .focused($searching)
+                if searchOpen || !query.isEmpty {
+                    TextField("", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.text)
+                        .focused($searching)
+                        .onAppear { searching = true }
+                }
             }
-            .frame(width: isCompact ? nil : 120)
-            .frame(maxWidth: isCompact ? .infinity : nil)
+            .frame(width: isCompact ? nil : 120, alignment: .leading)
+            .frame(maxWidth: isCompact ? .infinity : nil, alignment: .leading)
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -449,7 +456,16 @@ struct TasksView: View {
         .overlay(Capsule().stroke(searching ? Palette.accent.opacity(0.35)
                                             : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.18), value: searching)
-        .onEscape { query = ""; searching = false }
+        .contentShape(Capsule())
+        .onTapGesture { openSearch() }
+        .onChange(of: searching) { _, activo in
+            if !activo && query.isEmpty { searchOpen = false }
+        }
+        .onEscape { query = ""; searching = false; searchOpen = false }
+    }
+
+    private func openSearch() {
+        if searchOpen { searching = true } else { searchOpen = true }
     }
 
     // MARK: - Hoy
