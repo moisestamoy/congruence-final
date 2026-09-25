@@ -126,6 +126,10 @@ struct NoteComposer: View {
     @State private var helpLevel = 0
     @State private var openingIndex = 0
     @State private var ladder: Task<Void, Never>?
+    /// Dónde va el barrido, si lo pediste.
+    @State private var sweepIndex: Int?
+    /// La pregunta que estás contestando: queda a la vista mientras escribes.
+    @State private var answering: String?
 
     /// Sacar lo que tienes en la cabeza y revisar el día son dos trabajos
     /// distintos, y mezclarlos rompe el primero: si lo primero que ves al ir a
@@ -164,6 +168,15 @@ struct NoteComposer: View {
             if phase == .saved {
                 savedStrip
             } else {
+                if let answering {
+                    Text(answering)
+                        .font(.system(size: 12, design: .serif))
+                        .italic()
+                        .foregroundStyle(Palette.textFaint)
+                        .padding(.horizontal, 17)
+                        .padding(.top, 14)
+                        .transition(.opacity)
+                }
                 NoteBody(text: $content,
                          placeholder: "¿Qué está ocupando espacio en tu cabeza?",
                          serif: true)
@@ -189,6 +202,10 @@ struct NoteComposer: View {
             if enfocado { runLadder() } else { ladder?.cancel() }
         }
         .onDisappear { saving?.cancel(); ladder?.cancel(); persist() }
+        #if DEBUG
+        // open Congruence.app --args -debugTab diario -debugSweep YES
+        .onAppear { if UserDefaults.standard.bool(forKey: "debugSweep") { sweepIndex = 0; writing = true } }
+        #endif
     }
 
     // MARK: - Piezas
@@ -237,62 +254,146 @@ struct NoteComposer: View {
                 .font(.system(size: 11))
                 .foregroundStyle(Palette.textFaint.opacity(0.8))
 
-            if helpLevel >= 1 {
-                HStack(spacing: 6) {
-                    ForEach(DiaryPrompt.starters, id: \.self) { inicio in
-                        chip(inicio) { content = inicio + " " }
-                    }
-                    Spacer()
-                }
-                .transition(.opacity)
-            }
-
-            if helpLevel >= 2 {
-                HStack(spacing: 6) {
-                    ForEach(DiaryPrompt.fragments, id: \.self) { palabra in
-                        chip(palabra) { content = palabra + ": " }
-                    }
-                    Spacer()
-                }
-                .transition(.opacity)
-            }
-
-            if helpLevel >= 4 {
-                // La salida más baja posible. Parece raro guardarlo, y es
-                // justo el punto: abrir esto no te obliga a rendir, y un día
-                // sin nada que decir deja de sentirse como un fallo.
-                Button {
-                    content = "No sé qué escribir todavía."
-                    finish()
-                } label: {
-                    Text("No sé qué escribir todavía.")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Palette.textFaint)
-                        .underline()
+            if let i = sweepIndex {
+                sweepCard(i)
+            } else {
+                // La ayuda también se puede pedir. Esperar a que aparezca
+                // sola, mirando una caja vacía, es justo lo que desanima.
+                Button { withAnimation(.smooth(duration: 0.25)) { sweepIndex = 0 } } label: {
+                    Text("¿No sabes por dónde empezar?")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .transition(.opacity)
             }
 
-            if helpLevel >= 3 {
-                // De una en una: cuatro frases juntas vuelven a ser una
-                // decisión.
-                let frase = DiaryPrompt.openings[openingIndex % DiaryPrompt.openings.count]
-                Button { content = frase.replacingOccurrences(of: "…", with: " ") } label: {
-                    Text(frase)
-                        .font(.system(size: 13, design: .serif))
-                        .italic()
-                        .foregroundStyle(Palette.textMuted)
-                        .contentShape(Rectangle())
+            if sweepIndex == nil {
+                if helpLevel >= 1 {
+                    HStack(spacing: 6) {
+                        ForEach(DiaryPrompt.starters, id: \.self) { inicio in
+                            chip(inicio) { content = inicio + " " }
+                        }
+                        Spacer()
+                    }
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
-                .id(openingIndex)
-                .transition(.opacity)
+
+                if helpLevel >= 2 {
+                    HStack(spacing: 6) {
+                        ForEach(DiaryPrompt.fragments, id: \.self) { palabra in
+                            chip(palabra) { content = palabra + ": " }
+                        }
+                        Spacer()
+                    }
+                    .transition(.opacity)
+                }
+
+                if helpLevel >= 4 {
+                    // La salida más baja posible. Parece raro guardarlo, y es
+                    // justo el punto: abrir esto no te obliga a rendir, y un día
+                    // sin nada que decir deja de sentirse como un fallo.
+                    Button {
+                        content = "No sé qué escribir todavía."
+                        finish()
+                    } label: {
+                        Text("No sé qué escribir todavía.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.textFaint)
+                            .underline()
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
+                }
+
+                if helpLevel >= 3 {
+                    // De una en una: cuatro frases juntas vuelven a ser una
+                    // decisión.
+                    let frase = DiaryPrompt.openings[openingIndex % DiaryPrompt.openings.count]
+                    Button { content = frase.replacingOccurrences(of: "…", with: " ") } label: {
+                        Text(frase)
+                            .font(.system(size: 13, design: .serif))
+                            .italic()
+                            .foregroundStyle(Palette.textMuted)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .id(openingIndex)
+                    .transition(.opacity)
+                }
             }
         }
         .animation(.smooth(duration: 0.3), value: helpLevel)
+        .animation(.smooth(duration: 0.25), value: sweepIndex)
         .animation(.smooth(duration: 0.3), value: openingIndex)
+    }
+
+    private var sweep: [DiaryPrompt.SweepQuestion] {
+        DiaryPrompt.sweep(
+            doing: store.column(.doing).map(\.text),
+            oldestPending: store.pending().min { $0.createdAt < $1.createdAt }?.text,
+            inDeficit: isToday && FinanceEngine.today(doc: finances.document)?.status == .critical
+        )
+    }
+
+    /// Una pregunta a la vez. Contestarla empieza la nota con su tema; si no
+    /// te dice nada, la siguiente. Al final queda la salida de siempre.
+    private func sweepCard(_ i: Int) -> some View {
+        let lista = sweep
+        return VStack(alignment: .leading, spacing: 10) {
+            if i < lista.count {
+                let q = lista[i]
+                Text(q.question)
+                    .font(.system(size: 15, design: .serif))
+                    .foregroundStyle(Palette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .id(i)
+                    .transition(.opacity)
+                HStack(spacing: 14) {
+                    Button("Escribir sobre esto") {
+                        withAnimation(.smooth(duration: 0.2)) {
+                            answering = q.question
+                            content = q.topic + ": "
+                            sweepIndex = nil
+                        }
+                        writing = true
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                    Button("Otra") { sweepIndex = i + 1 }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer()
+                    Text("\(i + 1) de \(lista.count)")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(Palette.textFaint)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("Ya miraste en todos lados. A veces la cabeza está tranquila, y eso también se anota.")
+                    .font(.system(size: 13, design: .serif))
+                    .italic()
+                    .foregroundStyle(Palette.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 14) {
+                    Button("No sé qué escribir todavía.") {
+                        content = "No sé qué escribir todavía."
+                        finish()
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                    Button("Volver a empezar") { sweepIndex = 0 }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.textMuted)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairlineFaint, lineWidth: 1))
     }
 
     private func chip(_ texto: String, action: @escaping () -> Void) -> some View {
@@ -512,6 +613,8 @@ struct NoteComposer: View {
         actionDate = nil
         askingAction = false
         helpLevel = 0
+        sweepIndex = nil
+        answering = nil
         phase = .writing
         writing = false
     }

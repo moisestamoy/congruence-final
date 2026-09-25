@@ -82,6 +82,12 @@ struct TasksView: View {
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
         }
+        #if DEBUG
+        // open Congruence.app --args -debugTab diario
+        .onAppear {
+            if let t = UserDefaults.standard.string(forKey: "debugTab").flatMap(Tab.init) { tab = t }
+        }
+        #endif
         .background {
             Button("") { tab = .tareas; compose(.pending) }
                 .keyboardShortcut("n", modifiers: .command)
