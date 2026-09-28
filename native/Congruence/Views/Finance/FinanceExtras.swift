@@ -47,7 +47,7 @@ struct SavingsGoalsSheet: View {
                 }
                 Spacer()
                 Button("Cerrar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -66,7 +66,7 @@ struct SavingsGoalsSheet: View {
                     DarkField(placeholder: "Monto", text: $amount, width: 130)
                     DarkField(placeholder: "Nota (opcional)", text: $note)
                     Button("Guardar") { add() }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(parsedAmount != nil ? Palette.onAccent : Palette.textFaint)
                         .padding(.horizontal, 18)
@@ -139,7 +139,7 @@ struct SavingsGoalsSheet: View {
                         }
                         editing = nil
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(Palette.accent)
                 }
@@ -153,14 +153,14 @@ struct SavingsGoalsSheet: View {
                         .foregroundStyle(Palette.textMuted)
                         .underline(goal <= 0)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
             Text(sub).font(.system(size: 10)).foregroundStyle(Palette.textFaint)
         }
         .padding(18)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(0.04)))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.hairlineFaint, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.card).fill(Palette.fill(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Palette.hairlineFaint, lineWidth: 1))
     }
 
     private func entryRow(_ entry: SavingsEntry) -> some View {
@@ -184,7 +184,7 @@ struct SavingsGoalsSheet: View {
                     .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .help("Borrar aporte")
         }
         .padding(.vertical, 6)
@@ -258,7 +258,7 @@ struct CategoryBudgetsPanel: View {
                     DarkField(placeholder: "Límite", text: $draft, width: 90)
                         .onSubmit { commit(name) }
                     Button("OK") { commit(name) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Palette.accent)
                 } else {
@@ -270,7 +270,7 @@ struct CategoryBudgetsPanel: View {
                             .font(.system(size: 11))
                             .foregroundStyle(Palette.textFaint)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .help("Poner un límite mensual a esta categoría")
                 }
             }
@@ -540,7 +540,7 @@ struct AlertsSheet: View {
                 Text("Alertas").font(.system(size: 20, weight: .bold)).foregroundStyle(Palette.text)
                 Spacer()
                 Button("Cerrar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -695,7 +695,7 @@ struct PayablesCard: View {
             .padding(.vertical, 6)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -743,11 +743,11 @@ struct DayCloseBanner: View {
                     buttons(dia)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .padding(.horizontal, 16).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14).fill(FinPalette.daily.opacity(0.07)))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(FinPalette.daily.opacity(0.22), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Radius.card).fill(FinPalette.daily.opacity(0.07)))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(FinPalette.daily.opacity(0.22), lineWidth: 1))
             // Al responder se retira como un suspiro: se encoge y se apaga,
             // mientras los saldos de abajo suben en cascada.
             .transition(.asymmetric(

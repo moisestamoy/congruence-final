@@ -30,15 +30,15 @@ struct FinCard<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background {
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Radius.card)
                     .fill(Palette.panel)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: Radius.card)
                             .fill(LinearGradient(colors: [Palette.fill(0.04), Palette.fill(0.012)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
                     }
             }
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.hairlineFaint, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Palette.hairlineFaint, lineWidth: 1))
             .shadow(color: Palette.cardShadow, radius: 10, y: 3)
             .shadow(color: Palette.cardShadowSoft, radius: 2, y: 1)
     }

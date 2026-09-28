@@ -128,10 +128,10 @@ struct FinancesView: View {
                 .foregroundStyle(Palette.onAccent)
                 .padding(.horizontal, isCompact ? 12 : 16)
                 .frame(height: 36)
-                .background(FinPalette.accent, in: RoundedRectangle(cornerRadius: 12))
+                .background(FinPalette.accent, in: RoundedRectangle(cornerRadius: Radius.row))
                 .shadow(color: FinPalette.accent.opacity(0.3), radius: 12)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .keyboardShortcut("n", modifiers: .command)
             .help("Nuevo ingreso o gasto (⌘N)")
         }
@@ -152,8 +152,8 @@ struct FinancesView: View {
                     .foregroundStyle(alerts.isEmpty ? Palette.textFaint
                                      : criticas ? FinPalette.expense : Palette.warning)
                     .frame(width: 36, height: 36)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.04)))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairlineFaint, lineWidth: 1))
+                    .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.04)))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(Palette.hairlineFaint, lineWidth: 1))
                 if !alerts.isEmpty {
                     Text("\(alerts.count)")
                         .font(.system(size: 8, weight: .black)).monospacedDigit()
@@ -165,7 +165,7 @@ struct FinancesView: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         // Se mueve una sola vez por cada aviso que no habías visto, no cada
         // vez que abres la pantalla.
         .onAppear { ringIfNew(alerts.count) }
@@ -211,11 +211,11 @@ struct FinancesView: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(FinPalette.expense)
                 .frame(width: 34, height: 34)
-                .background(FinPalette.expense.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.expense.opacity(0.2), lineWidth: 1))
+                .background(FinPalette.expense.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.row))
+                .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(FinPalette.expense.opacity(0.2), lineWidth: 1))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help("Reiniciar: nuevo ciclo o borrado total")
     }
 
@@ -229,17 +229,17 @@ struct FinancesView: View {
                         .foregroundStyle(horizon == m ? FinPalette.income : Palette.textFaint)
                         .frame(minWidth: isCompact ? 30 : 34, minHeight: 28)
                         .background(
-                            RoundedRectangle(cornerRadius: 10)
+                            RoundedRectangle(cornerRadius: Radius.control)
                                 .fill(horizon == m ? FinPalette.accent.opacity(0.18) : .clear)
                         )
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
         }
         .padding(3)
-        .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.07), lineWidth: 1))
+        .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Palette.fill(0.07), lineWidth: 1))
     }
 
     private var budgetButton: some View {
@@ -253,10 +253,10 @@ struct FinancesView: View {
             .foregroundStyle(FinPalette.income)
             .padding(.horizontal, 14)
             .frame(height: 34)
-            .background(FinPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(FinPalette.accent.opacity(0.2), lineWidth: 1))
+            .background(FinPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.row))
+            .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(FinPalette.accent.opacity(0.2), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help("Presupuesto del mes")
     }
 
@@ -274,8 +274,8 @@ struct FinancesView: View {
             navButton("chevron.right") { shift(1) }
         }
         .padding(3)
-        .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Palette.fill(0.05), lineWidth: 1))
+        .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Radius.card))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Palette.fill(0.05), lineWidth: 1))
     }
 
     private var rangeTitle: String {
@@ -302,7 +302,7 @@ struct FinancesView: View {
                 .frame(width: 30, height: 28)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -446,11 +446,11 @@ struct MetricCards: View {
                                 .font(.system(size: 12, design: .monospaced))
                                 .padding(.horizontal, 8)
                                 .frame(width: 110, height: 24)
-                                .background(Palette.fill(0.08), in: RoundedRectangle(cornerRadius: 6))
+                                .background(Palette.fill(0.08), in: RoundedRectangle(cornerRadius: Radius.inner))
                                 .onSubmit(commitBalance)
-                            Button("✓", action: commitBalance).buttonStyle(.plain)
+                            Button("✓", action: commitBalance).buttonStyle(.pressable)
                                 .foregroundStyle(FinPalette.income)
-                            Button("✕") { editingBalance = false }.buttonStyle(.plain)
+                            Button("✕") { editingBalance = false }.buttonStyle(.pressable)
                                 .foregroundStyle(Palette.textFaint)
                         }
                         .font(.system(size: 12, weight: .bold))
@@ -466,7 +466,7 @@ struct MetricCards: View {
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.textMuted)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .help("Corrige tu saldo real de hoy")
                     }
                 }
@@ -594,6 +594,7 @@ struct MetricCards: View {
                 }
             }
         }
+        .hoverHighlight(Radius.card)
         .contentShape(Rectangle())
         .onTapGesture(perform: onOpenGoals)
         .accessibilityAddTraits(.isButton)

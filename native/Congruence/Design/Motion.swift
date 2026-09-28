@@ -12,13 +12,15 @@ import SwiftUI
 private struct StaggeredAppear: ViewModifier {
     let index: Int
     @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 8)
+            .offset(y: shown || reduceMotion ? 0 : 8)
             .onAppear {
                 guard !shown else { return }
+                if reduceMotion { shown = true; return }
                 // Más allá de la duodécima no se nota el orden, sólo la espera.
                 let delay = Double(min(index, 12)) * 0.035
                 withAnimation(.smooth(duration: 0.4).delay(delay)) { shown = true }
@@ -154,6 +156,7 @@ private struct InkRenderer: TextRenderer, Animatable {
 private struct InkReveal: ViewModifier {
     let trigger: Int
     @State private var progress: Double = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         Group {
@@ -164,6 +167,7 @@ private struct InkReveal: ViewModifier {
             }
         }
         .onChange(of: trigger) { _, _ in
+            guard !reduceMotion else { return }
             progress = 0
             withAnimation(.easeOut(duration: 1.4)) { progress = 1 }
         }
@@ -174,5 +178,86 @@ extension View {
     /// Cada vez que `trigger` cambia, el texto se vuelve a asentar.
     func inkReveal(trigger: Int) -> some View {
         modifier(InkReveal(trigger: trigger))
+    }
+}
+
+// MARK: - Botones que responden
+
+/// El estilo de botón de toda la app. Al pasar el puntero se ilumina un
+/// poco; al pulsarlo se hunde, como algo físico. Sin fondo propio: cada
+/// botón conserva su forma.
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PressableBody(configuration: configuration)
+    }
+
+    private struct PressableBody: View {
+        let configuration: Configuration
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            configuration.label
+                .brightness(hovering && isEnabled ? 0.05 : 0)
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+                .opacity(configuration.isPressed && reduceMotion ? 0.7 : 1)
+                .animation(.spring(response: 0.22, dampingFraction: 0.7), value: configuration.isPressed)
+                .animation(.easeOut(duration: 0.15), value: hovering)
+                .onHover { hovering = $0 }
+        }
+    }
+}
+
+extension ButtonStyle where Self == PressableButtonStyle {
+    static var pressable: PressableButtonStyle { PressableButtonStyle() }
+}
+
+// MARK: - Resaltado al pasar
+
+/// Para lo que se toca pero no es un botón (una fila de hábito, una
+/// tarjeta que abre algo): un velo leve cuando el puntero está encima. Es
+/// cómo se ve "esto responde" antes de hacer clic.
+private struct HoverHighlight: ViewModifier {
+    let cornerRadius: CGFloat
+    @State private var hovering = false
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Palette.fill(hovering ? 0.035 : 0))
+                    .allowsHitTesting(false)
+            )
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .onHover { hovering = $0 }
+    }
+}
+
+extension View {
+    func hoverHighlight(_ cornerRadius: CGFloat = Radius.row) -> some View {
+        modifier(HoverHighlight(cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Movimiento reducido
+
+/// Con "Reducir movimiento" activado en el sistema, toda animación de la
+/// app pasa a ser un fundido corto: sin rebotes, sin desplazamientos, sin
+/// demoras en cascada. Se aplica una vez, en la raíz.
+private struct RespectReduceMotion: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.transaction { t in
+            guard reduceMotion, t.animation != nil else { return }
+            t.animation = .easeInOut(duration: 0.15)
+        }
+    }
+}
+
+extension View {
+    func respectingReduceMotion() -> some View {
+        modifier(RespectReduceMotion())
     }
 }

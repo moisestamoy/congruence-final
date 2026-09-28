@@ -23,7 +23,7 @@ struct PanelCard<Content: View>: View {
         content
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(18)
+            .cardSurface(Radius.card)
     }
 }
 
@@ -135,7 +135,7 @@ struct CoachCard: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(violet)
                     .frame(width: 28, height: 28)
-                    .background(violet.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    .background(violet.opacity(0.12), in: RoundedRectangle(cornerRadius: Radius.inner))
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Coach IA")
@@ -159,7 +159,7 @@ struct CoachCard: View {
                     .padding(.vertical, 7)
                     .background(violet, in: Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
 
             HStack {
@@ -174,12 +174,12 @@ struct CoachCard: View {
                     .foregroundStyle(Palette.textFaint)
             }
             .padding(12)
-            .background(Palette.fill(0.02), in: RoundedRectangle(cornerRadius: 10))
+            .background(Palette.fill(0.02), in: RoundedRectangle(cornerRadius: Radius.control))
         }
         .padding(16)
-        .background(violet.opacity(0.05), in: RoundedRectangle(cornerRadius: 16))
+        .background(violet.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.card))
         .overlay(
-            RoundedRectangle(cornerRadius: 16).stroke(violet.opacity(0.18), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Radius.card).stroke(violet.opacity(0.18), lineWidth: 1)
         )
     }
 }

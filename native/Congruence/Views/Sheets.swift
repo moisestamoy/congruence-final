@@ -88,17 +88,17 @@ struct HabitEditorSheet: View {
                                     .font(.system(size: 16))
                                     .frame(width: 34, height: 34)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 9)
+                                        RoundedRectangle(cornerRadius: Radius.control)
                                             .fill(icon == option ? tint.opacity(0.14) : .clear)
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 9)
+                                        RoundedRectangle(cornerRadius: Radius.control)
                                             .stroke(icon == option ? tint.opacity(0.5) : .clear,
                                                     lineWidth: 1)
                                     )
                                     .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.pressable)
                         }
                     }
                     .animation(.smooth(duration: 0.2), value: icon)
@@ -119,7 +119,7 @@ struct HabitEditorSheet: View {
                                     )
                                     .contentShape(Circle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.pressable)
                         }
                         Spacer()
                     }
@@ -300,9 +300,9 @@ struct IdentityEditSheet: View {
             .scrollContentBackground(.hidden)
             .padding(8)
             .frame(height: height)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Radius.control))
             .overlay(
-                RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1)
             )
     }
 }
@@ -330,7 +330,7 @@ struct SheetShell<Content: View>: View {
             HStack(spacing: 10) {
                 if let onDelete {
                     Button("Borrar", action: onDelete)
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.negative)
                         .frame(height: 34)
@@ -340,7 +340,7 @@ struct SheetShell<Content: View>: View {
                 Spacer()
 
                 Button("Cancelar", action: onCancel)
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .padding(.horizontal, 14)
@@ -348,7 +348,7 @@ struct SheetShell<Content: View>: View {
                     .contentShape(Rectangle())
 
                 Button("Guardar", action: onSave)
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(canSave ? Palette.onAccent : Palette.textFaint)
                     .padding(.horizontal, 20)

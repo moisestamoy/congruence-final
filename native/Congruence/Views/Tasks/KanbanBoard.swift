@@ -79,7 +79,7 @@ struct KanbanBoard: View {
                 } label: {
                     Color.clear.contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(composing == nil && openTask == nil)
 
             HStack(alignment: .top, spacing: 16) {
@@ -221,17 +221,17 @@ private struct PhoneColumnTab: View {
             .foregroundStyle(isSelected ? Palette.text : Palette.textFaint)
             .frame(maxWidth: .infinity, minHeight: 34)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: Radius.control)
                     .fill(targeted ? Palette.accent.opacity(0.14)
                           : isSelected ? Palette.fill(0.07) : .clear)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: Radius.control)
                     .stroke(targeted ? Palette.accent.opacity(0.5) : Palette.hairlineFaint, lineWidth: 1)
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .dropDestination(for: String.self) { ids, _ in
             guard let id = ids.first else { return false }
             if column == .done {
@@ -293,7 +293,7 @@ private struct KanbanColumn: View {
                     Spacer()
                     if column == .done, !tasks.isEmpty {
                         Button("Limpiar") { confirmingClear = true }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.pressable)
                             .font(.system(size: 9, weight: .bold))
                             .tracking(0.8)
                             .textCase(.uppercase)
@@ -329,7 +329,7 @@ private struct KanbanColumn: View {
                             .frame(minHeight: 130)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .help("Clic para escribir una tarea acá")
                     // Cuando una columna se vacía, el texto llega despacio:
                     // un respiro, no un aviso.
@@ -342,7 +342,7 @@ private struct KanbanColumn: View {
                             .frame(height: 54)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .help("Clic para escribir una tarea acá")
                 }
             }
@@ -352,11 +352,11 @@ private struct KanbanColumn: View {
         // guarda un alto mínimo; de ahí crece con lo que tenga.
         .frame(maxWidth: .infinity, minHeight: 190, alignment: .top)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .fill(targeted ? accent.opacity(0.09) : Palette.fill(0.045))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .stroke(targeted ? accent.opacity(0.45)
                         : overloaded ? Palette.warning.opacity(0.3) : Palette.hairlineFaint,
                         lineWidth: targeted ? 1.5 : 1)
@@ -416,6 +416,7 @@ struct TaskCard: View {
     @FocusState private var writing: Bool
     /// Recién llegada de otra columna: se ilumina un instante.
     @State private var arrived = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.focusTask) private var focusTask
 
     private var expanded: Bool { openTask == task.id }
@@ -501,7 +502,7 @@ struct TaskCard: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(muted ? Palette.nested : Palette.surfaceRaised,
-                    in: RoundedRectangle(cornerRadius: 10))
+                    in: RoundedRectangle(cornerRadius: Radius.control))
         .overlay(alignment: .leading) {
             // La barra de prioridad, en el borde de la tarjeta.
             if task.priority != .normal {
@@ -511,7 +512,7 @@ struct TaskCard: View {
                     .frame(width: 3)
             }
         }
-        .overlay(RoundedRectangle(cornerRadius: 10)
+        .overlay(RoundedRectangle(cornerRadius: Radius.control)
             .stroke(isSelected ? Palette.accent.opacity(0.7)
                     : hovering ? Palette.hairline : Palette.hairlineFaint,
                     lineWidth: isSelected ? 1.5 : 1))
@@ -519,7 +520,7 @@ struct TaskCard: View {
         // Al llegar a una columna nueva, una estela del color de su grupo
         // que se apaga.
         .shadow(color: arrived ? arrivalTint.opacity(0.55) : .clear, radius: arrived ? 16 : 0)
-        .overlay(RoundedRectangle(cornerRadius: 10)
+        .overlay(RoundedRectangle(cornerRadius: Radius.control)
             .stroke(arrivalTint.opacity(arrived ? 0.7 : 0), lineWidth: 1.5))
         .onAppear {
             guard let movida = store.lastMoved, movida.id == task.id,
@@ -528,7 +529,7 @@ struct TaskCard: View {
             withAnimation(.easeOut(duration: 1.1).delay(0.25)) { arrived = false }
         }
         // Al terminar el último paso, la tarjeta late una vez.
-        .keyframeAnimator(initialValue: 1.0, trigger: allStepsDone) { vista, escala in
+        .keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? false : allStepsDone) { vista, escala in
             vista.scaleEffect(escala)
         } keyframes: { _ in
             SpringKeyframe(allStepsDone ? 1.035 : 1.0, duration: 0.16)
@@ -561,7 +562,7 @@ struct TaskCard: View {
             return true
         } isTargeted: { dropAbove = $0 }
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: dropAbove)
-        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .contentShape(RoundedRectangle(cornerRadius: Radius.control))
         .onHover { hovering = $0 }
         .onTapGesture { selected = task.id; toggleExpanded() }
         // Se puede cerrar desde fuera (un clic en el fondo, otra tarjeta), así
@@ -605,12 +606,12 @@ struct TaskCard: View {
                 .padding(12)
                 .frame(maxWidth: 240, alignment: .leading)
                 .background(muted ? Palette.nested : Palette.surfaceRaised,
-                    in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.5), lineWidth: 1.5))
+                    in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).stroke(accent.opacity(0.5), lineWidth: 1.5))
                 // Levantada: con sombra y un poco inclinada, como una tarjeta
                 // de verdad entre los dedos.
                 .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
-                .rotationEffect(.degrees(-2.5))
+                .rotationEffect(.degrees(reduceMotion ? 0 : -2.5))
                 .padding(18)
         }
         // Entra y sale con una caída corta: al soltarla en Hecho, la tarjeta
@@ -641,13 +642,13 @@ struct TaskCard: View {
                     .frame(height: 74)
             }
             .padding(.horizontal, 4)
-            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 7))
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.hairlineFaint, lineWidth: 1))
+            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Radius.inner))
+            .overlay(RoundedRectangle(cornerRadius: Radius.inner).stroke(Palette.hairlineFaint, lineWidth: 1))
 
             HStack(spacing: 10) {
                 Spacer()
                 Button("Listo") { closeNotes() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Palette.accent)
             }
@@ -803,7 +804,7 @@ struct SubtaskList: View {
                             .foregroundStyle(paso.done ? Palette.positive : Palette.textFaint)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
 
                     Text(paso.text)
                         .font(.system(size: 12))
@@ -821,7 +822,7 @@ struct SubtaskList: View {
                                 .frame(width: 14, height: 14)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                     }
                 }
                 .padding(.vertical, 2)
@@ -979,9 +980,9 @@ struct FocusTaskView: View {
                         .padding(.horizontal, 16).frame(height: 36)
                         .background(Capsule().fill(Palette.positive.opacity(0.12)))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     Button("Salir", action: onClose)
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.textMuted)
                         .keyboardShortcut(.cancelAction)
@@ -990,8 +991,8 @@ struct FocusTaskView: View {
             }
             .padding(30)
             .frame(maxWidth: 560)
-            .background(RoundedRectangle(cornerRadius: 22).fill(Palette.surfaceRaised))
-            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.accent.opacity(0.35), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Radius.panel).fill(Palette.surfaceRaised))
+            .overlay(RoundedRectangle(cornerRadius: Radius.panel).stroke(Palette.accent.opacity(0.35), lineWidth: 1))
             .shadow(color: .black.opacity(0.4), radius: 40, y: 20)
             .padding(24)
             .sensoryFeedback(.success, trigger: done) { _, ahora in ahora }

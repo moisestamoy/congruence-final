@@ -90,9 +90,9 @@ struct MonthTable: View {
                 }
             }
         }
-        .background(Palette.panel, in: RoundedRectangle(cornerRadius: 22))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Palette.hairline, lineWidth: 1))
+        .background(Palette.panel, in: RoundedRectangle(cornerRadius: Radius.panel))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.panel))
+        .overlay(RoundedRectangle(cornerRadius: Radius.panel).stroke(Palette.hairline, lineWidth: 1))
     }
 
     private func head(_ text: String, _ color: Color = Palette.textFaint) -> some View {
@@ -166,7 +166,7 @@ struct MonthTable: View {
             .frame(maxWidth: .infinity, minHeight: 22, alignment: .trailing)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     /// Montos de la planilla sin símbolo, con céntimos sólo si los hay.
@@ -220,7 +220,7 @@ private struct DailyBudgetCell: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .contextMenu {
                     Button("Poner diario en 0") { onCommit(0) }
                 }

@@ -8,6 +8,8 @@ struct RootView: View {
     @AppStorage("section") private var sectionRaw = AppSection.habits.rawValue
     @State private var isLoggingIn = false
     @Environment(HabitStore.self) private var habits
+    /// Hay una hoja abierta sobre la ventana: lo de atrás retrocede un poco.
+    @State private var sheetOpen = false
 
     private var section: Binding<AppSection> {
         Binding(
@@ -34,9 +36,23 @@ struct RootView: View {
                 }
             }
             .environment(\.isCompact, compact)
+            // Al abrir una hoja, la ventana se aleja apenas y se oscurece: la
+            // hoja viene hacia ti y lo demás espera detrás.
+            .scaleEffect(sheetOpen ? 0.975 : 1)
+            .brightness(sheetOpen ? -0.04 : 0)
+            .animation(.spring(response: 0.4, dampingFraction: 0.86), value: sheetOpen)
         }
+        .respectingReduceMotion()
         .background(alignment: .top) { dayGlow }
         .sheet(isPresented: $isLoggingIn) { LoginSheet() }
+        #if os(macOS)
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willBeginSheetNotification)) { _ in
+            sheetOpen = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEndSheetNotification)) { _ in
+            sheetOpen = false
+        }
+        #endif
         #if DEBUG && os(macOS)
         .onAppear {
             if Compact.debugPhone { PhoneWindow.shrink() } else { PhoneWindow.restoreIfShrunk() }

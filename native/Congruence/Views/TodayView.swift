@@ -25,6 +25,7 @@ struct TodayView: View {
     /// Una vez por día: los anillos celebran al completarse.
     @AppStorage("ring.celebratedDay") private var celebratedDay = ""
     @State private var celebrate = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage("ring_layout") private var layoutRaw = RingLayout.central.rawValue
 
@@ -184,7 +185,7 @@ struct TodayView: View {
                         .foregroundStyle(Palette.textMuted)
                         .contentTransition(.numericText())
                         // Al subir, el número se asienta con un golpe corto.
-                        .keyframeAnimator(initialValue: 1.0, trigger: streak) { vista, escala in
+                        .keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : streak) { vista, escala in
                             vista.scaleEffect(escala)
                         } keyframes: { _ in
                             SpringKeyframe(1.35, duration: 0.14)
@@ -282,7 +283,7 @@ struct TodayView: View {
         // La tarjeta se ajusta a lo que tiene dentro. Cuando se estiraba a
         // toda la altura, tres hábitos dejaban media pantalla de blanco y el
         // botón de abajo quedaba desterrado al otro extremo.
-        .cardSurface(18)
+        .cardSurface(Radius.card)
         // Mira el día de hoy, no el que estés mirando: cerrar el día es cosa
         // de hoy aunque estés revisando otro.
         .onChange(of: store.congruence(on: todayKey)) { antes, ahora in
@@ -340,13 +341,13 @@ struct TodayView: View {
                 .foregroundStyle(Palette.textMuted)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 28, height: 26)
-                .background(Palette.fill(0.03), in: RoundedRectangle(cornerRadius: 8))
+                .background(Palette.fill(0.03), in: RoundedRectangle(cornerRadius: Radius.inner))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8).stroke(Palette.hairlineFaint, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: Radius.inner).stroke(Palette.hairlineFaint, lineWidth: 1)
                 )
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help(layout.label)
     }
 
@@ -358,7 +359,7 @@ struct TodayView: View {
     /// la investigación sobre hábitos pide: un momento que ya existe, no una
     /// hora cualquiera. Ahí se ofrece escribir una frase, una vez.
     private func checkDayClosed(from antes: Int, to ahora: Int) {
-        if ahora >= 100, antes < 100, celebratedDay != todayKey, isToday {
+        if ahora >= 100, antes < 100, celebratedDay != todayKey, isToday, !reduceMotion {
             celebratedDay = todayKey
             celebrate += 1
         }
@@ -385,13 +386,13 @@ struct TodayView: View {
                     QuickCapture.shared.toggle()
                     #endif
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Palette.accent)
                 Button("Ahora no") {
                     withAnimation(.smooth(duration: 0.25)) { showCloseNudge = false }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textFaint)
                 Spacer()
@@ -399,8 +400,8 @@ struct TodayView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.positive.opacity(0.07)))
-        .overlay(RoundedRectangle(cornerRadius: 12)
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.positive.opacity(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row)
             .stroke(Palette.positive.opacity(0.25), lineWidth: 1))
         .transition(.opacity.combined(with: .offset(y: 6)))
     }
@@ -414,7 +415,7 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: Radius.row)
                         .strokeBorder(
                             Palette.fill(0.08),
                             style: StrokeStyle(lineWidth: 1, dash: [4, 4])
@@ -422,7 +423,7 @@ struct TodayView: View {
                 )
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     /// Marcar un hábito numérico desde la fila lo lleva a la meta (o a cero si
@@ -452,6 +453,6 @@ struct TodayView: View {
                 .frame(width: 24, height: 22)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }

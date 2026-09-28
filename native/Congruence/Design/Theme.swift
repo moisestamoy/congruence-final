@@ -178,7 +178,7 @@ extension View {
     /// Una tarjeta de la app: blanca y con sombra suave en claro, casi negra y
     /// con borde en oscuro. Los dos tokens se resuelven solos, así que la
     /// vista no tiene que saber en qué modo está.
-    func cardSurface(_ cornerRadius: CGFloat = 16, raised: Bool = false) -> some View {
+    func cardSurface(_ cornerRadius: CGFloat = Radius.card, raised: Bool = false) -> some View {
         background(raised ? Palette.surfaceRaised : Palette.panel,
                    in: RoundedRectangle(cornerRadius: cornerRadius))
             .overlay(RoundedRectangle(cornerRadius: cornerRadius)
@@ -328,4 +328,25 @@ enum Appearance: String, CaseIterable {
         case .light:  return .system
         }
     }
+}
+
+
+// MARK: - Radios
+
+/// La escala de esquinas de toda la app. Antes había doce radios sueltos
+/// (3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 22); ahora hay cinco, y cada uno
+/// va dentro del siguiente: un control dentro de una fila, una fila dentro
+/// de una tarjeta, una tarjeta dentro de un panel. Las esquinas que encajan
+/// son lo que hace que algo se sienta hecho con cuidado.
+enum Radius {
+    /// Controles chicos dentro de una fila o tarjeta: campos, chips cuadrados.
+    static let inner: CGFloat = 8
+    /// Botones e íconos sueltos.
+    static let control: CGFloat = 10
+    /// Filas y bloques dentro de una tarjeta.
+    static let row: CGFloat = 12
+    /// Tarjetas.
+    static let card: CGFloat = 16
+    /// Paneles grandes y hojas.
+    static let panel: CGFloat = 22
 }

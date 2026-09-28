@@ -108,12 +108,12 @@ struct Sidebar: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textMuted)
                 .frame(width: 30, height: 30)
-                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 9))
-                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1))
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1))
                 .contentTransition(.symbolEffect(.replace))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help("Fondo: \(translucency.label) · clic para cambiar")
     }
     #endif
@@ -126,12 +126,12 @@ struct Sidebar: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Palette.textMuted)
                 .frame(width: 30, height: 30)
-                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 9))
-                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1))
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: Radius.control))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1))
                 .contentTransition(.symbolEffect(.replace))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help("Apariencia: \(appearance.label) · clic para cambiar")
     }
 
@@ -170,10 +170,10 @@ struct Sidebar: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Palette.positive)
                     .frame(width: 30, height: 30)
-                    .background(Palette.positive.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+                    .background(Palette.positive.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.control))
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .help("Entrar con tu cuenta")
         }
     }
@@ -214,14 +214,14 @@ struct Sidebar: View {
                     // Un solo indicador que se desliza entre secciones, en
                     // vez de apagarse en una y encenderse en otra.
                     if isActive {
-                        RoundedRectangle(cornerRadius: 9)
+                        RoundedRectangle(cornerRadius: Radius.control)
                             .fill(Palette.accent.opacity(0.10))
                             .matchedGeometryEffect(id: "sección", in: nav)
                     }
                 }
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help(section.label)
     }
 }

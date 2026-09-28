@@ -49,12 +49,12 @@ struct TaskEditorSheet: View {
 
             HStack(spacing: 10) {
                 Button("Borrar") { confirmingDelete = true }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.negative)
                 Spacer()
                 Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -63,7 +63,7 @@ struct TaskEditorSheet: View {
                                      deadline: deadline.map(HabitDay.key), groupId: groupId)
                     dismiss()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(canSave ? Palette.onAccent : Palette.textFaint)
                 .padding(.horizontal, 20)
@@ -193,8 +193,8 @@ struct NoteComposer: View {
                 if open { footer }
             }
         }
-        .background(RoundedRectangle(cornerRadius: 14).fill(Palette.fill(open ? 0.06 : 0.035)))
-        .overlay(RoundedRectangle(cornerRadius: 14)
+        .background(RoundedRectangle(cornerRadius: Radius.card).fill(Palette.fill(open ? 0.06 : 0.035)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.card)
             .stroke(open ? Palette.accent.opacity(0.35) : Palette.hairlineFaint, lineWidth: 1))
         .animation(.smooth(duration: 0.22), value: open)
         .animation(.smooth(duration: 0.22), value: phase)
@@ -237,7 +237,7 @@ struct NoteComposer: View {
                 }
                 Spacer()
                 Button(phase == .review ? "Terminar" : "Listo") { finish() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(hasSomething ? Palette.accent : Palette.textFaint)
                     .disabled(!hasSomething)
@@ -272,7 +272,7 @@ struct NoteComposer: View {
                         .foregroundStyle(Palette.accent)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
 
             if sweepIndex == nil {
@@ -310,7 +310,7 @@ struct NoteComposer: View {
                             .underline()
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .transition(.opacity)
                 }
 
@@ -325,7 +325,7 @@ struct NoteComposer: View {
                             .foregroundStyle(Palette.textMuted)
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .id(openingIndex)
                     .transition(.opacity)
                 }
@@ -372,13 +372,13 @@ struct NoteComposer: View {
                     .foregroundStyle(Palette.textMuted)
                 Spacer()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .clipped()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.04)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.hairlineFaint, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(Palette.hairlineFaint, lineWidth: 1))
         // Aparece despacio: una pregunta suave no llega de golpe.
         .transition(.opacity.animation(.easeInOut(duration: 0.7)))
     }
@@ -398,7 +398,7 @@ struct NoteComposer: View {
                 .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     private func runLadder() {
@@ -432,7 +432,7 @@ struct NoteComposer: View {
                     phase = .review
                     writing = true
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Palette.textMuted)
             }
@@ -448,11 +448,11 @@ struct NoteComposer: View {
                         Button("No hace falta") {
                             withAnimation(.smooth(duration: 0.2)) { askingAction = false }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Palette.textMuted)
                         Button("Crear tarea") { createAction() }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.pressable)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(actionText.trimmingCharacters(in: .whitespaces).isEmpty
                                              ? Palette.textFaint : Palette.accent)
@@ -460,7 +460,7 @@ struct NoteComposer: View {
                     }
                 }
                 .padding(10)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Palette.fill(0.05)))
+                .background(RoundedRectangle(cornerRadius: Radius.control).fill(Palette.fill(0.05)))
             } else {
                 HStack(spacing: 12) {
                     Text("¿Algo de esto necesita una próxima acción?")
@@ -468,7 +468,7 @@ struct NoteComposer: View {
                         .foregroundStyle(Palette.textMuted)
                     Spacer()
                     Button("No, déjalo escrito") { reset() }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Palette.accent)
                     Button("Sí") {
@@ -478,7 +478,7 @@ struct NoteComposer: View {
                         withAnimation(.smooth(duration: 0.2)) { askingAction = true }
                         editingAction = true
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Palette.textMuted)
                 }
@@ -652,7 +652,7 @@ struct NoteCard: View {
                 // Cerrada es un botón, no un gesto suelto: así también se
                 // alcanza con el teclado y con un lector de pantalla.
                 Button(action: open) { card }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
             }
         }
         .animation(.smooth(duration: 0.22), value: expanded)
@@ -692,16 +692,16 @@ struct NoteCard: View {
 
                 HStack(spacing: 14) {
                     Button("Borrar") { confirmingDelete = true }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Palette.negative.opacity(0.8))
                     Spacer()
                     Button("Cerrar") { close(saving: false) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Palette.textMuted)
                     Button("Guardar") { close(saving: true) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(dirty ? Palette.accent : Palette.textFaint)
                         .disabled(!dirty)
@@ -718,9 +718,9 @@ struct NoteCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14)
+        .background(RoundedRectangle(cornerRadius: Radius.card)
             .fill(Palette.fill(expanded ? 0.06 : hovering ? 0.05 : 0.035)))
-        .overlay(RoundedRectangle(cornerRadius: 14)
+        .overlay(RoundedRectangle(cornerRadius: Radius.card)
             .stroke(expanded ? Palette.accent.opacity(0.3) : Palette.hairlineFaint, lineWidth: 1))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }

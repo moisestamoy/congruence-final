@@ -80,7 +80,7 @@ struct PhoneTabBar: View {
                     .frame(maxWidth: .infinity, minHeight: 48)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
 
             accountMenu
@@ -136,7 +136,7 @@ struct PhoneTabBar: View {
             .contentShape(Rectangle())
         }
         .menuStyle(.button)
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         #if os(macOS)
         .menuIndicator(.hidden)
         #endif

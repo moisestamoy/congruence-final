@@ -31,7 +31,7 @@ struct DayDetailsSheet: View {
                         .frame(width: 28, height: 28)
                         .background(Palette.fill(0.05), in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .keyboardShortcut(.cancelAction)
             }
             .padding(.bottom, 24)
@@ -65,9 +65,9 @@ struct DayDetailsSheet: View {
                     }
                     .foregroundStyle(color)
                     .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: 6))
+                    .background(color.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.inner))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
             if items.isEmpty {
                 Text(type == .income ? "No hay entradas" : "No hay salidas")
@@ -78,7 +78,7 @@ struct DayDetailsSheet: View {
             } else {
                 ForEach(items) { tx in
                     Button { editing = tx } label: { row(tx, color: color) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                 }
             }
         }
@@ -110,8 +110,8 @@ struct DayDetailsSheet: View {
                 .foregroundStyle(color)
         }
         .padding(12)
-        .background(color.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.12), lineWidth: 1))
+        .background(color.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.row))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(color.opacity(0.12), lineWidth: 1))
         .contentShape(Rectangle())
     }
 }
@@ -234,8 +234,8 @@ struct TransactionSheet: View {
                     .foregroundStyle(Palette.text)
                     .padding(.horizontal, 14)
                     .frame(height: 52)
-                    .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12)
+                    .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Radius.row))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.row)
                         .stroke(amount != nil ? tint.opacity(0.5) : Palette.hairlineFaint, lineWidth: 1))
             }
 
@@ -259,13 +259,13 @@ struct TransactionSheet: View {
             HStack(spacing: 10) {
                 if editing != nil {
                     Button("Eliminar") { confirmingDelete = true }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Palette.negative)
                 }
                 Spacer()
                 Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -281,7 +281,7 @@ struct TransactionSheet: View {
                     .background(Capsule().fill(amount != nil ? tint : Palette.fill(0.06)))
                     .shadow(color: amount != nil ? tint.opacity(0.35) : .clear, radius: 12, y: 3)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(amount == nil)
                 .keyboardShortcut(.defaultAction)
             }
@@ -312,7 +312,7 @@ struct TransactionSheet: View {
                     .foregroundStyle(isRecurring ? Color(light: Color(hex: "#5b21b6"), dark: Color(hex: "#c4b5fd")) : Palette.textFaint)
                     .frame(width: 32, height: 32)
                     .background(
-                        RoundedRectangle(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: Radius.control)
                             .fill(isRecurring ? FinPalette.recurring.opacity(0.3) : Palette.fill(0.05))
                     )
                 VStack(alignment: .leading, spacing: 2) {
@@ -335,16 +335,16 @@ struct TransactionSheet: View {
             }
             .padding(14)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Radius.card)
                     .fill(isRecurring ? FinPalette.recurring.opacity(0.12) : Palette.fill(0.03))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Radius.card)
                     .stroke(isRecurring ? FinPalette.recurring.opacity(0.5) : Palette.hairline, lineWidth: 1.5)
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .animation(.smooth(duration: 0.2), value: isRecurring)
     }
 
@@ -411,14 +411,14 @@ struct BudgetSheet: View {
             HStack {
                 Spacer()
                 Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                 Button("Guardar") {
                     if let value, value >= 0 { store.setMonthlyBudget(value, year: year, month: month) }
                     dismiss()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(value != nil ? Palette.onAccent : Palette.textFaint)
                 .padding(.horizontal, 20)
@@ -449,14 +449,14 @@ struct BudgetSheet: View {
                         }
                         .foregroundStyle(actual == c ? FinPalette.income : Palette.textMuted)
                         .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(RoundedRectangle(cornerRadius: 10)
+                        .background(RoundedRectangle(cornerRadius: Radius.control)
                             .fill(actual == c ? FinPalette.accent.opacity(0.14) : Palette.fill(0.04)))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.control)
                             .stroke(actual == c ? FinPalette.accent.opacity(0.45) : Palette.hairlineFaint,
                                     lineWidth: 1))
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                 }
             }
         }

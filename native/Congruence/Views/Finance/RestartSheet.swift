@@ -45,7 +45,7 @@ struct RestartSheet: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Self.indigo)
                     .frame(width: 30, height: 30)
-                    .background(Self.indigo.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Self.indigo.opacity(0.12), in: RoundedRectangle(cornerRadius: Radius.inner))
                 Text("Opciones de reinicio").font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Palette.text)
             }
@@ -79,7 +79,7 @@ struct RestartSheet: View {
             HStack(spacing: 10) {
                 Spacer()
                 Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -92,7 +92,7 @@ struct RestartSheet: View {
                         .background(Capsule().fill(budget != nil ? accent : Palette.fill(0.06)))
                         .shadow(color: budget != nil ? accent.opacity(0.35) : .clear, radius: 12, y: 3)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(budget == nil)
             }
         }
@@ -127,8 +127,8 @@ struct RestartSheet: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
+        .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: Radius.row))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(accent.opacity(0.2), lineWidth: 1))
     }
 
     private var monthPicker: some View {
@@ -170,13 +170,13 @@ struct RestartSheet: View {
                 }
             }
             .padding(14)
-            .background(RoundedRectangle(cornerRadius: 12)
+            .background(RoundedRectangle(cornerRadius: Radius.row)
                 .fill(clearFuture ? Self.rose.opacity(0.06) : Palette.fill(0.02)))
-            .overlay(RoundedRectangle(cornerRadius: 12)
+            .overlay(RoundedRectangle(cornerRadius: Radius.row)
                 .stroke(clearFuture ? Self.rose.opacity(0.3) : Palette.hairlineFaint, lineWidth: 1))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     private func tab(_ title: String, icon: String, mode tabMode: Mode, color: Color) -> some View {
@@ -189,11 +189,11 @@ struct RestartSheet: View {
             .foregroundStyle(isActive ? color : Palette.textFaint)
             .frame(maxWidth: .infinity)
             .frame(height: 38)
-            .background(RoundedRectangle(cornerRadius: 12).fill(isActive ? color.opacity(0.10) : .clear))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(isActive ? color.opacity(0.25) : Palette.hairlineFaint, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: Radius.row).fill(isActive ? color.opacity(0.10) : .clear))
+            .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(isActive ? color.opacity(0.25) : Palette.hairlineFaint, lineWidth: 1))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     private func apply() {

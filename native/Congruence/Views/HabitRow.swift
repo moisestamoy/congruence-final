@@ -16,6 +16,7 @@ struct HabitRow: View {
 
     /// La onda que sale del círculo al marcarlo.
     @State private var burst = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var log: HabitLog? { habit.log(on: day) }
     private var isDone: Bool { log?.completed == true }
@@ -66,7 +67,7 @@ struct HabitRow: View {
         .frame(height: 56)
         .background(rowSurface)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: Radius.row)
                 .stroke(isDone ? tint.opacity(0.45) : Palette.hairlineFaint, lineWidth: 1)
         )
         // El resplandor sólo aparece al completar. Es la única recompensa
@@ -78,7 +79,7 @@ struct HabitRow: View {
         // Un toque suave al marcar: en el iPhone vibra, en la Mac el trackpad.
         .sensoryFeedback(.impact(weight: .light), trigger: isDone)
         .onChange(of: isDone) { _, hecho in
-            guard hecho else { return }
+            guard hecho, !reduceMotion else { return }
             burst = false
             // En la vuelta siguiente, para que la onda arranque de cero.
             DispatchQueue.main.async {
@@ -87,7 +88,8 @@ struct HabitRow: View {
         }
         // Toda la fila marca el hábito, no sólo el círculo. Los botones de
         // adentro (el propio círculo, el +/-) se comen el toque antes.
-        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .hoverHighlight(Radius.row)
+        .contentShape(RoundedRectangle(cornerRadius: Radius.row))
         .onTapGesture { if !isPaused { onToggle() } }
         .contextMenu {
             Button("Editar…", action: onEdit)
@@ -107,11 +109,11 @@ struct HabitRow: View {
     /// No es vidrio: sobre negro plano el vidrio no refracta nada. Es el color
     /// del propio hábito tiñendo su fila.
     private var rowSurface: some View {
-        RoundedRectangle(cornerRadius: 12)
+        RoundedRectangle(cornerRadius: Radius.row)
             .fill(Palette.nested)
             .overlay {
                 if isDone {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: Radius.row)
                         .fill(
                             LinearGradient(
                                 colors: [tint.opacity(0.16), tint.opacity(0.03)],
@@ -235,8 +237,8 @@ struct HabitRow: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Palette.textMuted)
                 .frame(width: 22, height: 22)
-                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: 6))
+                .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: Radius.inner))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }

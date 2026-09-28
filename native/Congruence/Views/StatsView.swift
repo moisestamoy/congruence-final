@@ -117,7 +117,7 @@ struct StatsView: View {
         }
         .padding(isCompact ? 12 : 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .cardSurface(14)
+        .cardSurface(Radius.card)
     }
 
     // MARK: - Evolución
@@ -387,7 +387,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 8, content: content)
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
-            .cardSurface(14)
+            .cardSurface(Radius.card)
     }
 
     private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
@@ -414,7 +414,7 @@ private struct RecordTrace: View {
     @State private var trazo: CGFloat = 0
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 14)
+        RoundedRectangle(cornerRadius: Radius.card)
             .trim(from: 0, to: trazo)
             .stroke(Palette.accent, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
             .opacity(trazo >= 1 ? 0.45 : 1)

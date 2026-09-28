@@ -45,8 +45,8 @@ struct LoginSheet: View {
                     .foregroundStyle(Palette.text)
                     .padding(.horizontal, 12)
                     .frame(height: 38)
-                    .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
-                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1))
+                    .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Radius.control))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1))
                     .onSubmit(submit)
             }
 
@@ -62,7 +62,7 @@ struct LoginSheet: View {
             HStack(spacing: 10) {
                 Spacer()
                 Button("Cancelar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .padding(.horizontal, 14)
@@ -81,7 +81,7 @@ struct LoginSheet: View {
                     .shadow(color: canSubmit ? Palette.accent.opacity(0.35) : .clear, radius: 14, y: 3)
                     .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(!canSubmit)
             }
         }

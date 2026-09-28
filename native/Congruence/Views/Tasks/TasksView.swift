@@ -17,6 +17,7 @@ struct TasksView: View {
 
     @Environment(TaskStore.self) private var store
     @Environment(\.isCompact) private var isCompact
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var tab: Tab = .tareas
     @State private var filterGroupId: String?
@@ -145,7 +146,7 @@ struct TasksView: View {
                         .frame(width: 26, height: 26)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .help(store.document.soundEnabled ? "Silenciar" : "Activar sonido")
             }
         }
@@ -175,12 +176,12 @@ struct TasksView: View {
                         .foregroundStyle(layout == option ? Palette.accent : Palette.textFaint)
                         .frame(width: 26, height: 22)
                         .background(
-                            RoundedRectangle(cornerRadius: 6)
+                            RoundedRectangle(cornerRadius: Radius.inner)
                                 .fill(layout == option ? Palette.accent.opacity(0.11) : .clear)
                         )
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .help(option.label)
             }
         }
@@ -217,7 +218,7 @@ struct TasksView: View {
                     .fixedSize()
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
             Spacer()
         }
@@ -265,7 +266,7 @@ struct TasksView: View {
                             .padding(.bottom, 6)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
 
                         if !collapsed {
                             ForEach(entry.tasks) { task in
@@ -303,7 +304,7 @@ struct TasksView: View {
                 .frame(height: 220)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .help("Clic para escribir una tarea")
     }
 
@@ -342,7 +343,7 @@ struct TasksView: View {
                         .foregroundStyle(Palette.textMuted)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                 }
                 Spacer()
             }
@@ -363,7 +364,7 @@ struct TasksView: View {
                             SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
                             withAnimation(.smooth(duration: 0.25)) { store.toggleTask(task.id) }
                         }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.pressable)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(Palette.accent)
                     }
@@ -467,7 +468,7 @@ struct TasksView: View {
                         .foregroundStyle(Palette.textFaint)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
         }
         .padding(.horizontal, 9)
@@ -548,7 +549,7 @@ struct TasksView: View {
                             .background(Capsule().fill(Palette.accent.opacity(0.09)))
                             .contentShape(Capsule())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -588,14 +589,14 @@ struct TasksView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Palette.textFaint))
                     .id(HabitDay.key(diaryDay))
-                    .transition(.pageFlip(forward: flipForward))
+                    .transition(reduceMotion ? .opacity : .pageFlip(forward: flipForward))
             }
 
             Spacer()
 
             if !isToday {
                 Button("Hoy") { withAnimation { diaryDay = HabitDay.current() } }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 10, weight: .bold))
                     .tracking(1)
                     .textCase(.uppercase)
@@ -635,7 +636,7 @@ struct TasksView: View {
                 .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     /// El vacío es el sitio más grande de la pantalla, y hasta ahora no hacía
@@ -651,7 +652,7 @@ struct TasksView: View {
                 .frame(minHeight: 200)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(action == nil)
         .help(action == nil ? "" : "Clic para escribir")
     }
@@ -724,7 +725,7 @@ struct TaskRow: View {
             }
         }
         .background(hovering || expanded ? Palette.fill(0.035) : .clear,
-                    in: RoundedRectangle(cornerRadius: 8))
+                    in: RoundedRectangle(cornerRadius: Radius.inner))
         .onHover { hovering = $0 }
         // Puede cerrarse desde fuera, así que la nota se guarda al cerrarse.
         .onChange(of: expanded) { _, abierta in
@@ -761,13 +762,13 @@ struct TaskRow: View {
                     .frame(height: 70)
             }
             .padding(.horizontal, 4)
-            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: 7))
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Palette.hairlineFaint, lineWidth: 1))
+            .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Radius.inner))
+            .overlay(RoundedRectangle(cornerRadius: Radius.inner).stroke(Palette.hairlineFaint, lineWidth: 1))
 
             HStack {
                 Spacer()
                 Button("Listo") { closeNotes() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Palette.accent)
             }
@@ -811,7 +812,7 @@ struct TaskRow: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
 
             Text(task.text)
                 .font(.system(size: 14))
@@ -901,7 +902,7 @@ struct DeadlineField: View {
                         .frame(width: 16, height: 16)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
         } else {
             FlatOption(label: "Sin fecha", isSelected: false, tint: Palette.accent,
@@ -944,12 +945,12 @@ struct FlatOption: View {
             .padding(.horizontal, 9)
             .frame(height: 24)
             .background(
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: Radius.inner)
                     .fill(isSelected ? tint.opacity(0.11) : .clear)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 6))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.inner))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .animation(.smooth(duration: 0.18), value: isSelected)
     }
 }
@@ -988,7 +989,7 @@ struct FilterLabel: View {
             .fixedSize()
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .onHover { hovering = $0 }
         .animation(.smooth(duration: 0.18), value: isSelected)
     }
@@ -1074,7 +1075,7 @@ struct GroupPickerSheet: View {
                         .focused($newFocused)
                         .onSubmit(create)
                     Button("Crear", action: create)
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(canCreate ? Palette.onAccent : Palette.textFaint)
                         .padding(.horizontal, 18)
@@ -1094,7 +1095,7 @@ struct GroupPickerSheet: View {
                                         .padding(-3)
                                 )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                     }
                     Spacer()
                 }
@@ -1103,7 +1104,7 @@ struct GroupPickerSheet: View {
             HStack {
                 Spacer()
                 Button("Cerrar") { dismiss() }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
@@ -1140,7 +1141,7 @@ struct GroupPickerSheet: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
 
             if let onEdit {
                 Button(action: onEdit) {
@@ -1150,14 +1151,14 @@ struct GroupPickerSheet: View {
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .help("Cambiar nombre y color")
             }
         }
         .padding(.horizontal, 10)
         .frame(height: 34)
         .background(selected ? Palette.fill(0.04) : .clear,
-                    in: RoundedRectangle(cornerRadius: 8))
+                    in: RoundedRectangle(cornerRadius: Radius.inner))
     }
 
     /// Editar un grupo donde está, sin abrir otra ventana: nombre, color y
@@ -1178,7 +1179,7 @@ struct GroupPickerSheet: View {
                                     .padding(-3)
                             )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                 }
                 Spacer()
             }
@@ -1190,26 +1191,26 @@ struct GroupPickerSheet: View {
                         editing = nil
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Palette.negative.opacity(0.85))
                 Spacer()
                 Button("Cancelar") { withAnimation { editing = nil } }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Palette.textMuted)
                 Button("Guardar") {
                     store.updateGroup(g.id, name: editName, color: editColor)
                     withAnimation { editing = nil }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Palette.accent)
             }
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 9).fill(Palette.fill(0.05)))
-        .overlay(RoundedRectangle(cornerRadius: 9)
+        .background(RoundedRectangle(cornerRadius: Radius.control).fill(Palette.fill(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.control)
             .stroke(Palette.accent.opacity(0.3), lineWidth: 1))
     }
 }
@@ -1285,8 +1286,8 @@ struct TaskComposer: View {
             .padding(.horizontal, 6)
             .frame(height: 36)
         }
-        .background(RoundedRectangle(cornerRadius: 12).fill(Palette.fill(0.07)))
-        .overlay(RoundedRectangle(cornerRadius: 12)
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.07)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row)
             .stroke(Palette.accent.opacity(0.4), lineWidth: 1))
         .onAppear { focused = true }
         // Al perder el foco con el campo vacío se cierra solo: nada que

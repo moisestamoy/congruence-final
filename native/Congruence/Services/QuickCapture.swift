@@ -137,7 +137,9 @@ final class QuickCapture {
     /// Guardar se ve: el panel se encoge hasta un punto y sube a la barra de
     /// menú, donde vive Congruence. Lo que escribiste se fue a un lugar.
     private func flyAway() {
-        guard let panel, let pantalla = panel.screen ?? NSScreen.main else { close(); return }
+        guard let panel, let pantalla = panel.screen ?? NSScreen.main,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        else { close(); return }
         let destino = NSRect(x: pantalla.visibleFrame.maxX - 120,
                              y: pantalla.frame.maxY - 14, width: 12, height: 12)
         NSAnimationContext.runAnimationGroup({ ctx in

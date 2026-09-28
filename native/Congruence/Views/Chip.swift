@@ -29,7 +29,7 @@ struct Chip: View {
                 )
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .animation(.smooth(duration: 0.2), value: isSelected)
     }
 }
@@ -60,9 +60,9 @@ struct DarkField: View {
             .padding(.horizontal, 12)
             .frame(width: width, height: 38)
             .frame(maxWidth: width == nil ? .infinity : nil)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 9))
+            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Radius.control))
             .overlay(
-                RoundedRectangle(cornerRadius: 9).stroke(Palette.hairlineFaint, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1)
             )
     }
 }

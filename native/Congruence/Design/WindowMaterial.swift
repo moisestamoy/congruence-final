@@ -75,9 +75,15 @@ private struct TransparentWindow: NSViewRepresentable {
 /// más velo: un fondo brillante atravesando la ventana se come el texto.
 struct AppBackground: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @AppStorage("translucency") private var levelRaw = Translucency.medium.rawValue
 
-    private var level: Translucency { Translucency(rawValue: levelRaw) ?? .medium }
+    /// Si en macOS está activado "Reducir transparencia", el fondo es sólido
+    /// aunque hayas elegido vidrio: ese ajuste existe porque a alguien el
+    /// fondo translúcido le cuesta leerlo, y manda sobre el gusto.
+    private var level: Translucency {
+        reduceTransparency ? .solid : (Translucency(rawValue: levelRaw) ?? .medium)
+    }
 
     var body: some View {
         #if os(macOS)
