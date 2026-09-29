@@ -40,10 +40,14 @@ struct CongruenceApp: App {
                     QuickCapture.shared.install(store: tasks, finances: finances)
                     #endif
                     await sync.refresh()
+                    HabitReminder.reschedule(habits: store)
                 }
                 // Igual que la web al volver a la pestaña: al volver a la app, baja.
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { Task { await sync.refresh() } }
+                    if phase == .active {
+                        Task { await sync.refresh() }
+                        HabitReminder.reschedule(habits: store)
+                    }
                 }
         }
         .commands {

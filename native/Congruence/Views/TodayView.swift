@@ -31,6 +31,8 @@ struct TodayView: View {
 
     @State private var selectedDate: Date = HabitDay.current()
     @State private var isAddingHabit = false
+    @State private var editingReminder = false
+    @AppStorage(HabitReminder.enabledKey) private var reminderOn = false
     @State private var isEditingIdentity = false
     @State private var editingHabit: Habit?
     @State private var deletingHabit: Habit?
@@ -116,6 +118,11 @@ struct TodayView: View {
             }
         }
         #endif
+        .sheet(isPresented: $editingReminder) { HabitReminderSheet() }
+        // Al marcar el primer hábito del día, el recordatorio de hoy se quita.
+        .onChange(of: store.congruence(on: HabitDay.key(HabitDay.current()))) { _, _ in
+            HabitReminder.reschedule(habits: store)
+        }
         .sheet(isPresented: $isAddingHabit) {
             HabitEditorSheet(onSave: { store.add($0) })
         }
@@ -306,6 +313,9 @@ struct TodayView: View {
 
             Spacer(minLength: 8)
 
+            reminderButton
+                .padding(.trailing, 6)
+
             if !isCompact {
                 layoutToggle
                     .padding(.trailing, 8)
@@ -328,6 +338,21 @@ struct TodayView: View {
             .background(Palette.fill(0.03), in: Capsule())
             .overlay(Capsule().stroke(Palette.hairlineFaint, lineWidth: 1))
         }
+    }
+
+    /// La campana del recordatorio: llena si está encendido.
+    private var reminderButton: some View {
+        Button { editingReminder = true } label: {
+            Image(systemName: reminderOn ? "bell.fill" : "bell")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(reminderOn ? Palette.accent : Palette.textMuted)
+                .frame(width: 28, height: 26)
+                .background(Palette.fill(0.03), in: RoundedRectangle(cornerRadius: Radius.inner))
+                .overlay(RoundedRectangle(cornerRadius: Radius.inner).stroke(Palette.hairlineFaint, lineWidth: 1))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
+        .help("Recordatorio de hábitos")
     }
 
     private var layoutToggle: some View {
