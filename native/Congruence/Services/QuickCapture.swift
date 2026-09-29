@@ -65,11 +65,13 @@ final class QuickCapture {
     private var panel: CapturePanel?
     private var hotKey: GlobalHotKey?
     private weak var store: TaskStore?
+    private weak var finances: FinanceStore?
     /// Si el atajo quedó registrado. Falla si otra app ya usa la combinación.
     private(set) var isActive = false
 
-    func install(store: TaskStore) {
+    func install(store: TaskStore, finances: FinanceStore) {
         self.store = store
+        self.finances = finances
         guard hotKey == nil else { return }
         hotKey = GlobalHotKey(keyCode: UInt32(kVK_Space),
                               modifiers: UInt32(cmdKey | shiftKey), id: 1) { [weak self] in
@@ -90,7 +92,10 @@ final class QuickCapture {
     }
 
     private func show() {
-        let vista = QuickCaptureView(onSave: { [weak self] texto in self?.save(texto) },
+        let vista = QuickCaptureView(symbol: Money.symbol(for: finances?.document.config.currency),
+                                     onSave: { [weak self] texto, comoNota in
+                                         self?.save(texto, asNote: comoNota)
+                                     },
                                      onCancel: { [weak self] in self?.close() })
         let panel = self.panel ?? makePanel()
         panel.contentView = NSHostingView(rootView: vista)
@@ -125,9 +130,17 @@ final class QuickCapture {
                                      y: frame.maxY - size.height - frame.height * 0.18))
     }
 
-    private func save(_ texto: String) {
+    private func save(_ texto: String, asNote: Bool) {
         let limpio = texto.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !limpio.isEmpty, let store else { close(); return }
+        // Un monto con pocas palabras es un gasto de hoy, salvo que pidas nota.
+        if !asNote, let gasto = QuickExpense.parse(limpio), let finances {
+            finances.add(date: FinDate.todayKey(), type: .expense, amount: gasto.amount,
+                         category: gasto.category, isRecurring: false, note: gasto.what)
+            SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+            flyAway()
+            return
+        }
         store.addNote(title: Self.title(from: limpio), content: limpio)
         store.markSettled(store.document.notes.first?.id)
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
@@ -169,8 +182,11 @@ final class QuickCapture {
 }
 
 private struct QuickCaptureView: View {
-    let onSave: (String) -> Void
+    let symbol: String
+    let onSave: (String, Bool) -> Void
     let onCancel: () -> Void
+
+    private var expense: QuickExpense.Parsed? { QuickExpense.parse(text) }
 
     @State private var text = ""
     @FocusState private var focused: Bool
@@ -193,14 +209,29 @@ private struct QuickCaptureView: View {
                         .font(.system(size: 19, design: .serif))
                         .foregroundStyle(Palette.text)
                         .focused($focused)
-                        .onSubmit { onSave(text) }
+                        .onSubmit { onSave(text, false) }
                 }
             }
 
-            Text("Enter lo guarda en el diario de hoy · Esc lo cierra")
-                .font(.system(size: 10))
-                .foregroundStyle(Palette.textFaint)
+            if let gasto = expense {
+                // Se ve antes de guardarlo: si no era un gasto, ⌘Enter.
+                HStack(spacing: 6) {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .foregroundStyle(Palette.positive)
+                    Text("Gasto de hoy: \(QuickExpense.format(gasto.amount, symbol: symbol)) · \(gasto.category)")
+                        .foregroundStyle(Palette.text)
+                    Text("· ⌘Enter lo guarda como nota")
+                        .foregroundStyle(Palette.textFaint)
+                }
+                .font(.system(size: 11, weight: .medium))
                 .padding(.leading, 26)
+                .transition(.opacity)
+            } else {
+                Text("Enter lo guarda en el diario de hoy · \"12 café\" lo anota como gasto · Esc lo cierra")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textFaint)
+                    .padding(.leading, 26)
+            }
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 20)
@@ -208,6 +239,12 @@ private struct QuickCaptureView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Palette.hairline, lineWidth: 1))
         .onExitCommand(perform: onCancel)
+        .animation(.smooth(duration: 0.2), value: expense)
+        .background {
+            Button("") { onSave(text, true) }
+                .keyboardShortcut(.return, modifiers: .command)
+                .opacity(0)
+        }
         .onAppear {
             // El panel tarda un instante en volverse la ventana activa; sin esta
             // espera el foco llega antes y se pierde.

@@ -240,6 +240,58 @@ final class FinanceStore {
         commit()
     }
 
+    // MARK: - Empezar un mes
+
+    struct MonthLine {
+        var type: FlowType
+        var name: String
+        var amount: Double
+        var day: Int
+    }
+
+    /// Lo que arma el asistente de inicio de mes, en un solo paso.
+    ///
+    /// Si no hay nada anotado antes de ese mes, el ciclo empieza ahí y el
+    /// saldo que diste es con el que arranca. Si ya hay historia, el ciclo no
+    /// se mueve (se perderían meses del gráfico anual) y el saldo se ajusta
+    /// al de hoy, como "Saldo actual".
+    func startMonth(year: Int, month: Int, balance: Double?, budget: Double,
+                    lines: [MonthLine], now: Date = Date()) {
+        let ym = String(format: "%04d-%02d", year, month)
+        let desde = ym + "-01"
+        let hayHistoria = document.realExpenses.contains { $0.date < desde }
+            || document.events.contains { $0.date < desde }
+
+        var config = document.config
+        var cambios = config.budgetChanges
+        cambios[ym] = budget
+        config.budgetChanges = cambios
+        if !hayHistoria {
+            config.cycleStartYearMonth = ym
+            config.monthlyFixedBudget = budget
+            if let balance { config.initialBalance = balance }
+        }
+        document.config = config
+
+        let dias = FinanceEngine.daysIn(year, month)
+        var eventos = document.events
+        for l in lines where l.amount > 0 {
+            let dia = min(max(l.day, 1), dias)
+            eventos.append(FinancialEvent(
+                date: FinanceEngine.key(year, month, dia), type: l.type, amount: l.amount,
+                category: FinanceCategories.guess(l.name, income: l.type == .income),
+                isRecurring: true, note: l.name.isEmpty ? nil : l.name))
+        }
+        document.events = eventos
+        commit()
+
+        // Con historia, el saldo real de hoy recalibra el recorrido.
+        if hayHistoria, let balance {
+            let c = FinanceEngine.calendar.dateComponents([.year, .month], from: now)
+            if c.year == year && c.month == month { setCurrentBalance(balance, now: now) }
+        }
+    }
+
     // MARK: - Reinicio (RestartModal.tsx)
 
     /// Nuevo ciclo (setBudgetFromMonth): un presupuesto desde `year/month` sin

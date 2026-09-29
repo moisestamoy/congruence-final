@@ -16,6 +16,7 @@ struct FinancesView: View {
     @State private var showingAlerts = false
     @AppStorage("fin.alerts.seen") private var seenAlerts = 0
     @State private var bellBounce = 0
+    @State private var startingMonth = false
     /// El día para el que "Sí, anotar" abrió un gasto.
     @State private var addingOn: String?
 
@@ -34,6 +35,7 @@ struct FinancesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 header(alerts: FinanceAlerts.scan(months))
+                MonthStartBanner(onStart: { startingMonth = true })
                 DayCloseBanner(onAddExpense: { addingOn = $0 })
                 AllowanceStrip(doc: doc)
                 MetricCards(doc: doc, stats: viewed,
@@ -82,6 +84,7 @@ struct FinancesView: View {
             BudgetSheet(year: viewYear, month: viewMonth)
         }
         .sheet(isPresented: $showingGoals) { SavingsGoalsSheet() }
+        .sheet(isPresented: $startingMonth) { MonthStartSheet() }
         #if DEBUG
         // open Congruence.app --args -debugOpenGoals YES
         .onAppear {

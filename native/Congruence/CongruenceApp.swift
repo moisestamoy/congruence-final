@@ -36,7 +36,7 @@ struct CongruenceApp: App {
                 .task {
                     #if os(macOS)
                     // ⌘⇧Espacio desde cualquier app: una línea al diario de hoy.
-                    QuickCapture.shared.install(store: tasks)
+                    QuickCapture.shared.install(store: tasks, finances: finances)
                     #endif
                     await sync.refresh()
                 }

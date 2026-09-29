@@ -238,4 +238,100 @@ enum FinanceCategories {
         "🔄 Suscripciones", "🐾 Mascotas", "✈️ Viajes", "💻 Tecnología",
         "🛠️ Herramienta de trabajo", "📉 Inversiones", "🧠 Inversión en mentoría"
     ]
+
+    /// Adivina la categoría por las palabras. Una suposición razonable ahorra
+    /// elegir de una lista de diecisiete cada vez; si falla, se cambia.
+    static func guess(_ texto: String, income: Bool) -> String {
+        let t = texto.lowercased().folding(options: .diacriticInsensitive, locale: nil)
+        let palabrasTexto = t.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init)
+        // Las claves cortas tienen que ser la palabra entera ("ara" no es
+        // "para"); las largas alcanzan como comienzo ("super" en "supermercado").
+        func tiene(_ claves: [String]) -> Bool {
+            claves.contains { clave in
+                if clave.contains(" ") { return t.contains(clave) }
+                return palabrasTexto.contains { clave.count <= 4 ? $0 == clave : $0.hasPrefix(clave) }
+            }
+        }
+        if income {
+            if tiene(["comision"]) { return "🤝 Comisiones" }
+            if tiene(["prestamo"]) { return "🏦 Préstamo" }
+            if tiene(["inversion", "dividendo", "interes"]) { return "📈 Inversiones" }
+            if tiene(["regalo"]) { return "🎁 Regalo" }
+            if tiene(["sueldo", "salario", "nomina", "pago", "cliente", "factura"]) { return "💰 Salario" }
+            return "🪙 Otros ingresos"
+        }
+        let reglas: [([String], String)] = [
+            (["arriendo", "alquiler", "renta", "hipoteca"], "🏠 Alquiler"),
+            (["luz", "agua", "gas", "internet", "telefono", "celular", "plan movil", "servicio"], "💡 Servicios"),
+            (["netflix", "spotify", "youtube", "icloud", "chatgpt", "claude", "suscripcion", "prime", "disney", "hbo"], "🔄 Suscripciones"),
+            (["tarjeta"], "💳 Tarjeta de crédito"),
+            (["super", "mercado", "d1", "exito", "carulla", "jumbo", "ara"], "🛒 Supermercado"),
+            (["uber", "didi", "taxi", "bus", "metro", "gasolina", "transporte", "parqueadero", "peaje"], "🚕 Transporte"),
+            (["cafe", "almuerzo", "comida", "cena", "desayuno", "rappi", "restaurante", "pizza", "burger", "hamburguesa"], "🍔 Comida"),
+            (["cine", "fiesta", "bar", "salida", "juego", "concierto"], "🎬 Entretenimiento"),
+            (["medico", "farmacia", "drogueria", "gimnasio", "gym", "doctor", "salud"], "💊 Salud"),
+            (["curso", "libro", "clase", "universidad"], "📚 Educación"),
+            (["perro", "gato", "veterinario", "mascota"], "🐾 Mascotas"),
+            (["vuelo", "hotel", "viaje", "airbnb"], "✈️ Viajes"),
+            (["computador", "laptop", "iphone", "celular nuevo", "software"], "💻 Tecnología"),
+            (["mentoria", "coach"], "🧠 Inversión en mentoría"),
+        ]
+        return reglas.first { tiene($0.0) }?.1 ?? "📦 Otros"
+    }
+}
+
+
+// MARK: - Un gasto escrito de corrido
+
+/// "12 café", "café 12", "$8.50 uber", "arriendo 1,500": un monto y unas
+/// pocas palabras. Es lo que entiende la captura rápida como gasto.
+enum QuickExpense {
+    struct Parsed: Equatable {
+        let amount: Double
+        let what: String
+        let category: String
+    }
+
+    private static let monto = #"\$?\s*(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)"#
+
+    static func parse(_ texto: String) -> Parsed? {
+        let t = texto.trimmingCharacters(in: .whitespaces)
+        let patrones = ["^" + monto + #"\s+(.+)$"#, #"^(.+?)\s+"# + monto + "$"]
+        for (i, patron) in patrones.enumerated() {
+            guard let re = try? NSRegularExpression(pattern: patron),
+                  let m = re.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)),
+                  let r1 = Range(m.range(at: 1), in: t), let r2 = Range(m.range(at: 2), in: t)
+            else { continue }
+            let (montoTexto, que) = i == 0 ? (String(t[r1]), String(t[r2])) : (String(t[r2]), String(t[r1]))
+            // Más palabras ya es una frase, no un gasto. Con el monto al final
+            // se pide menos: "hoy me siento cansado 3" no es un gasto.
+            guard que.split(separator: " ").count <= (i == 0 ? 5 : 3),
+                  que.rangeOfCharacter(from: .decimalDigits) == nil,
+                  let valor = number(montoTexto), valor > 0
+            else { continue }
+            return Parsed(amount: valor, what: que,
+                          category: FinanceCategories.guess(que, income: false))
+        }
+        return nil
+    }
+
+    /// Cómo se muestra el monto en la vista previa, sin saber la moneda.
+    static func format(_ n: Double, symbol: String) -> String {
+        n.truncatingRemainder(dividingBy: 1) == 0 ? "\(symbol)\(Int(n))" : symbol + String(format: "%.2f", n)
+    }
+
+    /// "1,500" y "1.500" son mil quinientos; "8,50" y "8.50", ocho y medio.
+    static func number(_ s: String) -> Double? {
+        var t = s.replacingOccurrences(of: "$", with: "").replacingOccurrences(of: " ", with: "")
+        if let ultimo = t.lastIndex(where: { $0 == "," || $0 == "." }) {
+            let decimales = t.distance(from: ultimo, to: t.endIndex) - 1
+            if decimales == 3 {
+                t.removeAll { $0 == "," || $0 == "." }
+            } else {
+                let entero = t[..<ultimo].filter { $0.isNumber }
+                t = entero + "." + t[t.index(after: ultimo)...]
+            }
+        }
+        return Double(t)
+    }
 }
