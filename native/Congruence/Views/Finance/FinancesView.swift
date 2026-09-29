@@ -35,6 +35,7 @@ struct FinancesView: View {
             VStack(alignment: .leading, spacing: 22) {
                 header(alerts: FinanceAlerts.scan(months))
                 DayCloseBanner(onAddExpense: { addingOn = $0 })
+                AllowanceStrip(doc: doc)
                 MetricCards(doc: doc, stats: viewed,
                             onSetBalance: { store.setCurrentBalance($0) },
                             onOpenGoals: { showingGoals = true })
@@ -500,28 +501,38 @@ struct MetricCards: View {
         editingBalance = false
     }
 
+    /// Lo real hasta hoy arriba, lo proyectado abajo. Mezclarlos hacía que un
+    /// mes sin un solo gasto mostrara -$1.500 como si ya hubiera pasado.
+    /// Un mes que todavía no empezó sólo tiene proyección, y así se dice.
     private var netFlowCard: some View {
-        FinCard {
+        let futuro = stats.spent == 0 && stats.incomeSoFar == 0 && stats.planRemaining > 0
+        let valor = futuro ? stats.net : stats.netSoFar
+        return FinCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    label("Flujo neto del mes")
+                    label(futuro ? "Flujo neto proyectado" : "Flujo neto hasta hoy")
                     Spacer()
-                    Image(systemName: stats.net >= 0 ? "plus" : "minus")
+                    Image(systemName: valor >= 0 ? "plus" : "minus")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(stats.net >= 0 ? FinPalette.accent : FinPalette.expense)
+                        .foregroundStyle(valor >= 0 ? FinPalette.accent : FinPalette.expense)
                 }
-                bigNumber((stats.net >= 0 ? "+" : "-") + money(stats.net),
-                          color: stats.net >= 0 ? FinPalette.income : FinPalette.expense)
+                bigNumber((valor >= 0 ? "+" : "-") + money(valor),
+                          color: valor >= 0 ? FinPalette.income : FinPalette.expense)
                 HStack {
-                    Label(money(stats.income), systemImage: "plus")
+                    Label(money(futuro ? stats.income : stats.incomeSoFar), systemImage: "plus")
                         .foregroundStyle(Palette.textFaint)
                     Spacer()
-                    Label(money(stats.expenses), systemImage: "minus")
+                    Label(money(futuro ? stats.expenses : stats.spent), systemImage: "minus")
                         .foregroundStyle(Palette.textFaint)
                 }
                 .font(.system(size: 11))
                 .monospacedDigit()
                 .labelStyle(TightLabel())
+                if !futuro && stats.planRemaining > 0 {
+                    Text("Al cierre del mes: \(stats.net < 0 ? "-" : "+")\(money(stats.net))")
+                        .font(.system(size: 10)).monospacedDigit()
+                        .foregroundStyle(Palette.textFaint)
+                }
             }
         }
     }
@@ -538,10 +549,19 @@ struct MetricCards: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(ratio > 0.9 ? Color(light: Color(hex: "#b45309"), dark: Color(hex: "#f59e0b")) : Palette.textFaint)
                 }
-                bigNumber("\(Int((ratio * 100).rounded()))%", color: Palette.text)
-                ProgressLine(value: ratio, color: color, height: 5)
-                Text(ratio > 0.9 ? "Gasto elevado respecto a ingresos" : "Dentro del rango habitual")
-                    .microLabelStyle(Palette.textFaint, size: 8)
+                if stats.income == 0 && stats.expenses > 0 {
+                    // Sin ingresos no hay ritmo que medir; decir "0 %, dentro
+                    // del rango habitual" era falso.
+                    bigNumber("Sin ingresos", color: Palette.textMuted)
+                    ProgressLine(value: 0, color: color, height: 5)
+                    Text("Registra tu sueldo para ver el ritmo")
+                        .microLabelStyle(Palette.textFaint, size: 8)
+                } else {
+                    bigNumber("\(Int((ratio * 100).rounded()))%", color: Palette.text)
+                    ProgressLine(value: ratio, color: color, height: 5)
+                    Text(ratio > 0.9 ? "Gasto elevado respecto a ingresos" : "Dentro del rango habitual")
+                        .microLabelStyle(Palette.textFaint, size: 8)
+                }
             }
         }
     }
@@ -550,8 +570,12 @@ struct MetricCards: View {
         let goal = doc.annualGoal
         let saved = currentSaved
         let progress = min(saved / goal, 1)
-        let monthsToGoal: Int? = stats.income > 0 && saved < goal
-            ? Int(((goal - saved) / stats.income).rounded(.up)) : nil
+        // Se llega a la meta con lo que ahorras al mes (ingresos menos
+        // gastos), no con lo que ganas: con 2.000 de sueldo y 1.900 de gasto
+        // antes decía 10 meses cuando son muchos más.
+        let ahorroMensual = stats.net
+        let monthsToGoal: Int? = ahorroMensual > 0 && saved < goal
+            ? Int(((goal - saved) / ahorroMensual).rounded(.up)) : nil
         return FinCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -568,11 +592,12 @@ struct MetricCards: View {
                 } else if let monthsToGoal,
                           let target = FinanceEngine.calendar.date(byAdding: .month, value: monthsToGoal, to: Date()) {
                     bigNumber(DateFormatter.es("MMM yy").string(from: target).capitalized, color: Palette.text)
-                    Text("en \(monthsToGoal) meses · \(money(stats.income))/mes")
+                    Text("en \(monthsToGoal) meses · ahorrando \(money(ahorroMensual))/mes")
                         .font(.system(size: 11)).foregroundStyle(Palette.textFaint)
                 } else {
                     Text("—").font(.system(size: 26, weight: .black)).foregroundStyle(Palette.textFaint)
-                    Text("Registra ingresos para proyectar")
+                    Text(stats.income > 0 ? "Este mes no queda ahorro para la meta"
+                                          : "Registra ingresos para proyectar")
                         .font(.system(size: 11)).foregroundStyle(Palette.textFaint)
                 }
                 VStack(spacing: 6) {
@@ -629,12 +654,12 @@ struct CategoryBreakdown: View {
                     Text("En qué se va").font(.system(size: 17, weight: .bold)).foregroundStyle(Palette.text)
                     Text(title).microLabelStyle(Palette.textFaint, size: 9)
                     Spacer()
-                    Text(Money.format(stats.expenses, doc: doc))
+                    Text(Money.format(stats.spent, doc: doc))
                         .font(.system(size: 13, weight: .bold)).monospacedDigit()
                         .foregroundStyle(FinPalette.expense)
                 }
                 if stats.categories.isEmpty {
-                    Text("Sin gastos este mes.").font(.system(size: 12)).foregroundStyle(Palette.textFaint)
+                    Text("Todavía no hay gastos este mes.").font(.system(size: 12)).foregroundStyle(Palette.textFaint)
                 } else {
                     ForEach(Array(stats.categories.enumerated()), id: \.offset) { i, cat in
                         let color = Self.colors[i % Self.colors.count]
@@ -647,15 +672,30 @@ struct CategoryBreakdown: View {
                                 Text(Money.format(cat.value, doc: doc))
                                     .font(.system(size: 12, weight: .semibold)).monospacedDigit()
                                     .foregroundStyle(Palette.text)
-                                Text(stats.expenses > 0 ? "\(Int((cat.value / stats.expenses * 100).rounded()))%" : "")
+                                Text(stats.spent > 0 ? "\(Int((cat.value / stats.spent * 100).rounded()))%" : "")
                                     .font(.system(size: 10)).monospacedDigit()
                                     .foregroundStyle(Palette.textFaint)
                                     .frame(width: 34, alignment: .trailing)
                             }
-                            ProgressLine(value: stats.expenses > 0 ? cat.value / stats.expenses : 0,
+                            ProgressLine(value: stats.spent > 0 ? cat.value / stats.spent : 0,
                                          color: color.opacity(0.8), height: 3)
                         }
                     }
+                }
+                if stats.unrecorded > 0 {
+                    Text("\"Sin anotar\" son días que ya pasaron sin nada anotado: el saldo les cobra el diario entero. Ciérralos desde el aviso de arriba o anota lo que gastaste.")
+                        .font(.system(size: 10)).foregroundStyle(Palette.textFaint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if stats.planRemaining > 0 {
+                    HStack {
+                        Text("Plan para lo que queda del mes")
+                        Spacer()
+                        Text(Money.format(stats.planRemaining, doc: doc)).monospacedDigit()
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textFaint)
+                    .padding(.top, 4)
                 }
             }
         }

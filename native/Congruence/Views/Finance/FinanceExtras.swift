@@ -205,7 +205,10 @@ struct CategoryBudgetsPanel: View {
 
     /// Las que tienen gasto este mes o un límite puesto, las de más gasto arriba.
     private var rows: [(name: String, spent: Double, limit: Double)] {
-        let gastado = Dictionary(stats.categories.map { ($0.name, $0.value) },
+        // "Sin anotar" no es una categoría: no tiene límite que ponerle.
+        let gastado = Dictionary(stats.categories
+                                    .filter { $0.name != FinanceEngine.unrecordedCategory }
+                                    .map { ($0.name, $0.value) },
                                  uniquingKeysWith: +)
         let limites = doc.categoryBudgets
         let nombres = Set(gastado.filter { $0.value > 0 }.keys)
@@ -825,5 +828,62 @@ private struct GoalRing: View {
                 withAnimation(.easeIn(duration: 0.5)) { flash = false }
             }
         }
+    }
+}
+
+
+// MARK: - Hoy puedes gastar
+
+/// El número que se mira cada mañana: cuánto puedes gastar hoy sin salirte
+/// del mes. Se recalcula solo con lo que gastas.
+struct AllowanceStrip: View {
+    let doc: FinancesDocument
+
+    var body: some View {
+        if let a = FinanceEngine.allowance(doc: doc) {
+            // En una línea si entra; en el teléfono, el detalle va debajo.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    headline(a)
+                    Spacer(minLength: 8)
+                    detail(a, alignment: .trailing)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    headline(a)
+                    detail(a, alignment: .leading)
+                }
+            }
+            .padding(.horizontal, 18).padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.card).fill(Palette.panel))
+            .overlay(RoundedRectangle(cornerRadius: Radius.card).stroke(Palette.hairlineFaint, lineWidth: 1))
+        }
+    }
+
+    private func headline(_ a: FinanceEngine.Allowance) -> some View {
+        let pasado = a.today < 0
+        return HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(pasado ? "Hoy te pasaste" : "Hoy puedes gastar")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
+            Text(Money.format(abs(a.today), doc: doc))
+                .font(.system(size: 28, weight: .black)).monospacedDigit()
+                .foregroundStyle(pasado ? FinPalette.expense : FinPalette.income)
+                .contentTransition(.numericText(value: a.today))
+                .animation(.smooth(duration: 0.5), value: a.today)
+        }
+        .fixedSize()
+    }
+
+    private func detail(_ a: FinanceEngine.Allowance, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text("Quedan \(Money.signed(a.remaining, doc: doc)) para \(a.daysLeft) día\(a.daysLeft == 1 ? "" : "s")")
+            if a.spentToday > 0 {
+                Text("Hoy llevas \(Money.format(a.spentToday, doc: doc))")
+            }
+        }
+        .font(.system(size: 11)).monospacedDigit()
+        .foregroundStyle(Palette.textFaint)
+        .fixedSize()
     }
 }

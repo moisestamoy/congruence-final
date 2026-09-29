@@ -12,12 +12,18 @@ import SwiftUI
 /// buscarlo.
 struct MenuBarContent: View {
     @Environment(HabitStore.self) private var habits
+    @Environment(FinanceStore.self) private var finances
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     private var today: Int { habits.congruence(on: HabitDay.key(HabitDay.current())) }
 
     var body: some View {
         Text(today < 0 ? "Hoy: en pausa" : "Hoy: \(today)% de congruencia")
+        if let a = FinanceEngine.allowance(doc: finances.document) {
+            Text(a.today < 0
+                 ? "Hoy te pasaste \(Money.format(-a.today, doc: finances.document))"
+                 : "Hoy puedes gastar \(Money.format(a.today, doc: finances.document))")
+        }
 
         Divider()
 

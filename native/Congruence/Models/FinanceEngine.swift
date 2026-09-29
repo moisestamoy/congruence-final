@@ -206,34 +206,121 @@ enum FinanceEngine {
 
     // MARK: - Totales del mes (tarjetas y categorías)
 
+    /// Los totales de un mes, separando lo que ya pasó de lo que falta.
+    ///
+    /// La web —y esta app hasta ahora— sumaba el plan de los días que todavía
+    /// no llegaron como si ya se hubiera gastado: el 25 de septiembre, sin un
+    /// solo gasto anotado, "En qué se va" decía $1.500 en "Ajuste diario".
+    /// Ahora lo gastado es lo que pasó; el plan del resto va aparte.
     struct MonthStats {
+        /// Ingresos del mes entero, contando los que faltan.
         var income: Double = 0
+        /// Gastos del mes entero: lo gastado más lo que falta del plan.
         var expenses: Double = 0
+        var incomeSoFar: Double = 0
+        /// Lo que ya salió: fijos de días pasados y gastos anotados, más los
+        /// días pasados sin nada anotado, que el saldo cobra igual.
+        var spent: Double = 0
+        /// Lo que falta del mes según el plan: fijos y diario de días futuros.
+        var planRemaining: Double = 0
+        /// Días ya pasados sin nada anotado ni cerrados: el saldo les cobra el
+        /// diario entero, así que se muestran como lo que son.
+        var unrecorded: Double = 0
+        /// En qué se fue lo gastado hasta hoy.
         var categories: [(name: String, value: Double)] = []
+
+        /// El mes proyectado a su último día.
         var net: Double { income - expenses }
+        var netSoFar: Double { incomeSoFar - spent }
     }
 
-    static func stats(for month: MonthProjection, doc: FinancesDocument) -> MonthStats {
+    static let unrecordedCategory = "Sin anotar"
+
+    // MARK: - Hoy puedes gastar
+
+    struct Allowance {
+        /// Lo que puedes gastar hoy sin salirte del presupuesto del mes. Si es
+        /// negativo, hoy ya te pasaste por esa cantidad.
+        var today: Double
+        var spentToday: Double
+        /// Lo que queda del presupuesto variable, contando hoy.
+        var remaining: Double
+        var daysLeft: Int
+    }
+
+    /// El presupuesto variable del mes, repartido en los días que quedan.
+    /// Un día en que gastas menos le deja más a los siguientes; uno en que
+    /// gastas más, menos. Los fijos no cuentan: ya tienen su día.
+    static func allowance(doc: FinancesDocument, now: Date = Date()) -> Allowance? {
+        let c = calendar.dateComponents([.year, .month, .day], from: now)
+        guard let y = c.year, let m = c.month, let d = c.day,
+              let mes = months(from: y, m, horizon: 1, doc: doc, today: now).first
+        else { return nil }
+        let ym = String(format: "%04d-%02d", y, m)
+        var presupuesto = doc.config.monthlyFixedBudget
+        if let cambio = doc.config.budgetChanges.sorted(by: { $0.key > $1.key })
+            .first(where: { $0.key <= ym }) {
+            presupuesto = cambio.value
+        }
+        let hoy = key(y, m, d)
+        var usadoAntes = 0.0
+        var gastadoHoy = 0.0
+        for dia in mes.days {
+            if dia.date < hoy {
+                usadoAntes += dia.realExpense > 0 ? dia.realExpense : dia.plannedExpense
+            } else if dia.date == hoy {
+                gastadoHoy = dia.realExpense
+            }
+        }
+        let quedan = mes.days.filter { $0.date >= hoy }.count
+        guard quedan > 0 else { return nil }
+        let restante = presupuesto - usadoAntes
+        return Allowance(today: restante / Double(quedan) - gastadoHoy,
+                         spentToday: gastadoHoy, remaining: restante - gastadoHoy,
+                         daysLeft: quedan)
+    }
+
+    static func stats(for month: MonthProjection, doc: FinancesDocument,
+                      today: String = FinDate.todayKey()) -> MonthStats {
         let events = doc.events
         let real = doc.realExpenses
         var s = MonthStats()
         var byCategory: [String: Double] = [:]
 
         for day in month.days {
+            let pasado = day.date <= today
             let dayEvents = Self.events(events, on: day.date)
-            for e in dayEvents where e.type == .income { s.income += e.amount }
+            for e in dayEvents where e.type == .income {
+                s.income += e.amount
+                if pasado { s.incomeSoFar += e.amount }
+            }
             for e in dayEvents where e.type == .expense {
                 s.expenses += e.amount
-                byCategory[e.category.isEmpty ? "Fijos" : e.category, default: 0] += e.amount
+                if pasado {
+                    s.spent += e.amount
+                    byCategory[e.category.isEmpty ? "Fijos" : e.category, default: 0] += e.amount
+                } else {
+                    s.planRemaining += e.amount
+                }
             }
             if day.realExpense > 0 {
                 for e in real where e.date == day.date {
                     s.expenses += e.amount
+                    s.spent += e.amount
                     byCategory[e.category.isEmpty ? "Variables" : e.category, default: 0] += e.amount
                 }
             } else {
                 s.expenses += day.plannedExpense
-                byCategory["Ajuste diario", default: 0] += day.plannedExpense
+                // Hoy todavía no terminó: su diario es plan, no un olvido.
+                if day.date < today {
+                    s.spent += day.plannedExpense
+                    s.unrecorded += day.plannedExpense
+                    if day.plannedExpense > 0 {
+                        byCategory[unrecordedCategory, default: 0] += day.plannedExpense
+                    }
+                } else {
+                    s.planRemaining += day.plannedExpense
+                }
             }
         }
         s.categories = byCategory.map { ($0.key, $0.value) }.sorted { $0.value > $1.value }
