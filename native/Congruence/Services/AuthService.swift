@@ -51,6 +51,28 @@ final class AuthService {
         persist()
     }
 
+    /// Manda el mail de "¿Olvidaste tu contraseña?". El enlace abre la web,
+    /// que muestra dónde elegir la nueva; después se entra aquí con ella.
+    func sendPasswordReset(email: String) async throws {
+        var comps = URLComponents(url: SupabaseConfig.url.appendingPathComponent("auth/v1/recover"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "redirect_to", value: SupabaseConfig.webURL)]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "POST"
+        req.setValue(SupabaseConfig.publishableKey, forHTTPHeaderField: "apikey")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(["email": email.trimmingCharacters(in: .whitespaces)])
+        let response: URLResponse
+        do {
+            (_, response) = try await URLSession.shared.data(for: req)
+        } catch {
+            throw AuthError.network
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 429 { throw AuthError.server("Ya se mandó uno hace poco. Espera un minuto y vuelve a intentar.") }
+        guard (200..<300).contains(status) else { throw AuthError.server("No se pudo mandar el mail (error \(status)).") }
+    }
+
     func signOut() {
         session = nil
         Keychain.delete()

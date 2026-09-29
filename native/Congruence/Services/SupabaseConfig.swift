@@ -7,4 +7,6 @@ import Foundation
 enum SupabaseConfig {
     static let url = URL(string: "https://vbtshztpqlliytgbdjzm.supabase.co")!
     static let publishableKey = "sb_publishable_gsiVp_k26aVQPPfd40oXyg_ovyhZKvj"
+    /// La web. El enlace para elegir una contraseña nueva vuelve ahí.
+    static let webURL = "https://congruence-final.vercel.app"
 }

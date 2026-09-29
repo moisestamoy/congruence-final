@@ -9,6 +9,18 @@ struct LoginSheet: View {
     @State private var password = ""
     @State private var isWorking = false
     @State private var errorText: String?
+    @State private var resetSent = false
+
+    /// Un carácter que un mail no lleva, como la © que sale con Option+G.
+    private var emailProblem: String? {
+        let t = email.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return nil }
+        let raro = t.unicodeScalars.first {
+            !($0.isASCII && (CharacterSet.alphanumerics.contains($0) || "@._+-".unicodeScalars.contains($0)))
+        }
+        if let raro { return "El mail tiene \"\(raro)\", que un mail no lleva. ¿Querías otra letra?" }
+        return nil
+    }
 
     private var canSubmit: Bool {
         !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty && !isWorking
@@ -31,8 +43,13 @@ struct LoginSheet: View {
 
             VStack(alignment: .leading, spacing: 9) {
                 Text("Mail").microLabelStyle(Palette.textFaint, size: 9)
-                DarkField(placeholder: "vos@mail.com", text: $email)
+                DarkField(placeholder: "tu@mail.com", text: $email)
                     .textContentType(.username)
+                if let emailProblem {
+                    Text(emailProblem)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Palette.warning)
+                }
             }
             .padding(.bottom, 18)
 
@@ -56,6 +73,23 @@ struct LoginSheet: View {
                     .foregroundStyle(Palette.negative)
                     .padding(.top, 14)
             }
+
+            // Si no la recuerdas: un mail con un enlace, que abre la web para
+            // elegir una nueva. Después se entra aquí con esa.
+            Group {
+                if resetSent {
+                    Text("Te mandamos un mail a \(email.trimmingCharacters(in: .whitespaces)). Abre el enlace, elige una contraseña nueva y vuelve aquí a entrar con ella.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.positive)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Button("¿Olvidaste tu contraseña?", action: sendReset)
+                        .buttonStyle(.pressable)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                }
+            }
+            .padding(.top, 14)
 
             Spacer(minLength: 26)
 
@@ -88,6 +122,21 @@ struct LoginSheet: View {
         .padding(26)
         .sheetWidth(420)
         .background(Palette.base)
+    }
+
+    private func sendReset() {
+        let t = email.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { errorText = "Escribe tu mail arriba primero."; return }
+        guard emailProblem == nil else { errorText = "Corrige el mail primero."; return }
+        errorText = nil
+        Task {
+            do {
+                try await auth.sendPasswordReset(email: t)
+                withAnimation(.smooth(duration: 0.25)) { resetSent = true }
+            } catch {
+                errorText = (error as? LocalizedError)?.errorDescription ?? "No se pudo mandar el mail."
+            }
+        }
     }
 
     private func submit() {

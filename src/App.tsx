@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './hooks/useTheme';
 import MainLayout from './layouts/MainLayout';
 import { useAuth } from './context/AuthContext';
+import { PasswordResetModal } from './features/auth/PasswordResetModal';
 import './i18n/config';
 
 // Cada página se descarga sólo cuando se entra a ella — el arranque baja de
@@ -63,6 +64,7 @@ function App() {
     return (
         <ThemeProvider defaultTheme="dark" storageKey="lifeos-ui-theme">
             <BrowserRouter>
+                <PasswordResetModal />
                 <Suspense fallback={<PageFallback />}>
                     <Routes>
                         {/* Onboarding — no layout wrapper */}

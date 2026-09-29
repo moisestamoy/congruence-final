@@ -8,6 +8,9 @@ interface AuthContextType {
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
+    /** Se entró desde el enlace de "Olvidé mi contraseña": falta elegir una nueva. */
+    recovering: boolean;
+    finishRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -16,6 +19,8 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     signInWithGoogle: async () => { },
     signOut: async () => { },
+    recovering: false,
+    finishRecovery: () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -24,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
+    const [recovering, setRecovering] = useState(false);
 
     useEffect(() => {
         // Check active sessions and sets the user
@@ -34,7 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Listen for changes on auth state (logged in, signed out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') setRecovering(true);
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
@@ -56,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut, recovering, finishRecovery: () => setRecovering(false) }}>
             {children}
         </AuthContext.Provider>
     );

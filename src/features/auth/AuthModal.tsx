@@ -13,8 +13,21 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [resetSent, setResetSent] = useState(false);
 
     if (!isOpen) return null;
+
+    // El enlace del mail vuelve a esta misma web, que abre la pantalla para
+    // elegir la contraseña nueva (PasswordResetModal).
+    const sendReset = async () => {
+        setError(null);
+        if (!email) return setError('Escribe tu mail arriba y vuelve a pulsar.');
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            redirectTo: window.location.origin,
+        });
+        if (error) return setError(error.message);
+        setResetSent(true);
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,6 +116,20 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </form>
 
                 <div className="mt-6 flex flex-col gap-3 text-center">
+                    {isLogin && (
+                        resetSent ? (
+                            <p className="text-xs text-emerald-400">
+                                Te mandamos un mail. Abre el enlace para elegir una contraseña nueva.
+                            </p>
+                        ) : (
+                            <button
+                                onClick={sendReset}
+                                className="text-xs text-neutral-400 hover:text-white transition-colors"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </button>
+                        )
+                    )}
                     <button
                         onClick={() => setIsLogin(!isLogin)}
                         className="text-xs text-neutral-400 hover:text-white transition-colors"
