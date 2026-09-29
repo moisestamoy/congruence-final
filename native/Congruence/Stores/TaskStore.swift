@@ -151,19 +151,43 @@ final class TaskStore {
         let nowDone = !document.tasks[i].completed
         document.tasks[i].completed = nowDone
         document.tasks[i].completedAt = nowDone ? Date().timeIntervalSince1970 * 1000 : nil
+        repeatIfNeeded(id, completed: nowDone)
         commit()
     }
 
-    /// Mueve una tarea de columna. Salir de "Hecho" limpia `completedAt`,
-    /// para que no siga contando como completada hoy.
+    /// Una tarea que se repite: al completarla nace la siguiente con su
+    /// fecha. Si se deshace, la siguiente se va, salvo que ya la hayas tocado.
+    private func repeatIfNeeded(_ id: String, completed: Bool) {
+        guard let i = document.tasks.firstIndex(where: { $0.id == id }) else { return }
+        let tarea = document.tasks[i]
+        if completed {
+            guard let cada = tarea.repeats, tarea.nextId == nil else { return }
+            var nueva = TodoTask(text: tarea.text, priority: tarea.priority,
+                                 deadline: cada.next(after: tarea.deadline), groupId: tarea.groupId)
+            nueva.repeats = cada
+            nueva.notes = tarea.notes
+            nueva.subtasks = tarea.subtasks.map { Subtask(text: $0.text) }
+            document.tasks[i].nextId = nueva.id
+            document.tasks.append(nueva)
+        } else if let siguiente = tarea.nextId {
+            let intacta = document.tasks.first { $0.id == siguiente }
+                .map { !$0.completed && !$0.inProgress } ?? false
+            if intacta { document.tasks.removeAll { $0.id == siguiente } }
+            document.tasks[i].nextId = nil
+        }
+    }
+
     /// La última tarjeta que cambió de columna, para que al llegar a la
     /// nueva se ilumine un instante. No se guarda: es sólo para la vista.
     private(set) var lastMoved: (id: String, at: Date)?
 
+    /// Mueve una tarea de columna. Salir de "Hecho" limpia `completedAt`,
+    /// para que no siga contando como completada hoy.
     func setColumn(_ column: TaskColumn, for id: String) {
         guard let i = document.tasks.firstIndex(where: { $0.id == id }),
               document.tasks[i].column != column else { return }
         lastMoved = (id, Date())
+        let estabaHecha = document.tasks[i].completed
         switch column {
         case .pending:
             document.tasks[i].completed = false
@@ -178,6 +202,7 @@ final class TaskStore {
             document.tasks[i].completedAt = Date().timeIntervalSince1970 * 1000
             document.tasks[i].inProgress = false
         }
+        if (column == .done) != estabaHecha { repeatIfNeeded(id, completed: column == .done) }
         commit()
     }
 

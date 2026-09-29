@@ -478,8 +478,14 @@ struct TaskCard: View {
             }
 
             if group != nil || task.deadline != nil || task.priority != .normal
-                || !task.subtasks.isEmpty {
+                || !task.subtasks.isEmpty || task.repeats != nil {
                 HStack(spacing: 6) {
+                    if task.repeats != nil {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Palette.textFaint)
+                            .help(task.repeats?.label ?? "")
+                    }
                     if let group {
                         GroupTag(group: group).opacity(muted ? 0.65 : 1)
                     }
@@ -727,9 +733,25 @@ struct TaskOptionsRow: View {
                 .padding(.horizontal, 4)
             DeadlineField(date: deadline)
             GroupPicker(groupId: groupId, groups: store.document.groups)
+            // Un toque cambia cada cuánto vuelve: nunca, día, semana, mes.
+            FlatOption(label: task.repeats?.label ?? "Repetir",
+                       isSelected: task.repeats != nil,
+                       icon: "arrow.clockwise") {
+                store.modify(task.id) { $0.repeats = nextRepeat(after: task.repeats) }
+            }
+            .help("Al completarla, vuelve sola con la fecha siguiente")
             Spacer(minLength: 0)
         }
         .frame(height: 34)
+    }
+
+    private func nextRepeat(after r: TaskRepeat?) -> TaskRepeat? {
+        switch r {
+        case nil:      return .daily
+        case .daily:   return .weekly
+        case .weekly:  return .monthly
+        case .monthly: return nil
+        }
     }
 }
 

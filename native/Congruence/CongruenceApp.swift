@@ -9,6 +9,7 @@ struct CongruenceApp: App {
     @State private var sync: SyncService
 
     @AppStorage("appearance") private var appearanceRaw = Appearance.system.rawValue
+    @AppStorage("section") private var sectionRaw = AppSection.habits.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -44,6 +45,19 @@ struct CongruenceApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await sync.refresh() } }
                 }
+        }
+        .commands {
+            // ⌘1 a ⌘4: cambiar de sección sin buscar la barra con el ratón.
+            CommandMenu("Ir a") {
+                ForEach(Array(AppSection.allCases.enumerated()), id: \.element) { i, section in
+                    Button(section.label) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                            sectionRaw = section.rawValue
+                        }
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
+                }
+            }
         }
         #if os(macOS)
         .defaultSize(width: 1280, height: 820)

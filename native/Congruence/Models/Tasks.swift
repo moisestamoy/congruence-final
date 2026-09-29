@@ -69,6 +69,36 @@ struct Subtask: Identifiable, Hashable {
     }
 }
 
+/// Cada cuánto vuelve una tarea al completarla.
+enum TaskRepeat: String, CaseIterable {
+    case daily, weekly, monthly
+
+    var label: String {
+        switch self {
+        case .daily:   return "Cada día"
+        case .weekly:  return "Cada semana"
+        case .monthly: return "Cada mes"
+        }
+    }
+
+    /// La fecha siguiente. Si la tarea venía atrasada, la próxima no nace
+    /// atrasada: se cuenta desde hoy.
+    func next(after deadline: String?, today: Date = HabitDay.current()) -> String {
+        let cal = Calendar.current
+        let base = deadline.map(FinDate.date) ?? today
+        let paso: DateComponents = switch self {
+        case .daily:   DateComponents(day: 1)
+        case .weekly:  DateComponents(day: 7)
+        case .monthly: DateComponents(month: 1)
+        }
+        var proxima = cal.date(byAdding: paso, to: base) ?? base
+        while HabitDay.key(proxima) < HabitDay.key(today) {
+            proxima = cal.date(byAdding: paso, to: proxima) ?? proxima
+        }
+        return HabitDay.key(proxima)
+    }
+}
+
 /// Una tarea. Se llama `TodoTask` y no `Task` porque `Task` ya existe en Swift
 /// (el de la concurrencia) y chocaría en todos lados.
 struct TodoTask: JSONRecord, Identifiable {
@@ -109,6 +139,19 @@ struct TodoTask: JSONRecord, Identifiable {
         set { set("completedAt", newValue.map(JSONValue.number) ?? .null) }
     }
     var createdAt: Double { double("createdAt") ?? 0 }
+
+    /// Si vuelve sola al completarla. Campo propio de la app nativa; la web
+    /// lo conserva al editar pero no crea la siguiente.
+    var repeats: TaskRepeat? {
+        get { string("repeat").flatMap(TaskRepeat.init) }
+        set { set("repeat", newValue.map { .string($0.rawValue) } ?? .null) }
+    }
+
+    /// La tarea que nació al completar ésta, para poder deshacerla.
+    var nextId: String? {
+        get { string("nextId") }
+        set { set("nextId", newValue.map(JSONValue.string) ?? .null) }
+    }
 
     /// Empezada pero no terminada. Sólo tiene sentido si no está completada.
     var inProgress: Bool {

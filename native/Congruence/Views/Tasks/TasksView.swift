@@ -831,6 +831,12 @@ struct TaskRow: View {
             if !task.subtasks.isEmpty && !expanded {
                 SubtaskProgress(subtasks: task.subtasks)
             }
+            if task.repeats != nil {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Palette.textFaint)
+                    .help(task.repeats?.label ?? "")
+            }
             if let deadline = task.deadline {
                 DeadlineChip(deadline: deadline)
             }
