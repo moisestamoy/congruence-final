@@ -348,6 +348,16 @@ final class TaskStore {
         return fueron
     }
 
+    /// Pasa varias tareas a un grupo de una vez, con un solo guardado: hacerlo
+    /// tarea por tarea serían diez escrituras y diez envíos a la nube.
+    func setGroup(_ groupId: String?, for ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        var tasks = document.tasks
+        for i in tasks.indices where ids.contains(tasks[i].id) { tasks[i].groupId = groupId }
+        document.tasks = tasks
+        commit()
+    }
+
     /// Al borrar un grupo, sus tareas quedan sueltas (no se borran).
     func removeGroup(_ id: String) {
         document.groups.removeAll { $0.id == id }

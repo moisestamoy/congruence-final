@@ -418,8 +418,11 @@ struct TaskCard: View {
     @State private var arrived = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.focusTask) private var focusTask
+    @Environment(\.taskSelection) private var selection
 
     private var expanded: Bool { openTask == task.id }
+    /// Elegida para moverla junto con otras.
+    private var picked: Bool { selection.contains(task.id) }
 
     private var allStepsDone: Bool {
         !task.subtasks.isEmpty && task.subtasks.allSatisfy(\.done)
@@ -519,9 +522,19 @@ struct TaskCard: View {
             }
         }
         .overlay(RoundedRectangle(cornerRadius: Radius.control)
-            .stroke(isSelected ? Palette.accent.opacity(0.7)
+            .stroke(picked ? Palette.accent
+                    : isSelected ? Palette.accent.opacity(0.7)
                     : hovering ? Palette.hairline : Palette.hairlineFaint,
-                    lineWidth: isSelected ? 1.5 : 1))
+                    lineWidth: isSelected || picked ? 1.5 : 1))
+        .background(picked ? Palette.accent.opacity(0.08) : .clear,
+                    in: RoundedRectangle(cornerRadius: Radius.control))
+        .overlay(alignment: .topTrailing) {
+            if selection.isActive {
+                SelectionMark(isOn: picked)
+                    .padding(8)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
+        }
         .shadow(color: Palette.cardShadowSoft, radius: hovering ? 6 : 2, y: 1)
         // Al llegar a una columna nueva, una estela del color de su grupo
         // que se apaga.
@@ -570,7 +583,11 @@ struct TaskCard: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: dropAbove)
         .contentShape(RoundedRectangle(cornerRadius: Radius.control))
         .onHover { hovering = $0 }
-        .onTapGesture { selected = task.id; toggleExpanded() }
+        .onTapGesture {
+            if selection.handleTap(task.id) { return }
+            selected = task.id
+            toggleExpanded()
+        }
         // Se puede cerrar desde fuera (un clic en el fondo, otra tarjeta), así
         // que la nota se guarda al cerrarse, no en el botón.
         .onChange(of: expanded) { _, abierta in
@@ -588,6 +605,8 @@ struct TaskCard: View {
             if !task.completed {
                 Button("Enfocar") { focusTask(task.id) }
             }
+            Divider()
+            SelectionMenuItems(taskId: task.id)
             Divider()
             ForEach(TaskColumn.allCases, id: \.self) { c in
                 if c != task.column {

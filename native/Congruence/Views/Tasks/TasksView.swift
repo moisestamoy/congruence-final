@@ -51,6 +51,8 @@ struct TasksView: View {
     @State private var editing: TodoTask?
     /// La tarea en foco, si hay una.
     @State private var focused: String?
+    /// Las tareas elegidas para mandarlas juntas a un grupo.
+    @State private var selection = TaskSelection()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -104,6 +106,23 @@ struct TasksView: View {
         .environment(\.focusTask) { id in
             withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { focused = id }
         }
+        .overlay(alignment: .bottom) {
+            if selection.isActive && focused == nil {
+                SelectionBar()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selection.isActive)
+        .environment(\.taskSelection, selection)
+        .onChange(of: visibleOrder, initial: true) { _, order in selection.order = order }
+        // Al empezar a elegir se cierra lo que estuviera abierto: con una nota
+        // abierta, un toque no sabría si es para escribir o para elegir.
+        .onChange(of: selection.isActive) { _, activa in
+            guard activa else { return }
+            withAnimation(.smooth(duration: 0.2)) { openTask = nil; composing = nil }
+        }
+        .onChange(of: tab) { selection.clear() }
+        .onChange(of: layoutRaw) { selection.clear() }
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
         }
@@ -120,6 +139,11 @@ struct TasksView: View {
             Button("") { tab = .tareas; openSearch() }
                 .keyboardShortcut("f", modifiers: .command)
                 .opacity(0)
+            if selection.isActive {
+                Button("") { withAnimation(.smooth(duration: 0.2)) { selection.clear() } }
+                    .keyboardShortcut(.cancelAction)
+                    .opacity(0)
+            }
         }
     }
 
@@ -158,6 +182,25 @@ struct TasksView: View {
     }
 
     private var layout: TaskLayout { TaskLayout(rawValue: layoutRaw) ?? .list }
+
+    /// Las tareas en el orden en que se ven, para que Mayús-clic elija un
+    /// tramo y "Todas" elija sólo lo que tienes delante.
+    private var visibleOrder: [String] {
+        switch tab {
+        case .tareas where layout == .board:
+            return TaskColumn.allCases.flatMap {
+                store.column($0, groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
+            }.map(\.id)
+        case .tareas:
+            return store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
+                .filter { !isCollapsed($0.group?.id ?? "") }
+                .flatMap(\.tasks).map(\.id)
+        case .hoy:
+            return store.dueToday().map(\.id)
+        case .diario:
+            return []
+        }
+    }
 
     /// El margen a los lados. En la Mac la columna de 672 ya queda centrada
     /// con aire; en el teléfono sin esto el texto tocaría el borde.
@@ -671,6 +714,7 @@ struct TaskRow: View {
 
     @Environment(TaskStore.self) private var store
     @Environment(\.focusTask) private var focusTask
+    @Environment(\.taskSelection) private var selection
     @State private var hovering = false
     @State private var draft = ""
     @FocusState private var writing: Bool
@@ -724,7 +768,8 @@ struct TaskRow: View {
                     .padding(.bottom, 9)
             }
         }
-        .background(hovering || expanded ? Palette.fill(0.035) : .clear,
+        .background(selection.contains(task.id) ? Palette.accent.opacity(0.09)
+                    : hovering || expanded ? Palette.fill(0.035) : .clear,
                     in: RoundedRectangle(cornerRadius: Radius.inner))
         .onHover { hovering = $0 }
         // Puede cerrarse desde fuera, así que la nota se guarda al cerrarse.
@@ -785,7 +830,19 @@ struct TaskRow: View {
 
     private var row: some View {
         HStack(spacing: 12) {
-            Button(action: complete) {
+            Button {
+                // Mientras eliges, el círculo elige: completar sin querer
+                // diez tareas sería peor que no tener selección.
+                if selection.isActive {
+                    withAnimation(.smooth(duration: 0.15)) { selection.toggle(task.id) }
+                } else {
+                    complete()
+                }
+            } label: {
+                if selection.isActive {
+                    SelectionMark(isOn: selection.contains(task.id))
+                        .contentShape(Rectangle())
+                } else {
                 ZStack {
                     Circle()
                         .stroke(completing ? accent
@@ -811,6 +868,7 @@ struct TaskRow: View {
                         .opacity(completing ? 1 : 0)
                 }
                 .contentShape(Rectangle())
+                }
             }
             .buttonStyle(.pressable)
 
@@ -858,12 +916,17 @@ struct TaskRow: View {
         .contentShape(Rectangle())
         // Doble clic abre la hoja de edición; uno solo abre la nota. El de
         // dos va primero o SwiftUI se queda con el de uno.
-        .onTapGesture(count: 2, perform: onEdit)
-        .onTapGesture { toggleExpanded() }
+        .onTapGesture(count: 2) {
+            if !selection.handleTap(task.id) { onEdit() }
+        }
+        .onTapGesture {
+            if !selection.handleTap(task.id) { toggleExpanded() }
+        }
         .contextMenu {
             Button("Editar…", action: onEdit)
             Button(expanded ? "Cerrar nota" : "Escribir dentro") { toggleExpanded() }
             Button("Enfocar") { focusTask(task.id) }
+            SelectionMenuItems(taskId: task.id)
             Button(task.inProgress ? "Marcar como pendiente" : "Marcar en progreso") {
                 withAnimation(.smooth(duration: 0.25)) {
                     store.setColumn(task.inProgress ? .pending : .doing, for: task.id)
