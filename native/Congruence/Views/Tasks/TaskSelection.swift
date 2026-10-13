@@ -381,3 +381,18 @@ struct QuickTierButtons: View {
         }
     }
 }
+
+/// "hace 5 días" en una prioritaria que no avanza.
+struct StaleChip: View {
+    let days: Int
+
+    var body: some View {
+        Text("hace \(days) días")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(Palette.warning)
+            .padding(.horizontal, 6)
+            .frame(height: 17)
+            .background(Capsule().fill(Palette.warning.opacity(0.12)))
+            .help("Prioritaria creada hace \(days) días y sin terminar")
+    }
+}

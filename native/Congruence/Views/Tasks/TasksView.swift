@@ -917,6 +917,9 @@ struct TaskRow: View {
                     .foregroundStyle(Palette.textFaint)
                     .help(task.repeats?.label ?? "")
             }
+            if let dias = task.staleDays() {
+                StaleChip(days: dias)
+            }
             if let deadline = task.deadline {
                 DeadlineChip(deadline: deadline)
             }

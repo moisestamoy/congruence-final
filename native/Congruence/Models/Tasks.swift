@@ -203,6 +203,14 @@ struct TodoTask: JSONRecord, Identifiable {
         }
     }
 
+    /// Una prioritaria que lleva más de 3 días creada sin terminarse: cuántos.
+    /// Una prioridad que no avanza es una señal, no un dato.
+    func staleDays(now: Date = Date()) -> Int? {
+        guard tier == .key, !completed, createdAt > 0 else { return nil }
+        let dias = Int((now.timeIntervalSince1970 * 1000 - createdAt) / 86_400_000)
+        return dias > 3 ? dias : nil
+    }
+
     /// Para ordenar: lo sin clasificar va después de todo.
     var tierWeight: Int { tier?.weight ?? 0 }
 

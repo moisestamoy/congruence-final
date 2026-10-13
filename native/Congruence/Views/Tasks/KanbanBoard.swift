@@ -111,8 +111,11 @@ struct KanbanBoard: View {
 
     // MARK: - Teclado
 
+    /// En el orden en que se ven: partido por tipo salvo en Hecho. Así las
+    /// flechas bajan por lo que tienes delante.
     private func tasks(_ column: TaskColumn) -> [TodoTask] {
-        store.column(column, groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
+        let list = store.column(column, groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
+        return column == .done ? list : TaskStore.byTier(list).flatMap(\.tasks)
     }
 
     /// Dónde está la selección: columna y posición.
@@ -189,7 +192,17 @@ struct KanbanBoard: View {
             return .handled
 
         default:
-            return .ignored
+            // P, N, S: Prioritaria, No brain, Secundaria a la tarjeta elegida.
+            let tipo: TaskTier? = switch press.characters.lowercased() {
+            case "p": .key
+            case "n": .easy
+            case "s": .minor
+            default: nil
+            }
+            guard let tipo, !manda, openTask == nil else { return .ignored }
+            SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+            withAnimation(.smooth(duration: 0.3)) { store.modify(lista[i].id) { $0.tier = tipo } }
+            return .handled
         }
     }
 }
@@ -264,6 +277,13 @@ private struct KanbanColumn: View {
         column == .doing && tasks.count > Self.wipLimit
     }
 
+    /// En progreso hay algo que no es prioritario y en Pendiente espera una
+    /// prioritaria.
+    private var keyWaiting: Bool {
+        column == .doing && tasks.contains { $0.tier != .key }
+            && store.column(.pending).contains { $0.tier == .key }
+    }
+
     private var accent: Color {
         switch column {
         case .pending: return Palette.textFaint
@@ -301,6 +321,18 @@ private struct KanbanColumn: View {
                             .help("Borrar las tareas completadas")
                     }
                 }
+                .padding(.horizontal, 4)
+            }
+
+            if keyWaiting {
+                // Un empujón, no un bloqueo: empezaste algo que no es lo que
+                // más mueve mientras lo que más mueve espera.
+                HStack(spacing: 5) {
+                    Image(systemName: TaskTier.key.symbol).font(.system(size: 8, weight: .bold))
+                    Text("Hay prioritarias esperando en Pendiente")
+                        .font(.system(size: 10))
+                }
+                .foregroundStyle(Color.tint(TaskTier.key.hex).opacity(0.85))
                 .padding(.horizontal, 4)
             }
 
@@ -503,7 +535,7 @@ struct TaskCard: View {
                 QuickTierButtons(taskId: task.id)
             }
 
-            if group != nil || task.deadline != nil
+            if group != nil || task.deadline != nil || task.staleDays() != nil
                 || !task.subtasks.isEmpty || task.repeats != nil {
                 HStack(spacing: 6) {
                     if task.repeats != nil {
@@ -519,6 +551,9 @@ struct TaskCard: View {
                         SubtaskProgress(subtasks: task.subtasks)
                     }
                     Spacer(minLength: 4)
+                    if let dias = task.staleDays(), !muted {
+                        StaleChip(days: dias)
+                    }
                     if let deadline = task.deadline, !muted {
                         DeadlineChip(deadline: deadline)
                     }
