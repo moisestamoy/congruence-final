@@ -309,14 +309,23 @@ private struct KanbanColumn: View {
                     TaskComposer(column: column, composing: $composing, compact: true)
                 }
 
-                ForEach(Array(tasks.enumerated()), id: \.element.id) { indice, task in
-                    TaskCard(task: task, group: store.group(task.groupId),
-                             openTask: $openTask,
-                             selected: $selected,
-                             muted: column == .done,
-                             column: column,
-                             onEdit: { onEdit(task) })
-                        .staggeredAppear(indice)
+                // Hecho va por hora de terminado; lo demás, partido por tipo
+                // para que lo que da palanca quede arriba y a la vista.
+                if column == .done {
+                    ForEach(Array(tasks.enumerated()), id: \.element.id) { indice, task in
+                        card(task).staggeredAppear(indice)
+                    }
+                } else {
+                    ForEach(TaskStore.byTier(tasks), id: \.tier) { entry in
+                        VStack(alignment: .leading, spacing: 8) {
+                            TierHeader(tier: entry.tier, count: entry.tasks.count)
+                                .padding(.horizontal, 4)
+                                .padding(.top, 4)
+                            ForEach(Array(entry.tasks.enumerated()), id: \.element.id) { indice, task in
+                                card(task).staggeredAppear(indice)
+                            }
+                        }
+                    }
                 }
 
                 if tasks.isEmpty && composing != column {
@@ -386,6 +395,15 @@ private struct KanbanColumn: View {
         }
     }
 
+    private func card(_ task: TodoTask) -> some View {
+        TaskCard(task: task, group: store.group(task.groupId),
+                 openTask: $openTask,
+                 selected: $selected,
+                 muted: column == .done,
+                 column: column,
+                 onEdit: { onEdit(task) })
+    }
+
     /// Limpiar borra TODAS las completadas, no sólo las de hoy: las viejas son
     /// las que se acumulan sin que las veas. El aviso lo dice con números.
     private var clearPrompt: String {
@@ -442,8 +460,7 @@ struct TaskCard: View {
     }
 
     private var accent: Color {
-        task.priority == .high ? Palette.negative
-            : task.priority == .medium ? Palette.warning : Palette.accent
+        task.tier.map { Color.tint($0.hex) } ?? Palette.accent
     }
 
     private var isOverdue: Bool {
@@ -480,7 +497,7 @@ struct TaskCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if group != nil || task.deadline != nil || task.priority != .normal
+            if group != nil || task.deadline != nil || (task.tier == nil && !muted)
                 || !task.subtasks.isEmpty || task.repeats != nil {
                 HStack(spacing: 6) {
                     if task.repeats != nil {
@@ -492,16 +509,13 @@ struct TaskCard: View {
                     if let group {
                         GroupTag(group: group).opacity(muted ? 0.65 : 1)
                     }
-                    if task.priority != .normal {
-                        Text(task.priority.rawValue)
-                            .font(.system(size: 10, weight: .black))
-                            .foregroundStyle((task.priority == .high ? Palette.negative : Palette.warning)
-                                .opacity(muted ? 0.5 : 1))
-                    }
                     if !task.subtasks.isEmpty && !expanded {
                         SubtaskProgress(subtasks: task.subtasks)
                     }
                     Spacer(minLength: 4)
+                    if task.tier == nil && !muted && !selection.isActive {
+                        QuickTierButtons(taskId: task.id)
+                    }
                     if let deadline = task.deadline, !muted {
                         DeadlineChip(deadline: deadline)
                     }
@@ -514,10 +528,9 @@ struct TaskCard: View {
                     in: RoundedRectangle(cornerRadius: Radius.control))
         .overlay(alignment: .leading) {
             // La barra de prioridad, en el borde de la tarjeta.
-            if task.priority != .normal {
+            if let tier = task.tier {
                 UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10)
-                    .fill((task.priority == .high ? Palette.negative : Palette.warning)
-                        .opacity(muted ? 0.4 : 1))
+                    .fill(Color.tint(tier.hex).opacity(muted ? 0.4 : tier == .key ? 1 : 0.6))
                     .frame(width: 3)
             }
         }
@@ -569,6 +582,11 @@ struct TaskCard: View {
         .dropDestination(for: String.self) { ids, _ in
             guard let arrastrada = ids.first, arrastrada != task.id else { return false }
             withAnimation(.smooth(duration: 0.28)) {
+                // Soltarla junto a otra la deja en la sección de esa otra.
+                if let t = task.tier, column != .done,
+                   store.document.tasks.first(where: { $0.id == arrastrada })?.tier != t {
+                    store.modify(arrastrada) { $0.tier = t }
+                }
                 if store.document.tasks.first(where: { $0.id == arrastrada })?.column == column {
                     store.reorder(arrastrada, before: task.id, in: column)
                 } else {
@@ -739,13 +757,8 @@ struct TaskOptionsRow: View {
     var body: some View {
         HStack(spacing: 4) {
             Spacer(minLength: 0)
-            ForEach(TaskPriority.allCases, id: \.self) { p in
-                FlatOption(label: p == .normal ? "Normal" : p.rawValue,
-                           isSelected: task.priority == p,
-                           tint: p == .high ? Palette.negative
-                               : p == .medium ? Palette.warning : Palette.accent) {
-                    store.modify(task.id) { $0.priority = p }
-                }
+            TierOptions(tier: task.tier) { t in
+                withAnimation(.smooth(duration: 0.3)) { store.modify(task.id) { $0.tier = t } }
             }
             Rectangle().fill(Palette.hairlineFaint)
                 .frame(width: 1, height: 14)

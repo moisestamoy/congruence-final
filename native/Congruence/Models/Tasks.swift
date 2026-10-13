@@ -23,6 +23,54 @@ enum TaskPriority: String, CaseIterable, Hashable {
     }
 }
 
+/// Qué tipo de tarea es, según cuánto mueve. Es lo que se elige al crearla y
+/// lo que ordena la lista y el tablero: primero lo que da palanca, luego lo
+/// que se hace sin pensar, al final lo secundario.
+enum TaskTier: String, CaseIterable, Hashable {
+    case key, easy, minor
+
+    var label: String {
+        switch self {
+        case .key:   return "Prioritaria"
+        case .easy:  return "No brain"
+        case .minor: return "Secundaria"
+        }
+    }
+
+    /// Lo que se lee debajo del nombre al elegir.
+    var hint: String {
+        switch self {
+        case .key:   return "Lo que más palanca da"
+        case .easy:  return "Rápida, sin pensar"
+        case .minor: return "Puede esperar"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .key:   return "bolt.fill"
+        case .easy:  return "leaf.fill"
+        case .minor: return "tray.fill"
+        }
+    }
+
+    var hex: String {
+        switch self {
+        case .key:   return "#e05252"
+        case .easy:  return "#4caf7d"
+        case .minor: return "#7a8fa6"
+        }
+    }
+
+    var weight: Int {
+        switch self {
+        case .key:   return 3
+        case .easy:  return 2
+        case .minor: return 1
+        }
+    }
+}
+
 /// Las dos formas de ver las tareas.
 enum TaskLayout: String, CaseIterable, Hashable {
     case list, board
@@ -139,6 +187,24 @@ struct TodoTask: JSONRecord, Identifiable {
         set { set("completedAt", newValue.map(JSONValue.number) ?? .null) }
     }
     var createdAt: Double { double("createdAt") ?? 0 }
+
+    /// Prioritaria, no brain o secundaria. `nil` es "por clasificar": las que
+    /// vienen de antes, de la web o del diario. Una `!!` de antes cuenta como
+    /// prioritaria. Al elegir, `priority` se ajusta para que la web la vea
+    /// igual: prioritaria es `!!`, lo demás va sin marca.
+    var tier: TaskTier? {
+        get {
+            if let t = string("tier").flatMap(TaskTier.init) { return t }
+            return priority == .high ? .key : nil
+        }
+        set {
+            set("tier", newValue.map { .string($0.rawValue) } ?? .null)
+            if let newValue { priority = newValue == .key ? .high : .normal }
+        }
+    }
+
+    /// Para ordenar: lo sin clasificar va después de todo.
+    var tierWeight: Int { tier?.weight ?? 0 }
 
     /// Si vuelve sola al completarla. Campo propio de la app nativa; la web
     /// lo conserva al editar pero no crea la siguiente.

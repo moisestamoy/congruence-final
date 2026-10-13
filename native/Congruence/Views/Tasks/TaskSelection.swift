@@ -108,7 +108,7 @@ struct SelectionBar: View {
                     .frame(minWidth: 22, minHeight: 22)
                     .background(Circle().fill(Palette.accent))
                     .contentTransition(.numericText())
-                Text(count == 1 ? "elegida · ¿a qué grupo?" : "elegidas · ¿a qué grupo?")
+                Text(count == 1 ? "elegida" : "elegidas")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Palette.textMuted)
                 Spacer(minLength: 8)
@@ -133,6 +133,31 @@ struct SelectionBar: View {
             .padding(.horizontal, 14)
             .padding(.top, 12)
             .padding(.bottom, 10)
+
+            // Tipo y grupo se pueden poner los dos: el tipo no cierra la
+            // barra, el grupo sí (es lo último que se elige).
+            HStack(spacing: 6) {
+                ForEach(TaskTier.allCases, id: \.self) { t in
+                    Button {
+                        SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                        withAnimation(.smooth(duration: 0.3)) { store.setTier(t, for: selection.ids) }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: t.symbol).font(.system(size: 9, weight: .bold))
+                            Text(t.label).font(.system(size: 12, weight: .bold)).lineLimit(1)
+                        }
+                        .foregroundStyle(Color.tint(t.hex))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 30)
+                        .background(RoundedRectangle(cornerRadius: Radius.inner)
+                            .fill(Color.tint(t.hex).opacity(allAre(t) ? 0.28 : 0.12)))
+                        .contentShape(RoundedRectangle(cornerRadius: Radius.inner))
+                    }
+                    .buttonStyle(.pressable)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 8)
 
             ScrollView(.horizontal) {
                 HStack(spacing: 6) {
@@ -216,6 +241,12 @@ struct SelectionBar: View {
         .buttonStyle(.pressable)
     }
 
+    /// Si todas las elegidas ya son de ese tipo: el botón se enciende.
+    private func allAre(_ t: TaskTier) -> Bool {
+        let elegidas = store.document.tasks.filter { selection.ids.contains($0.id) }
+        return !elegidas.isEmpty && elegidas.allSatisfy { $0.tier == t }
+    }
+
     private func apply(_ groupId: String?) {
         guard selection.isActive else { return }
         SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
@@ -255,6 +286,80 @@ struct SelectionMenuItems: View {
         withAnimation(.smooth(duration: 0.3)) {
             store.setGroup(groupId, for: ids)
             if ids.count > 1 { selection.clear() }
+        }
+    }
+}
+
+// MARK: - Tipo de tarea
+
+/// Prioritaria, no brain o secundaria, como tres opciones planas. Se usa al
+/// escribir una tarea y dentro de la tarjeta abierta.
+struct TierOptions: View {
+    let tier: TaskTier?
+    var compact = false
+    let onPick: (TaskTier) -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(TaskTier.allCases, id: \.self) { t in
+                FlatOption(label: compact ? "" : t.label,
+                           isSelected: tier == t,
+                           tint: Color.tint(t.hex),
+                           icon: t.symbol) { onPick(t) }
+                    .help(t.label + " · " + t.hint)
+            }
+        }
+    }
+}
+
+/// El encabezado de una sección por tipo, en la lista y en el tablero.
+struct TierHeader: View {
+    let tier: TaskTier?
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: tier?.symbol ?? "questionmark.circle")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(tier.map { Color.tint($0.hex) } ?? Palette.warning)
+            Text(tier?.label ?? "Por clasificar")
+                .microLabelStyle(tier.map { Color.tint($0.hex) } ?? Palette.warning, size: 9)
+            Text("\(count)")
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Palette.textFaint)
+            if let tier {
+                Text("· " + tier.hint)
+                    .font(.system(size: 9))
+                    .foregroundStyle(Palette.textFaint)
+            }
+            Spacer()
+        }
+    }
+}
+
+/// Para lo que está por clasificar: los tres tipos a un toque, en la misma
+/// fila. Clasificar no debería costar abrir nada.
+struct QuickTierButtons: View {
+    let taskId: String
+    @Environment(TaskStore.self) private var store
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(TaskTier.allCases, id: \.self) { t in
+                Button {
+                    SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
+                    withAnimation(.smooth(duration: 0.3)) { store.modify(taskId) { $0.tier = t } }
+                } label: {
+                    Image(systemName: t.symbol)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.tint(t.hex))
+                        .frame(width: 22, height: 20)
+                        .background(Capsule().fill(Color.tint(t.hex).opacity(0.12)))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.pressable)
+                .help(t.label)
+            }
         }
     }
 }

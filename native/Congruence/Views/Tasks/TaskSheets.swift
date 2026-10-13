@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Editar una tarea: texto, prioridad, fecha y grupo.
+/// Editar una tarea: texto, tipo, fecha y grupo.
 struct TaskEditorSheet: View {
     let task: TodoTask
 
@@ -8,7 +8,7 @@ struct TaskEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var text: String
-    @State private var priority: TaskPriority
+    @State private var tier: TaskTier?
     @State private var deadline: Date?
     @State private var groupId: String?
     @State private var confirmingDelete = false
@@ -16,7 +16,7 @@ struct TaskEditorSheet: View {
     init(task: TodoTask) {
         self.task = task
         _text = State(initialValue: task.text)
-        _priority = State(initialValue: task.priority)
+        _tier = State(initialValue: task.tier)
         _deadline = State(initialValue: task.deadline.map(FinDate.date))
         _groupId = State(initialValue: task.groupId)
     }
@@ -30,13 +30,13 @@ struct TaskEditorSheet: View {
 
             field("Tarea") { DarkField(placeholder: "Qué hay que hacer", text: $text) }
 
-            field("Prioridad") {
+            field("Tipo") {
                 HStack(spacing: 8) {
-                    ForEach(TaskPriority.allCases, id: \.self) { p in
-                        Chip(label: p == .normal ? "Normal" : p.rawValue,
-                             isSelected: priority == p,
-                             tint: p == .high ? Palette.negative : Palette.accent,
-                             fillsWidth: true) { priority = p }
+                    ForEach(TaskTier.allCases, id: \.self) { t in
+                        Chip(label: t.label,
+                             isSelected: tier == t,
+                             tint: Color.tint(t.hex),
+                             fillsWidth: true) { tier = t }
                     }
                 }
             }
@@ -59,7 +59,7 @@ struct TaskEditorSheet: View {
                     .foregroundStyle(Palette.textMuted)
                     .keyboardShortcut(.cancelAction)
                 Button("Guardar") {
-                    store.updateTask(task.id, text: text, priority: priority,
+                    store.updateTask(task.id, text: text, tier: tier,
                                      deadline: deadline.map(HabitDay.key), groupId: groupId)
                     dismiss()
                 }

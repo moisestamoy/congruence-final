@@ -65,13 +65,32 @@ final class TaskStore {
         document.tasks
             .filter { !$0.completed }
             .filter { groupId == nil || $0.groupId == groupId }
-            .filter { !onlyPriority || $0.priority != .normal }
+            .filter { !onlyPriority || $0.tier == .key }
             .filter { matches($0, query) }
             .sorted {
-                $0.priority.weight != $1.priority.weight
-                    ? $0.priority.weight > $1.priority.weight
+                $0.tierWeight != $1.tierWeight
+                    ? $0.tierWeight > $1.tierWeight
                     : $0.createdAt < $1.createdAt
             }
+    }
+
+    /// Por tipo: primero lo que da palanca, después lo sin pensar, lo
+    /// secundario y, al final, lo que falta clasificar. Dentro de cada uno,
+    /// en el orden en que llegan.
+    static func byTier(_ list: [TodoTask]) -> [(tier: TaskTier?, tasks: [TodoTask])] {
+        let orden: [TaskTier?] = TaskTier.allCases.map(Optional.some) + [nil]
+        return orden.compactMap { t in
+            let tasks = list.filter { $0.tier == t }
+            return tasks.isEmpty ? nil : (tier: t, tasks: tasks)
+        }
+    }
+
+    func setTier(_ tier: TaskTier, for ids: Set<String>) {
+        guard !ids.isEmpty else { return }
+        var tasks = document.tasks
+        for i in tasks.indices where ids.contains(tasks[i].id) { tasks[i].tier = tier }
+        document.tasks = tasks
+        commit()
     }
 
     /// Agrupadas, en el orden en que están los grupos; las sueltas al final.
@@ -127,12 +146,13 @@ final class TaskStore {
 
     func addTask(text: String, priority: TaskPriority, deadline: String?,
                  groupId: String?, column: TaskColumn = .pending,
-                 fromNote: String? = nil) {
+                 fromNote: String? = nil, tier: TaskTier? = nil) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         var task = TodoTask(text: text, priority: priority,
                             deadline: deadline, groupId: groupId)
         task.fromNote = fromNote
+        if let tier { task.tier = tier }
         // Crear desde una columna del tablero la deja ya en ese estado:
         // hacer clic en "En progreso" es decir que ya empezaste.
         switch column {
@@ -165,6 +185,7 @@ final class TaskStore {
             var nueva = TodoTask(text: tarea.text, priority: tarea.priority,
                                  deadline: cada.next(after: tarea.deadline), groupId: tarea.groupId)
             nueva.repeats = cada
+            if let t = tarea.tier { nueva.tier = t }
             nueva.notes = tarea.notes
             nueva.subtasks = tarea.subtasks.map { Subtask(text: $0.text) }
             document.tasks[i].nextId = nueva.id
@@ -231,7 +252,7 @@ final class TaskStore {
                 return true
             }
             .filter { groupId == nil || $0.groupId == groupId }
-            .filter { !onlyPriority || $0.priority != .normal }
+            .filter { !onlyPriority || $0.tier == .key }
             .filter { matches($0, query) }
             .sorted {
                 if column == .done { return ($0.completedAt ?? 0) > ($1.completedAt ?? 0) }
@@ -239,8 +260,8 @@ final class TaskStore {
                 // la prioridad. Media columna a mano y media automática sería
                 // imposible de leer, así que es todo o nada.
                 if let a = $0.sort, let b = $1.sort { return a < b }
-                return $0.priority.weight != $1.priority.weight
-                    ? $0.priority.weight > $1.priority.weight
+                return $0.tierWeight != $1.tierWeight
+                    ? $0.tierWeight > $1.tierWeight
                     : $0.createdAt < $1.createdAt
             }
     }
@@ -288,13 +309,13 @@ final class TaskStore {
         reorder(id, before: target, in: column)
     }
 
-    func updateTask(_ id: String, text: String, priority: TaskPriority,
+    func updateTask(_ id: String, text: String, tier: TaskTier?,
                     deadline: String?, groupId: String?) {
         guard let i = document.tasks.firstIndex(where: { $0.id == id }) else { return }
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         document.tasks[i].text = text
-        document.tasks[i].priority = priority
+        if let tier { document.tasks[i].tier = tier }
         document.tasks[i].deadline = deadline
         document.tasks[i].groupId = groupId
         commit()

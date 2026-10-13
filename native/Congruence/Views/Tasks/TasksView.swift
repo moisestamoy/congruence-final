@@ -192,8 +192,8 @@ struct TasksView: View {
                 store.column($0, groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
             }.map(\.id)
         case .tareas:
-            return store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority, query: query)
-                .filter { !isCollapsed($0.group?.id ?? "") }
+            return tierSections
+                .filter { !isCollapsed(tierKey($0.tier)) }
                 .flatMap(\.tasks).map(\.id)
         case .hoy:
             return store.dueToday().map(\.id)
@@ -280,26 +280,19 @@ struct TasksView: View {
                 TaskComposer(column: composing ?? .pending, composing: $composing)
             }
 
-            let groups = store.grouped(groupId: filterGroupId, onlyPriority: onlyPriority,
-                                       query: query)
-            if groups.isEmpty {
+            let sections = tierSections
+            if sections.isEmpty {
                 empty("Nada pendiente. Disfrútalo.") { compose(.pending) }
                 footer
             } else {
-                ForEach(Array(groups.enumerated()), id: \.offset) { _, entry in
-                    let key = entry.group?.id ?? ""
+                ForEach(sections, id: \.tier) { entry in
+                    let key = tierKey(entry.tier)
                     let collapsed = isCollapsed(key)
                     VStack(alignment: .leading, spacing: 2) {
                         Button { toggleCollapsed(key) } label: {
                             HStack(spacing: 7) {
-                                Circle()
-                                    .fill(Color.tint(entry.group?.color ?? "#7a8fa6"))
-                                    .frame(width: 6, height: 6)
-                                Text(entry.group?.name ?? "Sin grupo")
-                                    .microLabelStyle(Palette.textMuted, size: 9)
-                                Text("\(entry.tasks.count)")
-                                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(Palette.textFaint)
+                                TierHeader(tier: entry.tier, count: entry.tasks.count)
+                                    .fixedSize()
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 7, weight: .bold))
                                     .foregroundStyle(Palette.textFaint)
@@ -331,6 +324,15 @@ struct TasksView: View {
             }
         }
     }
+
+    /// Lo pendiente partido por tipo: primero lo que da palanca. Lo que nadie
+    /// clasificó todavía va al final, con los tres tipos a un toque.
+    private var tierSections: [(tier: TaskTier?, tasks: [TodoTask])] {
+        TaskStore.byTier(store.pending(groupId: filterGroupId, onlyPriority: onlyPriority,
+                                       query: query))
+    }
+
+    private func tierKey(_ tier: TaskTier?) -> String { "tier:" + (tier?.rawValue ?? "none") }
 
     /// El espacio de debajo de la lista también escribe. Sin esto, con tareas
     /// en pantalla no quedaría ningún sitio en blanco donde hacer clic.
@@ -464,7 +466,7 @@ struct TasksView: View {
             }
             .opacity(query.isEmpty ? 1 : 0.4)
             FilterLabel(text: "Prioritarias", isSelected: onlyPriority,
-                        tint: Palette.negative) {
+                        tint: Color.tint(TaskTier.key.hex)) {
                 onlyPriority.toggle()
             }
             // Sólo los grupos con algo pendiente: un filtro que no filtra nada
@@ -732,8 +734,7 @@ struct TaskRow: View {
     }
 
     private var accent: Color {
-        task.priority == .high ? Palette.negative
-            : task.priority == .medium ? Palette.warning : Palette.accent
+        task.tier.map { Color.tint($0.hex) } ?? Palette.accent
     }
 
     private func complete() {
@@ -878,13 +879,11 @@ struct TaskRow: View {
                 .animation(.smooth(duration: 0.3).delay(0.15), value: completing)
                 .animatedStrike(completing, color: Palette.textFaint, delay: 0.12)
 
-            if task.priority != .normal {
-                Text(task.priority.rawValue)
-                    .font(.system(size: 12, weight: .black))
-                    .foregroundStyle(task.priority == .high ? Palette.negative : Palette.warning)
-            }
-
             Spacer(minLength: 8)
+
+            if task.tier == nil && !selection.isActive {
+                QuickTierButtons(taskId: task.id)
+            }
 
             if !task.subtasks.isEmpty && !expanded {
                 SubtaskProgress(subtasks: task.subtasks)
@@ -899,14 +898,14 @@ struct TaskRow: View {
                 DeadlineChip(deadline: deadline)
             }
             if let group {
-                Circle().fill(Color.tint(group.color)).frame(width: 6, height: 6)
+                GroupTag(group: group)
             }
         }
         .padding(.vertical, 9)
         .overlay(alignment: .leading) {
-            if task.priority != .normal {
+            if task.tier == .key {
                 Rectangle()
-                    .fill(task.priority == .high ? Palette.negative : Palette.warning)
+                    .fill(accent)
                     .frame(width: 2)
                     .padding(.vertical, 6)
                     .offset(x: -6)
@@ -1298,12 +1297,14 @@ struct TaskComposer: View {
 
     @Environment(TaskStore.self) private var store
     @State private var draft = ""
-    @State private var priority: TaskPriority = .normal
+    @State private var tier: TaskTier?
     @State private var deadline: Date?
     @State private var groupId: String?
     @FocusState private var focused: Bool
     /// Escape descarta; cerrar de cualquier otra forma guarda.
     @State private var discarding = false
+    /// Pulsaste Enter sin decir qué tipo de tarea es: ahora se pregunta.
+    @State private var asking = false
 
     private var placeholder: String {
         column == .pending ? "Escribe una tarea y pulsa Enter"
@@ -1334,16 +1335,14 @@ struct TaskComposer: View {
 
             Divider().overlay(Palette.hairlineFaint)
 
+            if asking {
+                tierQuestion
+            } else {
             // Centrados: pegados a la izquierda dejaban medio campo vacío.
             HStack(spacing: 4) {
                 Spacer(minLength: 0)
-                ForEach(TaskPriority.allCases, id: \.self) { p in
-                    FlatOption(label: p == .normal ? "Normal" : p.rawValue,
-                               isSelected: priority == p,
-                               tint: p == .high ? Palette.negative
-                                   : p == .medium ? Palette.warning : Palette.accent) {
-                        priority = p
-                    }
+                TierOptions(tier: tier, compact: compact) { t in
+                    tier = tier == t ? nil : t
                 }
                 Rectangle().fill(Palette.hairlineFaint)
                     .frame(width: 1, height: 14)
@@ -1354,6 +1353,7 @@ struct TaskComposer: View {
             }
             .padding(.horizontal, 6)
             .frame(height: 36)
+            }
         }
         .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.07)))
         .overlay(RoundedRectangle(cornerRadius: Radius.row)
@@ -1367,6 +1367,7 @@ struct TaskComposer: View {
             }
         }
         .onEscape {
+            if asking { asking = false; focused = true; return }
             discarding = true
             composing = nil
         }
@@ -1376,11 +1377,59 @@ struct TaskComposer: View {
             guard !discarding else { return }
             let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return }
-            store.addTask(text: text, priority: priority,
+            store.addTask(text: text, priority: .normal,
                           deadline: deadline.map(HabitDay.key),
-                          groupId: groupId, column: column)
+                          groupId: groupId, column: column, tier: tier)
         }
         .transition(.opacity.combined(with: .offset(y: -6)))
+    }
+
+    /// La pregunta, en el lugar de los ajustes: tres botones grandes y las
+    /// teclas 1, 2 y 3. Elegir guarda la tarea y deja escribir la siguiente.
+    private var tierQuestion: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("¿Qué tipo de tarea es?")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.textMuted)
+            HStack(spacing: 6) {
+                ForEach(Array(TaskTier.allCases.enumerated()), id: \.element) { i, t in
+                    Button { tier = t; add() } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 5) {
+                                Image(systemName: t.symbol).font(.system(size: 10, weight: .bold))
+                                Text(t.label).font(.system(size: 12, weight: .bold))
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                                #if os(macOS)
+                                Text("\(i + 1)")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Palette.textFaint)
+                                #endif
+                            }
+                            .foregroundStyle(Color.tint(t.hex))
+                            if !compact {
+                                Text(t.hint)
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(Palette.textFaint)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: Radius.inner)
+                            .fill(Color.tint(t.hex).opacity(0.12)))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.inner)
+                            .stroke(Color.tint(t.hex).opacity(0.3), lineWidth: 1))
+                        .contentShape(RoundedRectangle(cornerRadius: Radius.inner))
+                    }
+                    .buttonStyle(.pressable)
+                    .keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: [])
+                }
+            }
+        }
+        .padding(10)
+        .transition(.opacity.combined(with: .offset(y: -4)))
     }
 
     /// Guarda y se queda abierto: escribir tres tareas seguidas no debería
@@ -1388,15 +1437,23 @@ struct TaskComposer: View {
     private func add() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { composing = nil; return }
+        // Sin tipo no se guarda: se pregunta. Elegir prioridades es el punto.
+        guard let tier else {
+            withAnimation(.smooth(duration: 0.2)) { asking = true }
+            // Sin foco en el campo, 1, 2 y 3 eligen en vez de escribirse.
+            focused = false
+            return
+        }
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         withAnimation(.smooth(duration: 0.25)) {
-            store.addTask(text: text, priority: priority,
+            store.addTask(text: text, priority: .normal,
                           deadline: deadline.map(HabitDay.key),
-                          groupId: groupId, column: column)
+                          groupId: groupId, column: column, tier: tier)
         }
         draft = ""
-        priority = .normal
+        self.tier = nil
         deadline = nil
+        withAnimation(.smooth(duration: 0.2)) { asking = false }
         focused = true
     }
 }
