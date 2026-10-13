@@ -497,7 +497,13 @@ struct TaskCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if group != nil || task.deadline != nil || (task.tier == nil && !muted)
+            // Sin tipo, los tres van en su propia fila y con nombre: al lado
+            // de la fecha no entraban.
+            if task.tier == nil && !muted && !selection.isActive {
+                QuickTierButtons(taskId: task.id)
+            }
+
+            if group != nil || task.deadline != nil
                 || !task.subtasks.isEmpty || task.repeats != nil {
                 HStack(spacing: 6) {
                     if task.repeats != nil {
@@ -513,9 +519,6 @@ struct TaskCard: View {
                         SubtaskProgress(subtasks: task.subtasks)
                     }
                     Spacer(minLength: 4)
-                    if task.tier == nil && !muted && !selection.isActive {
-                        QuickTierButtons(taskId: task.id)
-                    }
                     if let deadline = task.deadline, !muted {
                         DeadlineChip(deadline: deadline)
                     }

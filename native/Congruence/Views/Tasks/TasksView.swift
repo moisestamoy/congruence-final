@@ -53,6 +53,10 @@ struct TasksView: View {
     @State private var focused: String?
     /// Las tareas elegidas para mandarlas juntas a un grupo.
     @State private var selection = TaskSelection()
+    /// El campo de escribir, si está abierto, y cuándo se cerró por un clic
+    /// fuera (para que ese mismo clic no lo vuelva a abrir).
+    @State private var composerFrame: CGRect?
+    @State private var closedByClickAt = Date.distantPast
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -121,6 +125,16 @@ struct TasksView: View {
             guard activa else { return }
             withAnimation(.smooth(duration: 0.2)) { openTask = nil; composing = nil }
         }
+        .onPreferenceChange(ComposerFrameKey.self) { composerFrame = $0 }
+        // Un clic fuera del campo de escribir lo cierra, y cerrarlo guarda la
+        // tarea. Antes sólo cerraban los huecos vacíos: un clic en un filtro,
+        // en el título o en otra tarjeta la dejaba ahí abierta.
+        .simultaneousGesture(SpatialTapGesture(coordinateSpace: .global).onEnded { tap in
+            guard composing != nil, let frame = composerFrame,
+                  !frame.contains(tap.location) else { return }
+            closedByClickAt = Date()
+            withAnimation(.smooth(duration: 0.2)) { composing = nil }
+        })
         .onChange(of: tab) { selection.clear() }
         .onChange(of: layoutRaw) { selection.clear() }
         .sheet(item: $editing) { task in
@@ -356,6 +370,8 @@ struct TasksView: View {
     /// Un clic en blanco abre el campo; otro clic en blanco lo cierra. Si ya
     /// estabas escribiendo en otra columna, lo mueve a ésta.
     private func compose(_ column: TaskColumn) {
+        // El mismo clic que acaba de cerrar el campo no lo reabre.
+        guard Date().timeIntervalSince(closedByClickAt) > 0.35 else { return }
         withAnimation(.smooth(duration: 0.2)) {
             composing = composing == column ? nil : column
         }
@@ -545,13 +561,20 @@ struct TasksView: View {
                     compose(.pending)
                 }
             } else {
-                ForEach(list) { task in
-                    TaskRow(task: task, group: store.group(task.groupId),
-                            sound: store.document.soundEnabled,
-                            openTask: $openTask,
-                            onToggle: { store.toggleTask(task.id) },
-                            onEdit: { editing = task },
-                            onDelete: { store.removeTask(task.id) })
+                // Hoy también va por tipo: de lo que vence hoy, primero lo
+                // que da palanca.
+                ForEach(TaskStore.byTier(list), id: \.tier) { entry in
+                    TierHeader(tier: entry.tier, count: entry.tasks.count)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+                    ForEach(entry.tasks) { task in
+                        TaskRow(task: task, group: store.group(task.groupId),
+                                sound: store.document.soundEnabled,
+                                openTask: $openTask,
+                                onToggle: { store.toggleTask(task.id) },
+                                onEdit: { editing = task },
+                                onDelete: { store.removeTask(task.id) })
+                    }
                 }
                 Divider().overlay(Palette.hairlineFaint).padding(.top, 10)
                 Text("\(list.count) tarea\(list.count == 1 ? "" : "s") para hoy")
@@ -1285,6 +1308,15 @@ struct GroupPickerSheet: View {
 
 // MARK: - Escribir una tarea
 
+/// Dónde está el campo de escribir en pantalla, para que un clic en
+/// cualquier otro lado lo cierre (y guarde lo escrito).
+struct ComposerFrameKey: PreferenceKey {
+    static var defaultValue: CGRect? = nil
+    static func reduce(value: inout CGRect?, nextValue: () -> CGRect?) {
+        value = value ?? nextValue()
+    }
+}
+
 /// El campo para escribir. No vive en la pantalla: aparece donde haces clic y
 /// se va al terminar. Una barra de escribir siempre presente ocupa sitio los
 /// días en que no escribes nada, que son la mayoría.
@@ -1373,6 +1405,11 @@ struct TaskComposer: View {
         }
         // Cerrar con algo escrito lo guarda. Un clic fuera no debería tirar
         // un texto que escribiste a propósito.
+        .background {
+            GeometryReader { g in
+                Color.clear.preference(key: ComposerFrameKey.self, value: g.frame(in: .global))
+            }
+        }
         .onDisappear {
             guard !discarding else { return }
             let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1388,9 +1425,21 @@ struct TaskComposer: View {
     /// teclas 1, 2 y 3. Elegir guarda la tarea y deja escribir la siguiente.
     private var tierQuestion: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("¿Qué tipo de tarea es?")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Palette.textMuted)
+            HStack {
+                Text("¿Qué tipo de tarea es?")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.textMuted)
+                Spacer()
+                // Enter (o un clic fuera) la crea igual, por clasificar:
+                // la pregunta ayuda, no traba.
+                Button { saveUnclassified() } label: {
+                    Text("Enter: crearla sin tipo")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.textFaint)
+                }
+                .buttonStyle(.pressable)
+                .keyboardShortcut(.return, modifiers: [])
+            }
             HStack(spacing: 6) {
                 ForEach(Array(TaskTier.allCases.enumerated()), id: \.element) { i, t in
                     Button { tier = t; add() } label: {
@@ -1430,6 +1479,22 @@ struct TaskComposer: View {
         }
         .padding(10)
         .transition(.opacity.combined(with: .offset(y: -4)))
+    }
+
+    /// Crea la tarea en "Por clasificar" y deja el campo listo para otra.
+    private func saveUnclassified() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
+        withAnimation(.smooth(duration: 0.25)) {
+            store.addTask(text: text, priority: .normal,
+                          deadline: deadline.map(HabitDay.key),
+                          groupId: groupId, column: column)
+            asking = false
+        }
+        draft = ""
+        deadline = nil
+        focused = true
     }
 
     /// Guarda y se queda abierto: escribir tres tareas seguidas no debería

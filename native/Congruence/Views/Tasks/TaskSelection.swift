@@ -317,6 +317,16 @@ struct TierHeader: View {
     let tier: TaskTier?
     let count: Int
 
+    @Environment(TaskStore.self) private var store
+
+    /// Cuántas prioritarias hay pendientes en total. Pasadas tres, ya no
+    /// ordenan nada: si todo es prioritario, nada lo es.
+    private var tooManyKey: Int? {
+        guard tier == .key else { return nil }
+        let n = store.pending().filter { $0.tier == .key }.count
+        return n > 3 ? n : nil
+    }
+
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: tier?.symbol ?? "questionmark.circle")
@@ -327,7 +337,11 @@ struct TierHeader: View {
             Text("\(count)")
                 .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .foregroundStyle(Palette.textFaint)
-            if let tier {
+            if let n = tooManyKey {
+                Text("· \(n) prioritarias: ¿cuáles 3 mueven más?")
+                    .font(.system(size: 9))
+                    .foregroundStyle(Palette.warning.opacity(0.85))
+            } else if let tier {
                 Text("· " + tier.hint)
                     .font(.system(size: 9))
                     .foregroundStyle(Palette.textFaint)
@@ -337,25 +351,29 @@ struct TierHeader: View {
     }
 }
 
-/// Para lo que está por clasificar: los tres tipos a un toque, en la misma
-/// fila. Clasificar no debería costar abrir nada.
+/// Para lo que está por clasificar: los tres tipos a un toque, con su
+/// nombre. Sólo iconos no decían qué era cada uno.
 struct QuickTierButtons: View {
     let taskId: String
     @Environment(TaskStore.self) private var store
+    @Environment(\.isCompact) private var isCompact
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             ForEach(TaskTier.allCases, id: \.self) { t in
                 Button {
                     SoundEffects.shared.play(.pop, enabled: store.document.soundEnabled)
                     withAnimation(.smooth(duration: 0.3)) { store.modify(taskId) { $0.tier = t } }
                 } label: {
-                    Image(systemName: t.symbol)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(Color.tint(t.hex))
-                        .frame(width: 22, height: 20)
-                        .background(Capsule().fill(Color.tint(t.hex).opacity(0.12)))
-                        .contentShape(Capsule())
+                    HStack(spacing: 4) {
+                        Image(systemName: t.symbol).font(.system(size: 8, weight: .bold))
+                        Text(t.label).font(.system(size: 10, weight: .semibold)).lineLimit(1)
+                    }
+                    .foregroundStyle(Color.tint(t.hex))
+                    .padding(.horizontal, 8)
+                    .frame(height: isCompact ? 26 : 20)
+                    .background(Capsule().fill(Color.tint(t.hex).opacity(0.12)))
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.pressable)
                 .help(t.label)

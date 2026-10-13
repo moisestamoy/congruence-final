@@ -121,7 +121,11 @@ final class TaskStore {
         return document.tasks
             .filter { !$0.completed }
             .filter { guard let d = $0.deadline else { return false }; return d <= today }
-            .sorted { ($0.deadline ?? "") < ($1.deadline ?? "") }
+            .sorted {
+                $0.tierWeight != $1.tierWeight
+                    ? $0.tierWeight > $1.tierWeight
+                    : ($0.deadline ?? "") < ($1.deadline ?? "")
+            }
     }
 
     /// Lo que completaste hoy, lo último primero: es lo que se puede deshacer.
