@@ -30,6 +30,11 @@ extension TaskStore {
         return nombres.first { $0.1 == t }?.0 ?? nombres.first { $0.1.hasPrefix(t) }?.0
     }
 
+    /// Cuántas pendientes tiene cada grupo.
+    func pendingCount(in groupId: String) -> Int {
+        document.tasks.filter { !$0.completed && $0.groupId == groupId }.count
+    }
+
     /// Separa los "#grupo" del texto: el primero que coincide con un grupo
     /// lo elige, y todos los que coinciden se quitan del texto. Un "#" que
     /// no es de ningún grupo se queda donde está.

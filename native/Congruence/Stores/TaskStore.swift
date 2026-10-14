@@ -383,6 +383,17 @@ final class TaskStore {
         commit()
     }
 
+    /// Reordena los grupos: es el orden de los filtros, de los números al
+    /// elegir y de la lista.
+    func moveGroup(_ id: String, to index: Int) {
+        guard let from = document.groups.firstIndex(where: { $0.id == id }) else { return }
+        var groups = document.groups
+        let g = groups.remove(at: from)
+        groups.insert(g, at: max(0, min(index, groups.count)))
+        document.groups = groups
+        commit()
+    }
+
     /// Al borrar un grupo, sus tareas quedan sueltas (no se borran).
     func removeGroup(_ id: String) {
         document.groups.removeAll { $0.id == id }

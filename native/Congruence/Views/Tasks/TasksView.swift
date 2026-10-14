@@ -57,6 +57,7 @@ struct TasksView: View {
     /// fuera (para que ese mismo clic no lo vuelva a abrir).
     @State private var composerFrame: CGRect?
     @State private var closedByClickAt = Date.distantPast
+    @State private var managingGroups = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -140,6 +141,7 @@ struct TasksView: View {
         .sheet(item: $editing) { task in
             TaskEditorSheet(task: task)
         }
+        .sheet(isPresented: $managingGroups) { GroupManagerSheet() }
         #if DEBUG
         // open Congruence.app --args -debugTab diario
         .onAppear {
@@ -485,6 +487,15 @@ struct TasksView: View {
                         tint: Color.tint(TaskTier.key.hex)) {
                 onlyPriority.toggle()
             }
+            Button { managingGroups = true } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.textFaint)
+                    .frame(width: 20, height: 18)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.pressable)
+            .help("Administrar grupos")
             // Sólo los grupos con algo pendiente: un filtro que no filtra nada
             // es ruido.
             ForEach(store.document.groups.filter { g in
@@ -1095,17 +1106,20 @@ struct FilterLabel: View {
 struct GroupPicker: View {
     @Binding var groupId: String?
     let groups: [TaskGroup]
+    /// Si se da, el chip dice esto en vez del grupo actual.
+    var label: String?
 
     @State private var picking = false
     @State private var managing = false
 
     var body: some View {
         let current = groups.first { $0.id == groupId }
-        FlatOption(label: current?.name ?? "Sin grupo",
+        FlatOption(label: label ?? current?.name ?? "Sin grupo",
                    isSelected: current != nil,
-                   tint: Color.tint(current?.color ?? "#7a8fa6"),
-                   trailingIcon: "chevron.down",
-                   dot: Color.tint(current?.color ?? "#7a8fa6")) {
+                   tint: label == nil ? Color.tint(current?.color ?? "#7a8fa6") : Palette.accent,
+                   icon: label == nil ? nil : "plus",
+                   trailingIcon: label == nil ? "chevron.down" : nil,
+                   dot: label == nil ? Color.tint(current?.color ?? "#7a8fa6") : nil) {
             picking = true
         }
         .fixedSize()
@@ -1119,7 +1133,7 @@ struct GroupPicker: View {
                 .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $managing) {
-            GroupPickerSheet(groupId: $groupId, groups: groups)
+            GroupManagerSheet()
         }
     }
 }
@@ -1348,8 +1362,14 @@ struct TaskComposer: View {
     @FocusState private var focused: Bool
     /// Escape descarta; cerrar de cualquier otra forma guarda.
     @State private var discarding = false
-    /// Pulsaste Enter sin decir qué tipo de tarea es: ahora se pregunta.
-    @State private var asking = false
+    /// Lo que se está preguntando, si algo. Pulsar Enter sin tipo o sin
+    /// grupo pregunta en vez de guardar.
+    enum Step { case tier, group }
+    @State private var step: Step?
+    /// "Sin tipo" y "sin grupo" también son respuestas: esto distingue
+    /// "no lo elegí todavía" de "elegí que no".
+    @State private var tierAnswered = false
+    @State private var groupAnswered = false
 
     private var placeholder: String {
         column == .pending ? "Escribe una tarea · #grupo para asignarla"
@@ -1383,8 +1403,8 @@ struct TaskComposer: View {
 
             Divider().overlay(Palette.hairlineFaint)
 
-            if asking {
-                tierQuestion
+            if step != nil {
+                question
             } else {
             // Centrados: pegados a la izquierda dejaban medio campo vacío.
             HStack(spacing: 4) {
@@ -1425,7 +1445,7 @@ struct TaskComposer: View {
             }
         }
         .onEscape {
-            if asking { asking = false; focused = true; return }
+            if step != nil { step = nil; focused = true; return }
             discarding = true
             composing = nil
         }
@@ -1447,24 +1467,40 @@ struct TaskComposer: View {
         .transition(.opacity.combined(with: .offset(y: -6)))
     }
 
-    /// La pregunta, en el lugar de los ajustes: tres botones grandes y las
-    /// teclas 1, 2 y 3. Elegir guarda la tarea y deja escribir la siguiente.
+    /// Las preguntas, en el lugar de los ajustes: primero el tipo, después
+    /// el grupo. Cada una se salta si ya lo elegiste (con los botones de
+    /// abajo o con "#grupo"), y Enter salta la que está a la vista.
+    @ViewBuilder
+    private var question: some View {
+        switch step {
+        case .tier?:  tierQuestion
+        case .group?: groupQuestion
+        case nil:     EmptyView()
+        }
+    }
+
+    private func questionHeader(_ title: String, skip: String,
+                                action: @escaping () -> Void) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.textMuted)
+            Spacer()
+            Button(action: action) {
+                Text(skip)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textFaint)
+            }
+            .buttonStyle(.pressable)
+            .keyboardShortcut(.return, modifiers: [])
+        }
+    }
+
     private var tierQuestion: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("¿Qué tipo de tarea es?")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Palette.textMuted)
-                Spacer()
-                // Enter (o un clic fuera) la crea igual, por clasificar:
-                // la pregunta ayuda, no traba.
-                Button { saveUnclassified() } label: {
-                    Text("Enter: crearla sin tipo")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.textFaint)
-                }
-                .buttonStyle(.pressable)
-                .keyboardShortcut(.return, modifiers: [])
+            questionHeader("¿Qué tipo de tarea es?", skip: "Enter: sin tipo") {
+                tierAnswered = true
+                add()
             }
             HStack(spacing: 6) {
                 ForEach(Array(TaskTier.allCases.enumerated()), id: \.element) { i, t in
@@ -1507,36 +1543,96 @@ struct TaskComposer: View {
         .transition(.opacity.combined(with: .offset(y: -4)))
     }
 
+    /// Los grupos con su número (1–9), "Sin grupo" con el 0, y el que
+    /// sugieren tus tareas parecidas, marcado.
+    private var groupQuestion: some View {
+        let sugerido = store.suggestGroup(for: draft)?.id
+        return VStack(alignment: .leading, spacing: 8) {
+            questionHeader("¿De qué grupo?", skip: "Enter: sin grupo") {
+                groupAnswered = true
+                add()
+            }
+            FlowLayout(spacing: 6) {
+                ForEach(Array(store.document.groups.enumerated()), id: \.element.id) { i, g in
+                    groupButton(name: g.name, color: g.color,
+                                number: i < 9 ? "\(i + 1)" : nil,
+                                suggested: g.id == sugerido) {
+                        groupId = g.id
+                        groupAnswered = true
+                        add()
+                    }
+                }
+                groupButton(name: "Sin grupo", color: "#7a8fa6", number: "0", suggested: false) {
+                    groupAnswered = true
+                    add()
+                }
+                // Uno que no existe todavía: el mismo menú con buscador, y
+                // al elegir o crear, la tarea se guarda.
+                GroupPicker(groupId: Binding(
+                    get: { nil },
+                    set: { nuevo in
+                        guard let nuevo else { return }
+                        groupId = nuevo
+                        groupAnswered = true
+                        add()
+                    }), groups: store.document.groups, label: "Otro o nuevo…")
+            }
+        }
+        .padding(10)
+        .transition(.opacity.combined(with: .offset(y: -4)))
+    }
+
+    private func groupButton(name: String, color: String, number: String?, suggested: Bool,
+                             action: @escaping () -> Void) -> some View {
+        let tint = Color.tint(color)
+        return Button(action: action) {
+            HStack(spacing: 6) {
+                Circle().fill(tint).frame(width: 7, height: 7)
+                Text(name).font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(1)
+                if suggested {
+                    Text("sugerido")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(tint)
+                }
+                #if os(macOS)
+                if let number {
+                    Text(number)
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Palette.textFaint)
+                }
+                #endif
+            }
+            .padding(.horizontal, 11)
+            .frame(height: 30)
+            .background(Capsule().fill(tint.opacity(suggested ? 0.25 : 0.12)))
+            .overlay(Capsule().stroke(tint.opacity(suggested ? 0.8 : 0.3),
+                                      lineWidth: suggested ? 1.5 : 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.pressable)
+        .modifier(NumberKey(number))
+    }
+
     /// Lo escrito sin los "#grupo" (que ya eligieron el grupo).
     private var cleanText: String {
         store.resolveHashtags(draft.trimmingCharacters(in: .whitespacesAndNewlines)).text
     }
 
-    /// Crea la tarea en "Por clasificar" y deja el campo listo para otra.
-    private func saveUnclassified() {
-        let text = cleanText
-        guard !text.isEmpty else { return }
-        SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
-        withAnimation(.smooth(duration: 0.25)) {
-            store.addTask(text: text, priority: .normal,
-                          deadline: deadline.map(HabitDay.key),
-                          groupId: groupId, column: column)
-            asking = false
-        }
-        draft = ""
-        deadline = nil
-        focused = true
-    }
-
     /// Guarda y se queda abierto: escribir tres tareas seguidas no debería
-    /// costar tres clics más.
+    /// costar tres clics más. Antes de guardar pregunta lo que falte.
     private func add() {
         let text = cleanText
         guard !text.isEmpty else { composing = nil; return }
-        // Sin tipo no se guarda: se pregunta. Elegir prioridades es el punto.
-        guard let tier else {
-            withAnimation(.smooth(duration: 0.2)) { asking = true }
-            // Sin foco en el campo, 1, 2 y 3 eligen en vez de escribirse.
+        // Sin foco en el campo, los números eligen en vez de escribirse.
+        if tier == nil && !tierAnswered {
+            withAnimation(.smooth(duration: 0.2)) { step = .tier }
+            focused = false
+            return
+        }
+        if groupId == nil && !groupAnswered && !store.document.groups.isEmpty {
+            withAnimation(.smooth(duration: 0.2)) { step = .group }
             focused = false
             return
         }
@@ -1547,9 +1643,26 @@ struct TaskComposer: View {
                           groupId: groupId, column: column, tier: tier)
         }
         draft = ""
-        self.tier = nil
+        tier = nil
+        groupId = nil
         deadline = nil
-        withAnimation(.smooth(duration: 0.2)) { asking = false }
+        tierAnswered = false
+        groupAnswered = false
+        withAnimation(.smooth(duration: 0.2)) { step = nil }
         focused = true
+    }
+}
+
+/// Una tecla sin modificadores para un botón, si tiene número.
+private struct NumberKey: ViewModifier {
+    let number: String?
+    init(_ number: String?) { self.number = number }
+
+    func body(content: Content) -> some View {
+        if let number, let c = number.first {
+            content.keyboardShortcut(KeyEquivalent(c), modifiers: [])
+        } else {
+            content
+        }
     }
 }

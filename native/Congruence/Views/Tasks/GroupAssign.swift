@@ -250,3 +250,201 @@ struct FlowLayout: Layout {
         }
     }
 }
+
+// MARK: - Administrar grupos
+
+/// Todos los grupos en un sitio: el nombre se edita ahí mismo, el color con
+/// un toque, el orden con las flechas, y al borrar se dice cuántas tareas
+/// quedan sueltas. Antes cada grupo tenía un lápiz que abría otro editor.
+struct GroupManagerSheet: View {
+    @Environment(TaskStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var newName = ""
+    @State private var deleting: TaskGroup?
+    @FocusState private var newFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Grupos").font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Palette.text)
+                Spacer()
+                Text("El orden es el de los números al elegir")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Palette.textFaint)
+            }
+
+            ScrollView {
+                VStack(spacing: 4) {
+                    ForEach(Array(store.document.groups.enumerated()), id: \.element.id) { i, g in
+                        GroupManagerRow(group: g, index: i,
+                                        count: store.document.groups.count,
+                                        onDelete: { deleting = g })
+                    }
+                }
+            }
+            .frame(maxHeight: 380)
+            .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 10) {
+                DarkField(placeholder: "Nuevo grupo y Enter", text: $newName)
+                    .focused($newFocused)
+                    .onSubmit(create)
+                Button("Crear", action: create)
+                    .buttonStyle(.pressable)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(canCreate ? Palette.onAccent : Palette.textFaint)
+                    .padding(.horizontal, 18)
+                    .frame(height: 34)
+                    .background(Capsule().fill(canCreate ? Palette.accent : Palette.fill(0.06)))
+                    .disabled(!canCreate)
+            }
+
+            HStack {
+                Spacer()
+                Button("Listo") { dismiss() }
+                    .buttonStyle(.pressable)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(26)
+        .sheetWidth(460)
+        .background(Palette.base)
+        .confirmationDialog(deletePrompt, isPresented: Binding(
+            get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+            titleVisibility: .visible) {
+            Button("Borrar grupo", role: .destructive) {
+                if let g = deleting {
+                    withAnimation(.smooth(duration: 0.25)) { store.removeGroup(g.id) }
+                }
+                deleting = nil
+            }
+            Button("Cancelar", role: .cancel) { deleting = nil }
+        } message: {
+            Text("Las tareas no se borran: quedan sin grupo.")
+        }
+    }
+
+    private var deletePrompt: String {
+        guard let g = deleting else { return "" }
+        let n = store.pendingCount(in: g.id)
+        return n == 0 ? "¿Borrar \(g.name)?"
+            : "¿Borrar \(g.name)? \(n) tarea\(n == 1 ? "" : "s") pendiente\(n == 1 ? "" : "s") quedan sin grupo."
+    }
+
+    private var canCreate: Bool { !newName.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    private func create() {
+        let palette = GroupPickerSheet.palette
+        guard store.addGroup(name: newName,
+                             color: palette[store.document.groups.count % palette.count]) != nil
+        else { return }
+        newName = ""
+        newFocused = true
+    }
+}
+
+private struct GroupManagerRow: View {
+    let group: TaskGroup
+    let index: Int
+    let count: Int
+    let onDelete: () -> Void
+
+    @Environment(TaskStore.self) private var store
+    @State private var name = ""
+    @State private var pickingColor = false
+    @FocusState private var editing: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button { pickingColor = true } label: {
+                Circle().fill(Color.tint(group.color))
+                    .frame(width: 14, height: 14)
+                    .overlay(Circle().stroke(Palette.hairline, lineWidth: 1).padding(-3))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.pressable)
+            .help("Cambiar color")
+            .popover(isPresented: $pickingColor, arrowEdge: .bottom) {
+                HStack(spacing: 10) {
+                    ForEach(TasksDocument.groupPalette, id: \.self) { hex in
+                        Button {
+                            store.updateGroup(group.id, name: group.name, color: hex)
+                            pickingColor = false
+                        } label: {
+                            Circle().fill(Color.tint(hex)).frame(width: 18, height: 18)
+                                .overlay(Circle().stroke(Palette.text,
+                                                         lineWidth: hex == group.color ? 1.5 : 0)
+                                    .padding(-3))
+                        }
+                        .buttonStyle(.pressable)
+                    }
+                }
+                .padding(14)
+                .presentationCompactAdaptation(.popover)
+            }
+
+            // El nombre se edita ahí mismo; se guarda al salir o con Enter.
+            TextField("", text: $name)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.text)
+                .focused($editing)
+                .onSubmit(save)
+                .onChange(of: editing) { _, ahora in if !ahora { save() } }
+
+            Text("\(store.pendingCount(in: group.id))")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Palette.textFaint)
+                .help("Tareas pendientes en este grupo")
+
+            HStack(spacing: 0) {
+                arrow("chevron.up", enabled: index > 0) {
+                    store.moveGroup(group.id, to: index - 1)
+                }
+                arrow("chevron.down", enabled: index < count - 1) {
+                    store.moveGroup(group.id, to: index + 1)
+                }
+            }
+
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.negative.opacity(0.7))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.pressable)
+            .help("Borrar grupo")
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 38)
+        .background(editing ? Palette.fill(0.06) : Palette.fill(0.03),
+                    in: RoundedRectangle(cornerRadius: Radius.inner))
+        .onAppear { name = group.name }
+        .onChange(of: group.name) { _, nuevo in if !editing { name = nuevo } }
+    }
+
+    private func save() {
+        let limpio = name.trimmingCharacters(in: .whitespaces)
+        if limpio.isEmpty { name = group.name; return }
+        if limpio != group.name { store.updateGroup(group.id, name: limpio, color: group.color) }
+    }
+
+    private func arrow(_ symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.smooth(duration: 0.2)) { action() }
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(enabled ? Palette.textMuted : Palette.textFaint.opacity(0.3))
+                .frame(width: 20, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
+        .disabled(!enabled)
+    }
+}
