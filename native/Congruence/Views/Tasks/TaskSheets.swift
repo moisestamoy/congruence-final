@@ -41,11 +41,8 @@ struct TaskEditorSheet: View {
                 }
             }
 
-            HStack(alignment: .top, spacing: 14) {
-                field("Para cuándo") { DeadlineField(date: $deadline) }
-                field("Grupo") { GroupPicker(groupId: $groupId, groups: store.document.groups) }
-                Spacer()
-            }
+            field("Para cuándo") { DeadlineField(date: $deadline) }
+            field("Grupo") { GroupChips(groupId: $groupId) }
 
             HStack(spacing: 10) {
                 Button("Borrar") { confirmingDelete = true }

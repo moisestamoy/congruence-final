@@ -1089,14 +1089,15 @@ struct FilterLabel: View {
     }
 }
 
-/// El chip de grupo. Abre una hoja en vez de un `Menu` porque macOS le quita
-/// el estilo al label de un Menu (se pierden la cápsula y el punto de color),
-/// y porque desde la hoja se puede crear un grupo sin salir de acá.
+/// El chip de grupo. Abre un menú chico con buscador pegado al chip (no un
+/// `Menu`: macOS le quita el estilo al label). Editar nombres y colores
+/// sigue en la hoja de siempre, a un clic desde el menú.
 struct GroupPicker: View {
     @Binding var groupId: String?
     let groups: [TaskGroup]
 
     @State private var picking = false
+    @State private var managing = false
 
     var body: some View {
         let current = groups.first { $0.id == groupId }
@@ -1108,7 +1109,16 @@ struct GroupPicker: View {
             picking = true
         }
         .fixedSize()
-        .sheet(isPresented: $picking) {
+        .popover(isPresented: $picking, arrowEdge: .bottom) {
+            GroupPopover(groupId: $groupId,
+                         onDone: { picking = false },
+                         onManage: {
+                             picking = false
+                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { managing = true }
+                         })
+                .presentationCompactAdaptation(.popover)
+        }
+        .sheet(isPresented: $managing) {
             GroupPickerSheet(groupId: $groupId, groups: groups)
         }
     }
@@ -1342,7 +1352,7 @@ struct TaskComposer: View {
     @State private var asking = false
 
     private var placeholder: String {
-        column == .pending ? "Escribe una tarea y pulsa Enter"
+        column == .pending ? "Escribe una tarea · #grupo para asignarla"
                            : "Escribe una tarea para \(column.label)"
     }
 
@@ -1363,6 +1373,9 @@ struct TaskComposer: View {
                         if new.count > old.count {
                             SoundEffects.shared.play(.key, enabled: store.document.soundEnabled)
                         }
+                        // "#anto" elige AntoEcom mientras escribes; al
+                        // guardar, el "#anto" sale del texto.
+                        if let g = store.resolveHashtags(new).groupId, g != groupId { groupId = g }
                     }
             }
             .padding(.horizontal, compact ? 11 : 14)
@@ -1384,6 +1397,16 @@ struct TaskComposer: View {
                     .padding(.horizontal, 4)
                 DeadlineField(date: $deadline)
                 GroupPicker(groupId: $groupId, groups: store.document.groups)
+                if groupId == nil, let sugerido = store.suggestGroup(for: draft) {
+                    FlatOption(label: "¿\(sugerido.name)?", isSelected: false,
+                               tint: Color.tint(sugerido.color),
+                               dot: Color.tint(sugerido.color)) {
+                        groupId = sugerido.id
+                    }
+                    .fixedSize()
+                    .help("Lo sugiere por tus tareas parecidas. Un toque para ponerlo.")
+                    .transition(.opacity)
+                }
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 6)
@@ -1415,7 +1438,7 @@ struct TaskComposer: View {
         }
         .onDisappear {
             guard !discarding else { return }
-            let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = cleanText
             guard !text.isEmpty else { return }
             store.addTask(text: text, priority: .normal,
                           deadline: deadline.map(HabitDay.key),
@@ -1484,9 +1507,14 @@ struct TaskComposer: View {
         .transition(.opacity.combined(with: .offset(y: -4)))
     }
 
+    /// Lo escrito sin los "#grupo" (que ya eligieron el grupo).
+    private var cleanText: String {
+        store.resolveHashtags(draft.trimmingCharacters(in: .whitespacesAndNewlines)).text
+    }
+
     /// Crea la tarea en "Por clasificar" y deja el campo listo para otra.
     private func saveUnclassified() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = cleanText
         guard !text.isEmpty else { return }
         SoundEffects.shared.play(.bell, enabled: store.document.soundEnabled)
         withAnimation(.smooth(duration: 0.25)) {
@@ -1503,7 +1531,7 @@ struct TaskComposer: View {
     /// Guarda y se queda abierto: escribir tres tareas seguidas no debería
     /// costar tres clics más.
     private func add() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = cleanText
         guard !text.isEmpty else { composing = nil; return }
         // Sin tipo no se guarda: se pregunta. Elegir prioridades es el punto.
         guard let tier else {
