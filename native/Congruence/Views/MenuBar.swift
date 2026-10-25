@@ -45,7 +45,11 @@ struct MenuBarContent: View {
             Divider().overlay(Palette.hairlineFaint)
             footer
         }
+        // Ancho fijo de verdad: si algo de adentro pide más, que se acomode
+        // él, no que el panel se corra y recorte los bordes.
         .frame(width: 360)
+        .fixedSize(horizontal: false, vertical: true)
+        .clipped()
         .background(Palette.base)
     }
 

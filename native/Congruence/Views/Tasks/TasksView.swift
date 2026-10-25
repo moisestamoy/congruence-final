@@ -1407,30 +1407,33 @@ struct TaskComposer: View {
                 question
             } else {
             // Centrados: pegados a la izquierda dejaban medio campo vacío.
-            HStack(spacing: 4) {
-                Spacer(minLength: 0)
-                TierOptions(tier: tier, compact: compact) { t in
-                    tier = tier == t ? nil : t
+            // Si no entran en una fila (el panel de la barra de menú, una
+            // columna angosta), van en dos: una fila más ancha que el lugar
+            // empujaba y recortaba todo lo de alrededor.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    Spacer(minLength: 0)
+                    typeAndDate
+                    groupAndSuggestion
+                    Spacer(minLength: 0)
                 }
-                Rectangle().fill(Palette.hairlineFaint)
-                    .frame(width: 1, height: 14)
-                    .padding(.horizontal, 4)
-                DeadlineField(date: $deadline)
-                GroupPicker(groupId: $groupId, groups: store.document.groups)
-                if groupId == nil, let sugerido = store.suggestGroup(for: draft) {
-                    FlatOption(label: "¿\(sugerido.name)?", isSelected: false,
-                               tint: Color.tint(sugerido.color),
-                               dot: Color.tint(sugerido.color)) {
-                        groupId = sugerido.id
+                .frame(height: 36)
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        Spacer(minLength: 0)
+                        typeAndDate
+                        Spacer(minLength: 0)
                     }
-                    .fixedSize()
-                    .help("Lo sugiere por tus tareas parecidas. Un toque para ponerlo.")
-                    .transition(.opacity)
+                    .frame(height: 32)
+                    HStack(spacing: 4) {
+                        Spacer(minLength: 0)
+                        groupAndSuggestion
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: 32)
                 }
-                Spacer(minLength: 0)
             }
             .padding(.horizontal, 6)
-            .frame(height: 36)
             }
         }
         .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.07)))
@@ -1477,6 +1480,36 @@ struct TaskComposer: View {
         case .group?: groupQuestion
         case nil:     EmptyView()
         }
+    }
+
+    private var typeAndDate: some View {
+        HStack(spacing: 4) {
+            TierOptions(tier: tier, compact: compact) { t in
+                tier = tier == t ? nil : t
+            }
+            Rectangle().fill(Palette.hairlineFaint)
+                .frame(width: 1, height: 14)
+                .padding(.horizontal, 4)
+            DeadlineField(date: $deadline)
+        }
+        .fixedSize()
+    }
+
+    private var groupAndSuggestion: some View {
+        HStack(spacing: 4) {
+            GroupPicker(groupId: $groupId, groups: store.document.groups)
+            if groupId == nil, let sugerido = store.suggestGroup(for: draft) {
+                FlatOption(label: "¿\(sugerido.name)?", isSelected: false,
+                           tint: Color.tint(sugerido.color),
+                           dot: Color.tint(sugerido.color)) {
+                    groupId = sugerido.id
+                }
+                .fixedSize()
+                .help("Lo sugiere por tus tareas parecidas. Un toque para ponerlo.")
+                .transition(.opacity)
+            }
+        }
+        .fixedSize()
     }
 
     private func questionHeader(_ title: String, skip: String,
