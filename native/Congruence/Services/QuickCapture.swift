@@ -174,7 +174,7 @@ final class QuickCapture {
     }
 
     /// Las primeras palabras, sin cortar a mitad de una.
-    private static func title(from texto: String) -> String {
+    static func title(from texto: String) -> String {
         let primera = texto.split(separator: "\n").first.map(String.init) ?? texto
         let palabras = primera.split(separator: " ").prefix(7).joined(separator: " ")
         return palabras.count < primera.count ? palabras + "…" : palabras

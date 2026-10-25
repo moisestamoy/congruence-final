@@ -72,10 +72,12 @@ struct CongruenceApp: App {
         // En la barra de menú: el porcentaje del día a la vista, y la app viva
         // aunque cierres la ventana, que es lo que mantiene el atajo de captura.
         MenuBarExtra {
-            MenuBarContent().environment(store).environment(finances)
+            MenuBarContent().environment(store).environment(finances).environment(tasks)
         } label: {
             MenuBarLabel().environment(store)
         }
+        // Un panel y no un menú: así caben las listas y los campos de escribir.
+        .menuBarExtraStyle(.window)
         #endif
     }
 }
