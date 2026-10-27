@@ -223,10 +223,12 @@ final class VoiceRecorder {
 @available(macOS 26.0, iOS 26.0, *)
 @Generable(description: "Una tarea que la persona dijo")
 struct SpokenTask {
-    @Guide(description: "La tarea completa con su detalle, empezando con verbo y mayúscula, sin la fecha ni las palabras sobre su importancia. Ej: 'Llamar a Juano por el dashboard'")
+    @Guide(description: "La tarea con su detalle y con mayúscula, usando sus palabras: el verbo que dijo, o si no dijo verbo, el tema tal cual ('Tintorería'). Sin la fecha ni lo que dijo sobre su importancia. Ej: 'Llamar a Juano por el dashboard'")
     var text: String
-    @Guide(description: "Las palabras exactas que dijo sobre la importancia de ESTA tarea (ej: 'es prioritario', 'urgente', 'no brain', 'rápida', 'puede esperar'), o vacío si no dijo nada sobre su importancia")
+    @Guide(description: "Las palabras exactas que dijo sobre la importancia, el esfuerzo o la urgencia de ESTA tarea (ej: 'es prioritario', 'me mueve la aguja', 'nada importante', 'una boludez de dos minutos', 'puede esperar'), o vacío si no dijo nada de eso")
     var importancia: String
+    @Guide(description: "Qué significan esas palabras de importancia: 'prioritaria' si dijo que es importante, urgente, clave o que mueve mucho; 'nobrain' si dijo que es rápida, fácil, sin pensar o una pavada; 'secundaria' si dijo que no es importante, que puede esperar o que es para cuando tenga tiempo; 'ninguno' si no dijo nada sobre su importancia", .anyOf(["prioritaria", "nobrain", "secundaria", "ninguno"]))
+    var nivel: String
     @Guide(description: "Las palabras exactas que dijo sobre cuándo hacer ESTA tarea (ej: 'mañana', 'el viernes', 'hoy', 'el 3 de noviembre'), o vacío si no dijo ningún día para esta tarea")
     var cuando: String
     @Guide(description: "Las palabras exactas con que nombró un proyecto, cliente, persona o área de ESTA tarea (ej: 'anto', 'lo de imperio', 'casa'), o vacío")
@@ -242,6 +244,9 @@ struct SpokenTasks {
 
 @available(macOS 26.0, iOS 26.0, *)
 enum VoiceTaskParser {
+    /// Para las pruebas: lo que devolvió el modelo, antes de las reglas.
+    nonisolated(unsafe) static var debugRaw: (([SpokenTask]) -> Void)?
+
     /// Separa lo dictado en tareas. Si Apple Intelligence no está disponible
     /// (apagado, o el modelo no bajó), lo dicho queda como una sola tarea:
     /// nunca se pierde lo que dijiste.
@@ -254,20 +259,32 @@ enum VoiceTaskParser {
         let grupos = store.document.groups.map(\.name).joined(separator: ", ")
         let sesion = LanguageModelSession(instructions: """
         Separas lo que alguien dictó en tareas para su lista. Copia lo que dijo; no agregues \
-        nada que no haya dicho. Ignora muletillas (eh, bueno, o sea, tengo que, recordarme, \
+        nada que no haya dicho, ni verbos que no usó. Ignora muletillas (eh, bueno, o sea, tengo que, recordarme, \
         anota). Si no dijo un día para una tarea, 'cuando' va vacío. Si no dijo nada sobre la \
         importancia de una tarea, 'importancia' va vacío. Sus grupos son: \(grupos).
         """)
         do {
-            let r = try await sesion.respond(to: texto, generating: SpokenTasks.self)
-            let drafts = r.content.tareas.compactMap { t -> VoiceDraft? in
-                let limpio = t.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !limpio.isEmpty else { return nil }
+            // Siempre la misma respuesta para la misma frase: con azar, la misma
+            // frase daba una vez dos tareas y otra vez una.
+            let r = try await sesion.respond(to: texto, generating: SpokenTasks.self,
+                                             options: GenerationOptions(sampling: .greedy))
+            debugRaw?(r.content.tareas)
+            var drafts = r.content.tareas.compactMap { t -> VoiceDraft? in
+                let crudo = t.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !crudo.isEmpty else { return nil }
+                let limpio = crudo.prefix(1).uppercased() + crudo.dropFirst()
                 return VoiceDraft(
                     text: limpio,
-                    tier: VoiceWords.tier(from: t.importancia),
+                    tier: VoiceWords.tier(said: t.importancia, meaning: t.nivel, heard: texto),
                     groupId: VoiceWords.group(said: t.deQue, taskText: limpio, heard: texto, store: store),
                     deadline: VoiceWords.date(from: t.cuando))
+            }
+            // "A fin de mes pagar el alquiler y la tarjeta": el día se dijo una
+            // vez, al principio, para todas. Si ninguna quedó con fecha pero la
+            // frase nombra un día, vale para todas.
+            if drafts.count > 1, drafts.allSatisfy({ $0.deadline == nil }),
+               let comun = VoiceWords.date(from: texto) {
+                for i in drafts.indices { drafts[i].deadline = comun }
             }
             return drafts.isEmpty ? [fallback(texto, store: store)] : drafts
         } catch {
