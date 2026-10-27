@@ -189,27 +189,55 @@ private struct MenuRowStyle: ButtonStyle {
 private struct MenuBarTasks: View {
     @Environment(TaskStore.self) private var store
     @State private var composing: TaskColumn?
+    @State private var dictating = false
 
     var body: some View {
         let secciones = TaskStore.byTier(store.pending())
         VStack(alignment: .leading, spacing: 10) {
             if composing != nil {
-                TaskComposer(column: .pending, composing: $composing, compact: true)
+                TaskComposer(column: .pending, composing: $composing, compact: true,
+                             startWithVoice: dictating)
             } else {
-                Button { withAnimation(.smooth(duration: 0.18)) { composing = .pending } } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus").font(.system(size: 10, weight: .bold))
-                        Text("Nueva tarea").font(.system(size: 12, weight: .semibold))
-                        Spacer()
+                HStack(spacing: 6) {
+                    Button {
+                        dictating = false
+                        withAnimation(.smooth(duration: 0.18)) { composing = .pending }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus").font(.system(size: 10, weight: .bold))
+                            Text("Nueva tarea").font(.system(size: 12, weight: .semibold))
+                            Spacer()
+                        }
+                        .foregroundStyle(Palette.accent)
+                        .padding(.horizontal, 11)
+                        .frame(height: 34)
+                        .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.05)))
+                        .contentShape(Rectangle())
                     }
-                    .foregroundStyle(Palette.accent)
-                    .padding(.horizontal, 11)
-                    .frame(height: 34)
-                    .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.05)))
-                    .contentShape(Rectangle())
+                    .buttonStyle(.pressable)
+                    .keyboardShortcut("n", modifiers: .command)
+
+                    // Hablar en vez de escribir: lo dicho se vuelve tareas.
+                    if VoiceSupport.isAvailable {
+                        Button {
+                            dictating = true
+                            withAnimation(.smooth(duration: 0.18)) { composing = .pending }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "mic.fill").font(.system(size: 10, weight: .bold))
+                                Text("Dictar").font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundStyle(Palette.onAccent)
+                            .padding(.horizontal, 12)
+                            .frame(height: 34)
+                            .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.accent))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.pressable)
+                        .keyboardShortcut("d", modifiers: [.command, .shift])
+                        .help("Dictar tareas (⇧⌘D)")
+                    }
                 }
-                .buttonStyle(.pressable)
-                .keyboardShortcut("n", modifiers: .command)
             }
 
             if secciones.isEmpty {

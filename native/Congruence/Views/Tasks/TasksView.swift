@@ -58,6 +58,8 @@ struct TasksView: View {
     @State private var composerFrame: CGRect?
     @State private var closedByClickAt = Date.distantPast
     @State private var managingGroups = false
+    /// ⇧⌘D: el campo que se abra ahora empieza dictando.
+    @State private var dictateNext = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -119,6 +121,8 @@ struct TasksView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selection.isActive)
         .environment(\.taskSelection, selection)
+        .environment(\.dictateOnOpen, dictateNext)
+        .onChange(of: composing) { _, abierto in if abierto == nil { dictateNext = false } }
         .onChange(of: visibleOrder, initial: true) { _, order in selection.order = order }
         // Al empezar a elegir se cierra lo que estuviera abierto: con una nota
         // abierta, un toque no sabría si es para escribir o para elegir.
@@ -155,6 +159,15 @@ struct TasksView: View {
             Button("") { tab = .tareas; openSearch() }
                 .keyboardShortcut("f", modifiers: .command)
                 .opacity(0)
+            if VoiceSupport.isAvailable && composing == nil {
+                Button("") {
+                    tab = .tareas
+                    dictateNext = true
+                    withAnimation(.smooth(duration: 0.2)) { composing = .pending }
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+                .opacity(0)
+            }
             if selection.isActive {
                 Button("") { withAnimation(.smooth(duration: 0.2)) { selection.clear() } }
                     .keyboardShortcut(.cancelAction)
@@ -1353,9 +1366,14 @@ struct TaskComposer: View {
     @Binding var composing: TaskColumn?
     /// Dentro de una columna del tablero el espacio es menor.
     var compact = false
+    /// Abrir directo dictando (el botón "Dictar" de la barra de menú).
+    var startWithVoice = false
 
     @Environment(TaskStore.self) private var store
+    @Environment(\.dictateOnOpen) private var dictateOnOpen
     @State private var draft = ""
+    /// Dictando en vez de escribiendo.
+    @State private var voiceMode = false
     @State private var tier: TaskTier?
     @State private var deadline: Date?
     @State private var groupId: String?
@@ -1378,6 +1396,15 @@ struct TaskComposer: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if voiceMode, #available(macOS 26.0, iOS 26.0, *) {
+                VoiceTaskPanel(column: column, compact: compact) {
+                    withAnimation(.smooth(duration: 0.2)) {
+                        voiceMode = false
+                        // Desde la barra se abrió para dictar: al terminar, se cierra.
+                        if startWithVoice || dictateOnOpen { composing = nil } else { focused = true }
+                    }
+                }
+            } else {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
@@ -1397,6 +1424,19 @@ struct TaskComposer: View {
                         // guardar, el "#anto" sale del texto.
                         if let g = store.resolveHashtags(new).groupId, g != groupId { groupId = g }
                     }
+                if VoiceSupport.isAvailable {
+                    Button { startVoice() } label: {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Palette.accent)
+                            .frame(width: 26, height: 26)
+                            .background(Circle().fill(Palette.accent.opacity(0.12)))
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.pressable)
+                    .help("Dictar tareas (⇧⌘D)")
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                }
             }
             .padding(.horizontal, compact ? 11 : 14)
             .frame(height: compact ? 38 : 44)
@@ -1435,19 +1475,27 @@ struct TaskComposer: View {
             }
             .padding(.horizontal, 6)
             }
+            }
         }
         .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.fill(0.07)))
         .overlay(RoundedRectangle(cornerRadius: Radius.row)
             .stroke(Palette.accent.opacity(0.4), lineWidth: 1))
-        .onAppear { focused = true }
+        .onAppear {
+            if (startWithVoice || dictateOnOpen) && VoiceSupport.isAvailable {
+                voiceMode = true
+            } else {
+                focused = true
+            }
+        }
         // Al perder el foco con el campo vacío se cierra solo: nada que
         // guardar, nada que dejar abierto.
         .onChange(of: focused) { _, isFocused in
-            if !isFocused && draft.trimmingCharacters(in: .whitespaces).isEmpty {
+            if !isFocused && !voiceMode && draft.trimmingCharacters(in: .whitespaces).isEmpty {
                 composing = nil
             }
         }
         .onEscape {
+            if voiceMode { return }   // el panel de voz maneja su propio Escape
             if step != nil { step = nil; focused = true; return }
             discarding = true
             composing = nil
@@ -1510,6 +1558,10 @@ struct TaskComposer: View {
             }
         }
         .fixedSize()
+    }
+
+    private func startVoice() {
+        withAnimation(.smooth(duration: 0.2)) { voiceMode = true }
     }
 
     private func questionHeader(_ title: String, skip: String,

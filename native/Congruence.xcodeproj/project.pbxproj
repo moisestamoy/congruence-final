@@ -192,6 +192,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Congruence;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para dictar tareas con tu voz. El audio se procesa en tu dispositivo y no se guarda.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Para convertir en texto las tareas que dictas, dentro de tu dispositivo.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
@@ -227,6 +229,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Congruence;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Para dictar tareas con tu voz. El audio se procesa en tu dispositivo y no se guarda.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Para convertir en texto las tareas que dictas, dentro de tu dispositivo.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
