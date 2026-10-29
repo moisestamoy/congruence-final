@@ -113,6 +113,47 @@ struct TasksView: View {
         .environment(\.focusTask) { id in
             withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { focused = id }
         }
+        .overlay(alignment: .bottomTrailing) {
+            // En el teléfono no hay ⌘N ni clic en blanco que se adivine: un
+            // botón a mano del pulgar para escribir, y otro para dictar.
+            if isCompact && tab == .tareas && composing == nil && !selection.isActive && focused == nil {
+                HStack(spacing: 10) {
+                    if VoiceSupport.isAvailable {
+                        Button {
+                            dictateNext = true
+                            withAnimation(.smooth(duration: 0.2)) { composing = .pending }
+                        } label: {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Palette.accent)
+                                .frame(width: 50, height: 50)
+                                .background(Circle().fill(Palette.surfaceRaised))
+                                .overlay(Circle().stroke(Palette.hairline, lineWidth: 1))
+                                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+                        }
+                        .buttonStyle(.pressable)
+                        .accessibilityLabel("Dictar tareas")
+                    }
+                    Button {
+                        dictateNext = false
+                        withAnimation(.smooth(duration: 0.2)) { composing = .pending }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Palette.onAccent)
+                            .frame(width: 58, height: 58)
+                            .background(Circle().fill(Palette.accent))
+                            .shadow(color: Palette.accent.opacity(0.35), radius: 12, y: 5)
+                    }
+                    .buttonStyle(.pressable)
+                    .accessibilityLabel("Nueva tarea")
+                }
+                .padding(.trailing, 18)
+                .padding(.bottom, 16)
+                .transition(.scale(scale: 0.8).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: composing == nil)
         .overlay(alignment: .bottom) {
             if selection.isActive && focused == nil {
                 SelectionBar()
@@ -1371,6 +1412,7 @@ struct TaskComposer: View {
 
     @Environment(TaskStore.self) private var store
     @Environment(\.dictateOnOpen) private var dictateOnOpen
+    @Environment(\.isCompact) private var isCompact
     @State private var draft = ""
     /// Dictando en vez de escribiendo.
     @State private var voiceMode = false
@@ -1472,6 +1514,22 @@ struct TaskComposer: View {
                     }
                     .frame(height: 32)
                 }
+                // El teléfono: ni el tipo con la fecha caben en una fila.
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        Spacer(minLength: 0)
+                        tierRow
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: 32)
+                    HStack(spacing: 4) {
+                        Spacer(minLength: 0)
+                        DeadlineField(date: $deadline).fixedSize()
+                        groupAndSuggestion
+                        Spacer(minLength: 0)
+                    }
+                    .frame(height: 32)
+                }
             }
             .padding(.horizontal, 6)
             }
@@ -1530,6 +1588,13 @@ struct TaskComposer: View {
         }
     }
 
+    private var tierRow: some View {
+        TierOptions(tier: tier, compact: compact) { t in
+            tier = tier == t ? nil : t
+        }
+        .fixedSize()
+    }
+
     private var typeAndDate: some View {
         HStack(spacing: 4) {
             TierOptions(tier: tier, compact: compact) { t in
@@ -1564,6 +1629,15 @@ struct TaskComposer: View {
         withAnimation(.smooth(duration: 0.2)) { voiceMode = true }
     }
 
+    /// En la Mac se salta con Enter; en el teléfono no hay Enter a la vista.
+    private static func skipLabel(_ what: String) -> String {
+        #if os(iOS)
+        return "Saltar"
+        #else
+        return "Enter: \(what)"
+        #endif
+    }
+
     private func questionHeader(_ title: String, skip: String,
                                 action: @escaping () -> Void) -> some View {
         HStack {
@@ -1583,7 +1657,7 @@ struct TaskComposer: View {
 
     private var tierQuestion: some View {
         VStack(alignment: .leading, spacing: 8) {
-            questionHeader("¿Qué tipo de tarea es?", skip: "Enter: sin tipo") {
+            questionHeader("¿Qué tipo de tarea es?", skip: Self.skipLabel("sin tipo")) {
                 tierAnswered = true
                 add()
             }
@@ -1595,6 +1669,7 @@ struct TaskComposer: View {
                                 Image(systemName: t.symbol).font(.system(size: 10, weight: .bold))
                                 Text(t.label).font(.system(size: 12, weight: .bold))
                                     .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                                 Spacer(minLength: 0)
                                 #if os(macOS)
                                 Text("\(i + 1)")
@@ -1603,7 +1678,8 @@ struct TaskComposer: View {
                                 #endif
                             }
                             .foregroundStyle(Color.tint(t.hex))
-                            if !compact {
+                            // En el teléfono las tres no entran con la explicación.
+                            if !compact && !isCompact {
                                 Text(t.hint)
                                     .font(.system(size: 10))
                                     .foregroundStyle(Palette.textFaint)
@@ -1633,7 +1709,7 @@ struct TaskComposer: View {
     private var groupQuestion: some View {
         let sugerido = store.suggestGroup(for: draft)?.id
         return VStack(alignment: .leading, spacing: 8) {
-            questionHeader("¿De qué grupo?", skip: "Enter: sin grupo") {
+            questionHeader("¿De qué grupo?", skip: Self.skipLabel("sin grupo")) {
                 groupAnswered = true
                 add()
             }

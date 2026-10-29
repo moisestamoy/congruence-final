@@ -10,6 +10,9 @@ struct RootView: View {
     @Environment(HabitStore.self) private var habits
     /// Hay una hoja abierta sobre la ventana: lo de atrás retrocede un poco.
     @State private var sheetOpen = false
+    /// El teclado del teléfono está arriba: la barra de abajo se esconde
+    /// detrás de él en vez de subir con él y robar media pantalla.
+    @State private var keyboardUp = false
 
     private var section: Binding<AppSection> {
         Binding(
@@ -26,7 +29,9 @@ struct RootView: View {
                     // En el teléfono la navegación va abajo, bajo el pulgar.
                     content
                         .safeAreaInset(edge: .bottom, spacing: 0) {
-                            PhoneTabBar(selection: section, onLogin: { isLoggingIn = true })
+                            if !keyboardUp {
+                                PhoneTabBar(selection: section, onLogin: { isLoggingIn = true })
+                            }
                         }
                 } else {
                     HStack(spacing: 0) {
@@ -51,6 +56,14 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEndSheetNotification)) { _ in
             sheetOpen = false
+        }
+        #endif
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardUp = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardUp = false
         }
         #endif
         #if DEBUG && os(macOS)
