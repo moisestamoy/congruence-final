@@ -10,6 +10,7 @@ struct FinancesView: View {
 
     @State private var dayDetails: String?
     @State private var newTransaction = false
+    @Environment(\.phonePlus) private var phonePlus
     @State private var editingBudget = false
     @State private var restarting = false
     @State private var showingGoals = false
@@ -77,6 +78,8 @@ struct FinancesView: View {
                              set: { addingOn = $0?.id })) { key in
             TransactionSheet(mode: .new(date: key.id, type: .expense, askDate: false))
         }
+        // El + de la barra del teléfono, en Finanzas, anota un movimiento.
+        .onChange(of: phonePlus.tick) { newTransaction = true }
         .sheet(isPresented: $newTransaction) {
             TransactionSheet(mode: .new(date: FinDate.todayKey(), type: .expense, askDate: true))
         }

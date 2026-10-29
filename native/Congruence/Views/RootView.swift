@@ -13,6 +13,8 @@ struct RootView: View {
     /// El teclado del teléfono está arriba: la barra de abajo se esconde
     /// detrás de él en vez de subir con él y robar media pantalla.
     @State private var keyboardUp = false
+    /// Sube con cada toque del + de la barra; la pantalla visible lo atiende.
+    @State private var plus = PhonePlus(tick: 0, dictate: false)
 
     private var section: Binding<AppSection> {
         Binding(
@@ -30,7 +32,10 @@ struct RootView: View {
                     content
                         .safeAreaInset(edge: .bottom, spacing: 0) {
                             if !keyboardUp {
-                                PhoneTabBar(selection: section, onLogin: { isLoggingIn = true })
+                                PhoneTabBar(selection: section, onLogin: { isLoggingIn = true },
+                                            onPlus: { dictar in
+                                                plus = PhonePlus(tick: plus.tick + 1, dictate: dictar)
+                                            })
                             }
                         }
                 } else {
@@ -41,6 +46,7 @@ struct RootView: View {
                 }
             }
             .environment(\.isCompact, compact)
+            .environment(\.phonePlus, plus)
             // Al abrir una hoja, la ventana se aleja apenas y se oscurece: la
             // hoja viene hacia ti y lo demás espera detrás.
             .scaleEffect(sheetOpen ? 0.975 : 1)

@@ -31,6 +31,7 @@ struct TodayView: View {
 
     @State private var selectedDate: Date = HabitDay.current()
     @State private var isAddingHabit = false
+    @Environment(\.phonePlus) private var phonePlus
     @State private var editingReminder = false
     @AppStorage(HabitReminder.enabledKey) private var reminderOn = false
     @State private var isEditingIdentity = false
@@ -123,6 +124,8 @@ struct TodayView: View {
         .onChange(of: store.congruence(on: HabitDay.key(HabitDay.current()))) { _, _ in
             HabitReminder.reschedule(habits: store)
         }
+        // El + de la barra del teléfono, en Hábitos, crea un hábito.
+        .onChange(of: phonePlus.tick) { isAddingHabit = true }
         .sheet(isPresented: $isAddingHabit) {
             HabitEditorSheet(onSave: { store.add($0) })
         }

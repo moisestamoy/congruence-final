@@ -60,6 +60,7 @@ struct TasksView: View {
     @State private var managingGroups = false
     /// ⇧⌘D: el campo que se abra ahora empieza dictando.
     @State private var dictateNext = false
+    @Environment(\.phonePlus) private var phonePlus
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -113,47 +114,13 @@ struct TasksView: View {
         .environment(\.focusTask) { id in
             withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) { focused = id }
         }
-        .overlay(alignment: .bottomTrailing) {
-            // En el teléfono no hay ⌘N ni clic en blanco que se adivine: un
-            // botón a mano del pulgar para escribir, y otro para dictar.
-            if isCompact && tab == .tareas && composing == nil && !selection.isActive && focused == nil {
-                HStack(spacing: 10) {
-                    if VoiceSupport.isAvailable {
-                        Button {
-                            dictateNext = true
-                            withAnimation(.smooth(duration: 0.2)) { composing = .pending }
-                        } label: {
-                            Image(systemName: "mic.fill")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(Palette.accent)
-                                .frame(width: 50, height: 50)
-                                .background(Circle().fill(Palette.surfaceRaised))
-                                .overlay(Circle().stroke(Palette.hairline, lineWidth: 1))
-                                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
-                        }
-                        .buttonStyle(.pressable)
-                        .accessibilityLabel("Dictar tareas")
-                    }
-                    Button {
-                        dictateNext = false
-                        withAnimation(.smooth(duration: 0.2)) { composing = .pending }
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(Palette.onAccent)
-                            .frame(width: 58, height: 58)
-                            .background(Circle().fill(Palette.accent))
-                            .shadow(color: Palette.accent.opacity(0.35), radius: 12, y: 5)
-                    }
-                    .buttonStyle(.pressable)
-                    .accessibilityLabel("Nueva tarea")
-                }
-                .padding(.trailing, 18)
-                .padding(.bottom, 16)
-                .transition(.scale(scale: 0.8).combined(with: .opacity))
-            }
+        // El + de la barra del teléfono: escribir una tarea, o dictarla si
+        // se mantuvo pulsado.
+        .onChange(of: phonePlus.tick) {
+            tab = .tareas
+            dictateNext = phonePlus.dictate
+            withAnimation(.smooth(duration: 0.2)) { composing = .pending }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: composing == nil)
         .overlay(alignment: .bottom) {
             if selection.isActive && focused == nil {
                 SelectionBar()
