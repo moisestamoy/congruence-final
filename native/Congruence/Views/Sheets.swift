@@ -12,6 +12,7 @@ struct HabitEditorSheet: View {
     var onDelete: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.isCompact) private var isCompact
 
     @State private var title: String
     @State private var icon: String
@@ -81,12 +82,17 @@ struct HabitEditorSheet: View {
                 }
 
                 section("Ícono") {
-                    HStack(spacing: 4) {
+                    // En el teléfono, cinco por fila y más grandes: diez en una
+                    // fila quedaban apretados y chicos para el dedo.
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6),
+                                             count: isCompact ? 5 : 10),
+                              alignment: .leading, spacing: 6) {
                         ForEach(habitIcons, id: \.self) { option in
                             Button { icon = option } label: {
                                 Text(option)
-                                    .font(.system(size: 16))
-                                    .frame(width: 34, height: 34)
+                                    .font(.system(size: isCompact ? 24 : 16))
+                                    .frame(maxWidth: isCompact ? .infinity : 34)
+                                    .frame(height: isCompact ? 52 : 34)
                                     .background(
                                         RoundedRectangle(cornerRadius: Radius.control)
                                             .fill(icon == option ? tint.opacity(0.14) : .clear)
@@ -105,12 +111,12 @@ struct HabitEditorSheet: View {
                 }
 
                 section("Color") {
-                    HStack(spacing: 10) {
+                    HStack(spacing: isCompact ? 14 : 10) {
                         ForEach(habitColors, id: \.self) { option in
                             Button { color = option } label: {
                                 Circle()
                                     .fill(Color.tint(option))
-                                    .frame(width: 20, height: 20)
+                                    .frame(width: isCompact ? 30 : 20, height: isCompact ? 30 : 20)
                                     .overlay(
                                         Circle()
                                             .stroke(Color.tint(option).opacity(0.5),
@@ -123,6 +129,10 @@ struct HabitEditorSheet: View {
                         }
                         Spacer()
                     }
+                    // El anillo del elegido sobresale: sin este margen se
+                    // cortaba contra el borde izquierdo.
+                    .padding(.leading, 5)
+                    .padding(.vertical, 5)
                     .animation(.smooth(duration: 0.2), value: color)
                 }
 
@@ -317,6 +327,73 @@ struct SheetShell<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
+        #if os(iOS)
+        phoneBody
+        #else
+        desktopBody
+        #endif
+    }
+
+    #if os(iOS)
+    /// En el iPhone, una hoja de iPhone: Cancelar y Guardar arriba, donde
+    /// los busca el pulgar y donde los ponen todas las apps, el título al
+    /// centro, y el contenido desplazable. Antes era la ventana de la Mac
+    /// con los botones abajo a la derecha y un hueco vacío encima.
+    private var phoneBody: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+                HStack {
+                    Button("Cancelar", action: onCancel)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer()
+                    Button("Guardar", action: onSave)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(canSave ? Palette.accent : Palette.textFaint)
+                        .disabled(!canSave)
+                }
+            }
+            .buttonStyle(.pressable)
+            .padding(.horizontal, 20)
+            .padding(.top, 22)
+            .padding(.bottom, 14)
+
+            Divider().overlay(Palette.hairlineFaint)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    content
+                    if let onDelete {
+                        Button(action: onDelete) {
+                            Text("Borrar")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Palette.negative)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(RoundedRectangle(cornerRadius: Radius.control)
+                                    .fill(Palette.negative.opacity(0.08)))
+                        }
+                        .buttonStyle(.pressable)
+                        .padding(.top, 32)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 40)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.base)
+        .presentationBackground(Palette.base)
+        .presentationDragIndicator(.visible)
+    }
+    #endif
+
+    private var desktopBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.system(size: 17, weight: .bold))

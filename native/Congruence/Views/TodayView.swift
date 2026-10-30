@@ -93,15 +93,21 @@ struct TodayView: View {
                 } else {
                     // En el teléfono el anillo cede lugar: los hábitos son lo
                     // que se toca, y tienen que asomar sin hacer scroll.
-                    let heroH: CGFloat = isCompact ? 480 : 560
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            ringHero(size: ringDiameter(width: w - 40, height: heroH))
-                                .frame(height: heroH)
-                            habitsColumn(maxListHeight: 4000)
-                            leftColumn
+                    // En el iPhone, chico y sin la frase: con 480 puntos de
+                    // anillo los hábitos quedaban debajo del pliegue y había
+                    // que bajar para marcar uno, que es a lo que se viene.
+                    if isCompact {
+                        phoneHome
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 24) {
+                                ringHero(size: ringDiameter(width: w - 40, height: 560))
+                                    .frame(height: 560)
+                                habitsColumn(maxListHeight: 4000)
+                                leftColumn
+                            }
+                            .padding(20)
                         }
-                        .padding(20)
                     }
                 }
             }
@@ -157,6 +163,50 @@ struct TodayView: View {
         }
     }
 
+    // MARK: - El teléfono
+
+    @State private var homeScrollY: CGFloat = 0
+
+    /// El inicio del teléfono. Al abrir, el anillo grande al centro con el
+    /// número debajo. Al bajar, se transforma siguiendo el dedo: el anillo se
+    /// achica y va a la izquierda, el número sube a su derecha, aparece la
+    /// frase, y esa cabecera queda fija arriba mientras bajas por los hábitos.
+    private var phoneHome: some View {
+        GeometryReader { geo in
+            let W = geo.size.width
+            let alto = HomeHero.alturaAbierto(conRacha: streak > 0)
+            let recorrido = alto - HomeHero.alturaCerrado
+            let p = min(max(homeScrollY / recorrido, 0), 1)
+
+            ScrollView {
+                VStack(spacing: 18) {
+                    // El lugar del anillo grande: el anillo en sí vive arriba,
+                    // fijo, y se transforma mientras esto sube.
+                    Color.clear.frame(height: alto - 20)
+                    habitsColumn(maxListHeight: 4000)
+                    leftColumn
+                }
+                .padding(20)
+            }
+            .modifier(ScrollOffsetReader(offset: $homeScrollY))
+            .overlay(alignment: .top) {
+                HomeHero(p: p, width: W, percentage: congruence, level: level,
+                         streak: streak, celebrate: celebrate)
+                    .frame(height: alto - p * recorrido, alignment: .top)
+                    .background(alignment: .bottom) {
+                        // Ya cerrada, la cabecera tapa lo que pasa por debajo.
+                        Palette.base
+                            .overlay(alignment: .bottom) {
+                                Rectangle().fill(Palette.hairlineFaint).frame(height: 1)
+                                    .opacity(p >= 1 ? 1 : 0)
+                            }
+                            .ignoresSafeArea(edges: .top)
+                    }
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
     // MARK: - El anillo, sin caja, tan grande como entre
 
     /// Ojo: lo que recibe `CongruenceDial` es la caja, no el anillo. El anillo
@@ -170,7 +220,8 @@ struct TodayView: View {
         return max(200, min(byWidth, byHeight, 1000))
     }
 
-    private func ringHero(size: CGFloat) -> some View {
+    private func ringHero(size: CGFloat,
+                          phrase: String? = "La consistencia no es perfección. Es simplemente no rendirse nunca.") -> some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
@@ -178,7 +229,7 @@ struct TodayView: View {
                 percentage: congruence,
                 level: level,
                 size: size,
-                phrase: "La consistencia no es perfección. Es simplemente no rendirse nunca.",
+                phrase: phrase,
                 celebrate: celebrate
             )
             .sensoryFeedback(.impact(weight: .heavy), trigger: celebrate)
@@ -482,5 +533,117 @@ struct TodayView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.pressable)
+    }
+}
+
+/// Cuánto se bajó en un ScrollView (iOS 18 / macOS 15 en adelante; antes no
+/// se mueve, y la cabecera chica simplemente no aparece).
+private struct ScrollOffsetReader: ViewModifier {
+    @Binding var offset: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { g in
+                g.contentOffset.y + g.contentInsets.top
+            } action: { _, nuevo in
+                offset = nuevo
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// El anillo del inicio del teléfono en cualquier punto entre abierto (p = 0:
+/// grande, centrado, el número debajo) y cerrado (p = 1: chico a la
+/// izquierda, el número a su derecha con la frase). Todo se interpola, así
+/// que se transforma junto con el dedo en vez de saltar.
+private struct HomeHero: View {
+    let p: CGFloat
+    let width: CGFloat
+    let percentage: Int
+    let level: Int
+    let streak: Int
+    let celebrate: Int
+
+    /// El tamaño del bloque del número, medido: hace falta para ubicarlo
+    /// alrededor del anillo sin pisarlo.
+    @State private var bloque: CGSize = .zero
+
+    static let anilloAbierto: CGFloat = 290
+    static let anilloCerrado: CGFloat = 124
+    static let alturaCerrado: CGFloat = 184
+    static func alturaAbierto(conRacha: Bool) -> CGFloat { conRacha ? 478 : 440 }
+
+    private func mezcla(_ a: CGFloat, _ b: CGFloat) -> CGFloat { a + (b - a) * p }
+    private var colors: LevelColors { LevelColors.forLevel(level) }
+    private var isPaused: Bool { percentage == -1 }
+
+    var body: some View {
+        let margen: CGFloat = 26
+        let anillo = mezcla(Self.anilloAbierto, Self.anilloCerrado)
+        let r = anillo / 2
+        // El anillo: del centro, arriba, a la izquierda de la cabecera.
+        let cx = mezcla(width / 2, margen + Self.anilloCerrado / 2)
+        let cy = mezcla(14 + Self.anilloAbierto / 2, margen + Self.anilloCerrado / 2)
+
+        // El número orbita el anillo por fuera: empieza debajo (centrado) y
+        // termina a su derecha, arriba. Nunca lo cruza.
+        let rC = Self.anilloCerrado / 2
+        let finX: CGFloat = rC + 22, finY: CGFloat = -rC + 2
+        let anguloFin = atan2(finY, finX)
+        let angulo = .pi / 2 + (anguloFin - .pi / 2) * p
+        let distancia = mezcla(r + 24, hypot(finX, finY))
+        let px = cx + cos(angulo) * distancia
+        let py = cy + sin(angulo) * distancia
+        // Qué punto del bloque cae ahí: arriba al centro al principio,
+        // arriba a la izquierda al final.
+        let ancla = 0.5 * (1 - p)
+        let numero = mezcla(58, 50)
+
+        ZStack(alignment: .topLeading) {
+            CongruenceRing(percentage: percentage, size: anillo, level: level, celebrate: celebrate)
+                .opacity(isPaused ? 0.35 : 1)
+                .position(x: cx, y: cy)
+
+            VStack(alignment: p < 0.5 ? .center : .leading, spacing: 8) {
+                Text(isPaused ? "—" : "\(max(percentage, 0))%")
+                    .font(.system(size: numero, weight: .bold))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(isPaused ? Palette.textMuted : colors.primary)
+                Text(isPaused ? "En pausa" : "Estabilidad")
+                    .microLabelStyle(isPaused ? Palette.textFaint : colors.primary, size: 11)
+            }
+            .fixedSize()
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { bloque = $0 }
+            .offset(x: px - bloque.width * ancla, y: py)
+
+            // La frase, sólo cerrada: debajo del número, a la derecha del anillo.
+            Text("“La consistencia no es perfección. Es simplemente no rendirse nunca.”")
+                .font(.system(size: 12, weight: .light, design: .serif))
+                .italic()
+                .foregroundStyle(Palette.textFaint)
+                .frame(width: max(0, width - (cx + rC + 22) - margen), alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .offset(x: px, y: py + bloque.height + 8)
+                .opacity(Double(max(0, (p - 0.65) / 0.35)))
+
+            // La racha, sólo abierta.
+            if streak > 0 {
+                HStack(spacing: 6) {
+                    Text("Racha").microLabelStyle(Palette.textFaint, size: 9)
+                    Text("\(streak)")
+                        .font(.system(size: 11, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.textMuted)
+                    Text(streak == 1 ? "día" : "días").microLabelStyle(Palette.textFaint, size: 9)
+                }
+                .fixedSize()
+                .position(x: width / 2, y: py + bloque.height + 34)
+                .opacity(Double(max(0, 1 - p * 3)))
+            }
+        }
+        .frame(width: width, alignment: .topLeading)
     }
 }
