@@ -36,3 +36,7 @@ verify_jwt = true
 
 [functions.ai-coach]
 verify_jwt = true
+
+# Valida su propia clave contra el Vault (supabase/mcp-congruence.sql), no un JWT.
+[functions.congruence-mcp]
+verify_jwt = false
