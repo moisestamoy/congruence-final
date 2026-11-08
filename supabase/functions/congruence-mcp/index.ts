@@ -8,7 +8,7 @@
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const DUENO = "c4e734ed-ffce-41bb-befd-4b9092a7ad51"; // moisstamoy@gmail.com
-const ZONA = "America/Argentina/Buenos_Aires";
+const ZONA = "Europe/Lisbon";
 
 async function rest(path: string, init: RequestInit = {}) {
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
