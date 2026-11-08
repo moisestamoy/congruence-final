@@ -14,8 +14,9 @@
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TRELLO_KEY = Deno.env.get("TRELLO_KEY") || "";
-const TRELLO_TOKEN = Deno.env.get("TRELLO_TOKEN") || "";
+// trim: al pegarlas en el panel de Supabase suele colarse un salto de línea.
+const TRELLO_KEY = (Deno.env.get("TRELLO_KEY") || "").trim();
+const TRELLO_TOKEN = (Deno.env.get("TRELLO_TOKEN") || "").trim();
 const TABLERO = "6aefb9e5bf4370896af5f66c"; // Sales
 const GRUPO = { id: "trello-sales", name: "Sales", color: "#0c66e4" };
 const ZONA = "Europe/Lisbon";
@@ -39,7 +40,9 @@ async function trello(method: string, path: string, params: Record<string, strin
   const q = new URLSearchParams({ ...params, key: TRELLO_KEY, token: TRELLO_TOKEN });
   const r = await fetch(`https://api.trello.com/1${path}?${q}`, { method });
   const t = await r.text();
-  if (!r.ok) throw new Error(`Trello ${method} ${path} (${r.status}): ${t.slice(0, 200)}`);
+  // El token nunca sale en un error: la respuesta queda guardada en la base (net._http_response).
+  const tapar = (x: string) => x.split(TRELLO_TOKEN).join("<token>").split(TRELLO_KEY).join("<key>");
+  if (!r.ok) throw new Error(tapar(`Trello ${method} ${path} (${r.status}): ${t.slice(0, 200)}`));
   return t ? JSON.parse(t) : null;
 }
 
@@ -172,7 +175,8 @@ async function asegurarWebhook(secreto: string) {
   const [estado] = (await rest("trello_sync_estado?id=eq.1&select=webhook_id", { headers: { Prefer: "" } })) || [];
   if (estado?.webhook_id) return;
   const callbackURL = `${URL_PROPIA}/w/${secreto}`;
-  const existentes: any[] = await trello("GET", `/tokens/${TRELLO_TOKEN}/webhooks`);
+  const existentes: any[] = await trello("GET", "/members/me/tokens", { webhooks: "true" })
+    .then((ts: any[]) => ts.flatMap((x) => x.webhooks || []));
   let w = existentes.find((x) => x.callbackURL === callbackURL && x.idModel === TABLERO);
   if (!w) w = await trello("POST", "/webhooks", { callbackURL, idModel: TABLERO, description: "Congruence" });
   await rest("trello_sync_estado?id=eq.1", { method: "PATCH", body: JSON.stringify({ webhook_id: w.id }) });
