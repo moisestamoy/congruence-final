@@ -13,6 +13,9 @@ struct HabitRow: View {
     var onEdit: () -> Void = {}
     var onMove: (Int) -> Void = { _ in }
     var onDelete: () -> Void = {}
+    /// En el iPhone: sin caja propia, el nombre como se escribió. Las filas
+    /// viven dentro de una sola tarjeta, separadas por una línea.
+    var plain = false
 
     /// La onda que sale del círculo al marcarlo.
     @State private var burst = false
@@ -37,14 +40,14 @@ struct HabitRow: View {
 
             if let icon = habit.icon, !icon.isEmpty {
                 Text(icon)
-                    .font(.system(size: 14))
-                    .padding(.trailing, 10)
+                    .font(.system(size: plain ? 22 : 14))
+                    .padding(.trailing, plain ? 12 : 10)
             }
 
-            Text(habit.title)
-                .textCase(.uppercase)
-                .font(.system(size: 12, weight: .bold))
-                .tracking(1.1)
+            Text(plain ? habit.title.unshouted : habit.title)
+                .textCase(plain ? nil : .uppercase)
+                .font(.system(size: plain ? 16 : 12, weight: plain ? .semibold : .bold))
+                .tracking(plain ? 0 : 1.1)
                 .foregroundStyle(weeklyMet && !isDone ? Palette.textFaint : statusColor)
                 .lineLimit(1)
                 // El tachado corre después de que los segmentos de la semana
@@ -64,15 +67,33 @@ struct HabitRow: View {
             }
         }
         .padding(.horizontal, 16)
-        .frame(height: 56)
-        .background(rowSurface)
-        .overlay(
-            RoundedRectangle(cornerRadius: Radius.row)
-                .stroke(isDone ? tint.opacity(0.45) : Palette.hairlineFaint, lineWidth: 1)
-        )
+        .frame(height: plain ? 64 : 56)
+        .background {
+            if plain {
+                // Cada hábito su tarjeta, como las entradas del diario de Bevel.
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Palette.panel)
+                    .overlay {
+                        if isDone {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(LinearGradient(colors: [tint.opacity(0.14), tint.opacity(0.02)],
+                                                     startPoint: .leading, endPoint: .trailing))
+                        }
+                    }
+                    .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
+            } else {
+                rowSurface
+            }
+        }
+        .overlay {
+            if !plain {
+                RoundedRectangle(cornerRadius: Radius.row)
+                    .stroke(isDone ? tint.opacity(0.45) : Palette.hairlineFaint, lineWidth: 1)
+            }
+        }
         // El resplandor sólo aparece al completar. Es la única recompensa
         // visual de la fila: si brillara siempre, no significaría nada.
-        .shadow(color: isDone ? Palette.nightGlow(tint, 0.20) : .clear, radius: 14, y: 3)
+        .shadow(color: isDone && !plain ? Palette.nightGlow(tint, 0.20) : .clear, radius: 14, y: 3)
         .opacity(isPaused ? 0.5 : 1)
         .animation(.smooth(duration: 0.3), value: isDone)
         .animation(.easeInOut(duration: 0.8), value: isPaused)
@@ -195,8 +216,10 @@ struct HabitRow: View {
             .animation(.smooth(duration: 0.3), value: weekCount)
             Text("\(min(weekCount, target))/\(target)")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .fixedSize()
                 .foregroundStyle(weeklyMet ? tint : Palette.textFaint)
         }
+        .fixedSize()
         .help(weeklyMet ? "Mínimo de la semana cumplido"
                         : "\(weekCount) de \(target) esta semana")
     }
@@ -240,5 +263,16 @@ struct HabitRow: View {
                 .background(Palette.fill(0.04), in: RoundedRectangle(cornerRadius: Radius.inner))
         }
         .buttonStyle(.pressable)
+    }
+}
+
+extension String {
+    /// "ENTRENAR" → "Entrenar". Los títulos viejos se guardaron en mayúsculas.
+    var unshouted: String {
+        guard let first = first else { return self }
+        let resto = dropFirst()
+        // Sólo si está todo en mayúsculas: un título escrito a mano se respeta.
+        guard self == uppercased() else { return self }
+        return first.uppercased() + resto.lowercased()
     }
 }

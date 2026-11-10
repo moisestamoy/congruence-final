@@ -17,6 +17,7 @@ enum RingLayout: String {
 struct TodayView: View {
     @Environment(HabitStore.self) private var store
     @Environment(TaskStore.self) private var tasks
+    @Environment(FinanceStore.self) private var finance
     @Environment(\.isCompact) private var isCompact
     /// El día en que ya se ofreció escribir al cerrar. Una vez por día y
     /// basta: un aviso que insiste deja de ser una señal y pasa a ser ruido.
@@ -97,7 +98,26 @@ struct TodayView: View {
                     // anillo los hábitos quedaban debajo del pliegue y había
                     // que bajar para marcar uno, que es a lo que se viene.
                     if isCompact {
-                        phoneHome
+                        switch UserDefaults.standard.string(forKey: "homeVariant") {
+                        case "A": homeVariantA
+                        case "B": homeVariantB
+                        case "C": homeVariantC
+                        case "D": homeVariantD
+                        case "E": homeVariantE
+                        case "F": homeVariantF
+                        case "G": homeVariantG
+                        case "H": homeVariantH
+                        case "I": homeVariantI
+                        case "E1": variantE1
+                        case "E2": variantE2
+                        case "E3": variantE3
+                        case "E4": variantE4
+                        case "E5": variantE5
+                        case "E6": variantE6
+                        case "E7": compactHome(dark: true)
+                        case "E8": compactHome(dark: false)
+                        default: phoneHome
+                        }
                     } else {
                         ScrollView {
                             VStack(spacing: 24) {
@@ -645,5 +665,766 @@ private struct HomeHero: View {
             }
         }
         .frame(width: width, alignment: .topLeading)
+    }
+}
+
+// MARK: - Propuestas para el inicio del iPhone (a elegir)
+
+extension TodayView {
+    private static let dayTitle: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es")
+        f.dateFormat = "EEEE, d 'de' MMMM"
+        return f
+    }()
+
+    /// "Sábado, 31 de octubre" chico y "Hoy" grande, como Tareas y Finanzas.
+    private var phoneTitle: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(Self.dayTitle.string(from: selectedDate).sentenceCased)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.textMuted)
+            Text(isToday ? "Hoy" : "Ese día")
+                .font(.system(size: 34, weight: .black))
+                .tracking(-1)
+                .foregroundStyle(Palette.text)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var doneToday: Int {
+        store.habits.filter { $0.log(on: dayKey)?.completed == true }.count
+    }
+
+    private var pendingPriority: Int { tasks.pending(onlyPriority: true).count }
+
+    private func chip(_ symbol: String, _ text: String, _ color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(color)
+            Text(text)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.text)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 34)
+        .background(Capsule().fill(Palette.panel))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+    }
+
+    /// Lo del día en una fila: la racha, lo que va y lo que falta.
+    private var contextChips: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                chip("flame.fill", streak == 1 ? "1 día" : "\(streak) días", .orange)
+                chip("checkmark.circle.fill", "\(doneToday) de \(store.habits.count) hábitos", Palette.accent)
+                if pendingPriority > 0 {
+                    chip("bolt.fill", pendingPriority == 1 ? "1 prioritaria" : "\(pendingPriority) prioritarias",
+                         Color(hex: "#dc2626"))
+                }
+            }
+            .padding(.vertical, 6)
+        }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+    }
+
+    /// Una frase hecha con tus datos de hoy, no una cita genérica.
+    private var coachLine: String {
+        let faltan = store.habits.count - doneToday
+        if store.habits.isEmpty { return "Crea tu primer hábito con el +. Empieza por uno solo." }
+        if faltan == 0 {
+            return streak > 1 ? "Día completo. Ya son \(streak) días seguidos: así se construye." : "Día completo. Mañana, lo mismo."
+        }
+        let cerca = store.habits.first { h in
+            guard let t = h.weeklyTarget else { return false }
+            let n = store.weekCount(for: h)
+            return n < t && t - n == 1
+        }
+        if let cerca, let t = cerca.weeklyTarget {
+            return "Llevas \(t - 1) de \(t) en \(cerca.title.capitalized). Uno más y cierras la semana."
+        }
+        return faltan == 1 ? "Te falta un hábito para cerrar el día." : "Te faltan \(faltan) hábitos para cerrar el día. Empieza por el más fácil."
+    }
+
+    private var coachCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Para ti")
+                .microLabelStyle(Palette.textFaint, size: 10)
+            Text(coachLine)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Palette.panel))
+        .shadow(color: .black.opacity(0.05), radius: 12, y: 3)
+    }
+
+    /// Los hábitos en una sola tarjeta, sin cajas adentro.
+    private var phoneHabits: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Hábitos")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Palette.text)
+                Spacer()
+                reminderButton
+            }
+            VStack(spacing: 10) {
+                ForEach(Array(store.habits.enumerated()), id: \.element.id) { i, habit in
+                    HabitRow(
+                        habit: habit, day: dayKey,
+                        weekDots: store.weekDots(for: habit),
+                        weekCount: store.weekCount(for: habit),
+                        onToggle: { toggle(habit) },
+                        onSetValue: { store.setValue($0, for: habit.id, on: dayKey) },
+                        onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) },
+                        onEdit: { editingHabit = habit },
+                        onMove: { o in withAnimation(.smooth(duration: 0.3)) { store.move(habit.id, by: o) } },
+                        onDelete: { deletingHabit = habit },
+                        plain: true
+                    )
+                    .staggeredAppear(i)
+                }
+            }
+        }
+    }
+
+    private func phoneScroll<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) { content() }
+                .padding(.horizontal, 18)
+                .padding(.top, 8)
+                .padding(.bottom, 120)
+        }
+        .background(alignment: .top) { atmosphere }
+    }
+
+    /// Un cielo suave arriba, del color de tu nivel: la pantalla respira en
+    /// vez de ser un gris plano.
+    private var atmosphere: some View {
+        let c = LevelColors.forLevel(level).primary
+        return ZStack {
+            Circle().fill(c.opacity(0.22)).frame(width: 360).blur(radius: 90).offset(x: -120, y: -60)
+            Circle().fill(Color(hex: "#f5c46b").opacity(0.20)).frame(width: 320).blur(radius: 90).offset(x: 150, y: -20)
+            Circle().fill(Color(hex: "#8fb6ff").opacity(0.14)).frame(width: 280).blur(radius: 80).offset(x: 40, y: 140)
+        }
+        .frame(height: 420)
+        .frame(maxWidth: .infinity)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+    }
+
+    /// La semana en una fila: cada día con su anillo, el elegido resaltado.
+    /// Tocar un día lo abre.
+    private var weekStrip: some View {
+        let hoy = HabitDay.current()
+        let letras = DateFormatter.es("EEEEE")
+        let num = DateFormatter.es("d")
+        return HStack(spacing: 6) {
+            ForEach((0..<7).reversed(), id: \.self) { atras in
+                let dia = HabitDay.adding(-atras, to: hoy)
+                let key = HabitDay.key(dia)
+                let pct = store.congruence(on: key)
+                let elegido = key == dayKey
+                let color = LevelColors.forLevel(level).primary
+                Button { withAnimation(.smooth(duration: 0.25)) { selectedDate = dia } } label: {
+                    VStack(spacing: 6) {
+                        Text(letras.string(from: dia).uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Palette.textFaint)
+                        Text(num.string(from: dia))
+                            .font(.system(size: 16, weight: .bold)).monospacedDigit()
+                            .foregroundStyle(elegido ? color : Palette.text)
+                        ZStack {
+                            Circle().stroke(color.opacity(0.15), lineWidth: 3.5)
+                            Circle().trim(from: 0, to: CGFloat(max(pct, 0)) / 100)
+                                .stroke(color, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                            if pct >= 100 {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .heavy))
+                                    .foregroundStyle(color)
+                            }
+                        }
+                        .frame(width: 26, height: 26)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background {
+                        if elegido {
+                            RoundedRectangle(cornerRadius: 18).fill(Palette.panel)
+                                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+    }
+
+    /// A: tu anillo grande, con encabezado, el día en chips y una frase tuya.
+    var homeVariantA: some View {
+        phoneScroll {
+            phoneTitle
+            weekStrip
+            contextChips
+            VStack(spacing: 6) {
+                CongruenceRing(percentage: congruence, size: 230, level: level, celebrate: celebrate)
+                Text("\(max(congruence, 0))%")
+                    .font(.system(size: 46, weight: .bold)).monospacedDigit()
+                    .foregroundStyle(LevelColors.forLevel(level).primary)
+                Text("Estabilidad").microLabelStyle(LevelColors.forLevel(level).primary, size: 11)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            coachCard
+            phoneHabits
+        }
+    }
+
+    private func miniRing(_ value: Double, _ text: String, _ label: String, _ color: Color) -> some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle().stroke(color.opacity(0.15), lineWidth: 9)
+                Circle().trim(from: 0, to: max(0.001, min(value, 1)))
+                    .stroke(color, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text(text)
+                    .font(.system(size: 20, weight: .bold)).monospacedDigit()
+                    .minimumScaleFactor(0.6).lineLimit(1)
+                    .foregroundStyle(Palette.text)
+                    .padding(.horizontal, 10)
+            }
+            .frame(width: 88, height: 88)
+            Text(label)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Palette.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// B: a la manera de Bevel. Tres anillos chicos, uno por parte de tu vida.
+    var homeVariantB: some View {
+        let hechas = tasks.completedToday()
+        let tareas = Double(hechas) / Double(max(1, hechas + tasks.pending(onlyPriority: true).count))
+        let plata = FinanceEngine.allowance(doc: finance.document)
+        let libre = plata.map { $0.today <= 0 ? 0 : $0.today / max(1, $0.today + $0.spentToday) } ?? 0
+        return phoneScroll {
+            phoneTitle
+            weekStrip
+            HStack(spacing: 0) {
+                miniRing(Double(max(congruence, 0)) / 100, "\(max(congruence, 0))%", "Hábitos",
+                         LevelColors.forLevel(level).primary)
+                Rectangle().fill(Palette.hairlineFaint).frame(width: 1, height: 110)
+                miniRing(tareas, "\(hechas)/\(hechas + tasks.pending(onlyPriority: true).count)", "Prioritarias",
+                         Color(hex: "#dc2626"))
+                Rectangle().fill(Palette.hairlineFaint).frame(width: 1, height: 110)
+                miniRing(libre, plata.map { Money.format(max(0, $0.today), doc: finance.document) } ?? "—",
+                         "Para gastar", FinPalette.income)
+            }
+            .padding(.vertical, 18)
+            .background(RoundedRectangle(cornerRadius: 22).fill(Palette.panel))
+            .shadow(color: .black.opacity(0.05), radius: 12, y: 3)
+            coachCard
+            phoneHabits
+        }
+    }
+
+    /// C: el anillo con el número adentro, y al lado los datos del día.
+    var homeVariantC: some View {
+        let colors = LevelColors.forLevel(level)
+        return phoneScroll {
+            phoneTitle
+            weekStrip
+            HStack(spacing: 18) {
+                ZStack {
+                    CongruenceRing(percentage: congruence, size: 170, level: level, celebrate: celebrate)
+                    VStack(spacing: 0) {
+                        Text("\(max(congruence, 0))%")
+                            .font(.system(size: 34, weight: .bold)).monospacedDigit()
+                            .foregroundStyle(colors.primary)
+                        Text("Estabilidad").microLabelStyle(colors.primary, size: 8)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    stat("\(streak)", streak == 1 ? "día de racha" : "días de racha")
+                    stat("\(doneToday)/\(store.habits.count)", "hábitos hoy")
+                    if pendingPriority > 0 { stat("\(pendingPriority)", pendingPriority == 1 ? "prioritaria" : "prioritarias") }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(18)
+            .background(RoundedRectangle(cornerRadius: 22).fill(Palette.panel))
+            .shadow(color: .black.opacity(0.05), radius: 12, y: 3)
+            coachCard
+            phoneHabits
+        }
+    }
+
+    private func stat(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(value).font(.system(size: 24, weight: .bold)).monospacedDigit().foregroundStyle(Palette.text)
+            Text(label).font(.system(size: 13)).foregroundStyle(Palette.textMuted)
+        }
+    }
+}
+
+// MARK: - Seis propuestas más, con el anillo de protagonista
+
+extension TodayView {
+    private var pct: Int { max(congruence, 0) }
+    private var tone: Color { LevelColors.forLevel(level).primary }
+
+    /// El número dentro del anillo, a la medida del hueco: el aro de adentro
+    /// deja libre un 38 % del ancho, y el texto no puede tocarlo.
+    private func pctLabel(_ ring: CGFloat) -> some View {
+        VStack(spacing: 1) {
+            Text("\(pct)%")
+                .font(.system(size: ring * 0.15, weight: .bold)).monospacedDigit()
+                .contentTransition(.numericText())
+            Text("Estabilidad").microLabelStyle(tone, size: max(7, ring * 0.028))
+        }
+        .foregroundStyle(tone)
+        .frame(width: ring * 0.34)
+        .minimumScaleFactor(0.5)
+    }
+
+    private var miniStats: some View {
+        HStack(spacing: 22) {
+            miniStat("\(streak)", streak == 1 ? "día" : "días")
+            miniStat("\(doneToday)/\(store.habits.count)", "hoy")
+            if pendingPriority > 0 { miniStat("\(pendingPriority)", "prioritaria") }
+        }
+    }
+
+    private func miniStat(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 0) {
+            Text(v).font(.system(size: 20, weight: .bold)).monospacedDigit()
+            Text(l).font(.system(size: 12)).opacity(0.6)
+        }
+    }
+
+    /// D: el anillo en un escenario oscuro, brillando. Como una joya en su caja.
+    var homeVariantD: some View {
+        phoneScroll {
+            phoneTitle
+            ZStack {
+                RoundedRectangle(cornerRadius: 30)
+                    .fill(LinearGradient(colors: [Color(hex: "#0f2a26"), Color(hex: "#050807")],
+                                         startPoint: .top, endPoint: .bottom))
+                Circle().fill(tone.opacity(0.45)).frame(width: 240).blur(radius: 80).offset(y: -40)
+                VStack(spacing: 18) {
+                    ZStack {
+                        CongruenceRing(percentage: congruence, size: 250, level: level, celebrate: celebrate)
+                        pctLabel(250)
+                    }
+                    miniStats.foregroundStyle(.white)
+                }
+                .padding(.vertical, 28)
+            }
+            .environment(\.colorScheme, .dark)
+            .shadow(color: tone.opacity(0.25), radius: 24, y: 10)
+            weekStrip
+            coachCard
+            phoneHabits
+        }
+    }
+
+    /// E: el anillo enorme al centro con el número adentro, y la frase debajo.
+    var homeVariantE: some View {
+        phoneScroll {
+            phoneTitle
+            weekStrip
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle().fill(tone.opacity(0.18)).frame(width: 220).blur(radius: 60)
+                    CongruenceRing(percentage: congruence, size: 310, level: level, celebrate: celebrate)
+                    pctLabel(310)
+                }
+                Text("“La consistencia no es perfección. Es simplemente no rendirse nunca.”")
+                    .font(.system(size: 15, weight: .light, design: .serif)).italic()
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Palette.textMuted)
+                    .padding(.horizontal, 24)
+                miniStats.foregroundStyle(Palette.text)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            phoneHabits
+        }
+    }
+
+    /// Cuánto lleva un hábito hoy, de 0 a 1.
+    private func progress(of h: Habit) -> Double {
+        if h.type == .numeric, h.goal > 0 { return min(1, (h.log(on: dayKey)?.value ?? 0) / h.goal) }
+        if let t = h.weeklyTarget, t > 0 { return min(1, Double(store.weekCount(for: h)) / Double(t)) }
+        return h.log(on: dayKey)?.completed == true ? 1 : 0
+    }
+
+    /// F: cada aro es uno de tus hábitos, con su color. El anillo deja de ser
+    /// decorado y pasa a decir algo.
+    var homeVariantF: some View {
+        let habits = Array(store.habits.prefix(5))
+        let size: CGFloat = 270
+        let grosor: CGFloat = 20
+        return phoneScroll {
+            phoneTitle
+            weekStrip
+            VStack(spacing: 16) {
+                ZStack {
+                    ForEach(Array(habits.enumerated()), id: \.element.id) { i, h in
+                        let d = size - CGFloat(i) * (grosor + 6) * 2
+                        let c = Color.tint(h.color)
+                        Circle().stroke(c.opacity(0.15), lineWidth: grosor).frame(width: d, height: d)
+                        Circle().trim(from: 0, to: max(0.001, progress(of: h)))
+                            .stroke(c, style: StrokeStyle(lineWidth: grosor, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: d, height: d)
+                            .shadow(color: c.opacity(0.4), radius: 6)
+                    }
+                    Text("\(pct)%")
+                        .font(.system(size: 30, weight: .bold)).monospacedDigit()
+                        .foregroundStyle(Palette.text)
+                }
+                .frame(width: size + grosor, height: size + grosor)
+                .animation(.spring(response: 0.7, dampingFraction: 0.7), value: dayKey)
+                HStack(spacing: 14) {
+                    ForEach(habits) { h in
+                        HStack(spacing: 5) {
+                            Circle().fill(Color.tint(h.color)).frame(width: 8, height: 8)
+                            Text(h.title.unshouted).font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.textMuted).lineLimit(1)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            coachCard
+            phoneHabits
+        }
+    }
+
+    /// G: un dial con marcas, como un instrumento. El número grande en el centro.
+    var homeVariantG: some View {
+        phoneScroll {
+            phoneTitle
+            ZStack {
+                Canvas { ctx, sz in
+                    let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
+                    let r = min(sz.width, sz.height) / 2 - 6
+                    let n = 90
+                    for i in 0..<n {
+                        let f = Double(i) / Double(n - 1)
+                        let a = Angle.degrees(135 + 270 * f).radians
+                        let on = f <= Double(pct) / 100 && pct > 0
+                        let largo: CGFloat = i % 10 == 0 ? 22 : 14
+                        var path = Path()
+                        path.move(to: CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r))
+                        path.addLine(to: CGPoint(x: c.x + cos(a) * (r - largo), y: c.y + sin(a) * (r - largo)))
+                        ctx.stroke(path, with: .color(on ? tone : Palette.textFaint.opacity(0.35)),
+                                   style: StrokeStyle(lineWidth: on ? 3.5 : 2, lineCap: .round))
+                    }
+                }
+                .frame(width: 330, height: 330)
+                CongruenceRing(percentage: congruence, size: 200, level: level, celebrate: celebrate)
+                pctLabel(200)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity).padding(.top, -24)
+            weekStrip
+            phoneHabits
+        }
+    }
+
+    /// H: el anillo rodeado de un halo de 30 marcas, una por cada uno de tus
+    /// últimos 30 días, del color de cómo te fue.
+    var homeVariantH: some View {
+        let hoy = HabitDay.current()
+        let dias = (0..<30).reversed().map { store.congruence(on: HabitDay.key(HabitDay.adding(-$0, to: hoy))) }
+        return phoneScroll {
+            phoneTitle
+            ZStack {
+                Circle().fill(tone.opacity(0.16)).frame(width: 240).blur(radius: 60)
+                ForEach(Array(dias.enumerated()), id: \.offset) { i, v in
+                    Capsule()
+                        .fill(v <= 0 ? Palette.textFaint.opacity(0.25) : tone.opacity(0.35 + 0.65 * Double(v) / 100))
+                        .frame(width: 6, height: v >= 100 ? 26 : 18)
+                        .offset(y: -158)
+                        .rotationEffect(.degrees(Double(i) / 30 * 360))
+                }
+                CongruenceRing(percentage: congruence, size: 250, level: level, celebrate: celebrate)
+                pctLabel(250)
+            }
+            .frame(width: 350, height: 350)
+            .frame(maxWidth: .infinity)
+            Text("El halo son tus últimos 30 días")
+                .font(.system(size: 12)).foregroundStyle(Palette.textFaint)
+                .frame(maxWidth: .infinity)
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity)
+            coachCard
+            phoneHabits
+        }
+    }
+
+    /// I: editorial. El número enorme a la izquierda y el anillo gigante
+    /// saliéndose por el borde, como en la tapa de una revista.
+    var homeVariantI: some View {
+        phoneScroll {
+            phoneTitle
+            ZStack(alignment: .leading) {
+                CongruenceRing(percentage: congruence, size: 380, level: level, celebrate: celebrate)
+                    .offset(x: 150)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(pct)%")
+                        .font(.system(size: 96, weight: .black)).monospacedDigit()
+                        .tracking(-4)
+                        .foregroundStyle(tone)
+                    Text("Estabilidad").microLabelStyle(tone, size: 11)
+                    Text("La consistencia no es perfección. Es no rendirse nunca.")
+                        .font(.system(size: 15, weight: .light, design: .serif)).italic()
+                        .foregroundStyle(Palette.textMuted)
+                        .frame(width: 170, alignment: .leading)
+                        .padding(.top, 8)
+                    miniStats.foregroundStyle(Palette.text).padding(.top, 12)
+                }
+            }
+            .frame(height: 380)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            weekStrip
+            phoneHabits
+        }
+    }
+}
+
+// MARK: - Variaciones de E (el anillo gigante y limpio)
+
+extension TodayView {
+    private var quote: String { "“La consistencia no es perfección. Es simplemente no rendirse nunca.”" }
+
+    private func bigRing(_ size: CGFloat, glow: Double = 0.18) -> some View {
+        ZStack {
+            Circle().fill(tone.opacity(glow)).frame(width: size * 0.72).blur(radius: 60)
+            CongruenceRing(percentage: congruence, size: size, level: level, celebrate: celebrate)
+            pctLabel(size)
+        }
+    }
+
+    private var quoteText: some View {
+        Text(quote)
+            .font(.system(size: 15, weight: .light, design: .serif)).italic()
+            .multilineTextAlignment(.center)
+            .foregroundStyle(Palette.textMuted)
+            .padding(.horizontal, 24)
+    }
+
+    /// E1: todo centrado. La fecha chica arriba, el anillo todavía más grande.
+    var variantE1: some View {
+        phoneScroll {
+            VStack(spacing: 4) {
+                Text(Self.dayTitle.string(from: selectedDate).sentenceCased)
+                    .font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.textMuted)
+                Text("Hoy").font(.system(size: 22, weight: .bold)).foregroundStyle(Palette.text)
+            }
+            .frame(maxWidth: .infinity)
+            bigRing(345)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            quoteText
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity)
+            weekStrip
+            phoneHabits
+        }
+    }
+
+    /// E2: igual que E, de noche. Congruence nació oscura.
+    var variantE2: some View {
+        homeVariantE
+            .background(Color(hex: "#0a0a0a").ignoresSafeArea())
+            .environment(\.colorScheme, .dark)
+    }
+
+    /// E3: E con tus últimos 30 días alrededor, en puntos finos.
+    var variantE3: some View {
+        let hoy = HabitDay.current()
+        let dias = (0..<30).reversed().map { store.congruence(on: HabitDay.key(HabitDay.adding(-$0, to: hoy))) }
+        return phoneScroll {
+            phoneTitle
+            weekStrip
+            ZStack {
+                ForEach(Array(dias.enumerated()), id: \.offset) { i, v in
+                    Circle()
+                        .fill(v <= 0 ? Palette.textFaint.opacity(0.25) : tone.opacity(0.4 + 0.6 * Double(v) / 100))
+                        .frame(width: v >= 100 ? 8 : 5, height: v >= 100 ? 8 : 5)
+                        .offset(y: -168)
+                        .rotationEffect(.degrees(Double(i) / 30 * 360))
+                }
+                bigRing(300)
+            }
+            .frame(width: 350, height: 350)
+            .frame(maxWidth: .infinity)
+            quoteText
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity)
+            phoneHabits
+        }
+    }
+
+    private func glassChip(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 0) {
+            Text(v).font(.system(size: 18, weight: .bold)).monospacedDigit().foregroundStyle(Palette.text)
+            Text(l).font(.system(size: 11)).foregroundStyle(Palette.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Palette.panel.opacity(0.7)))
+        .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+    }
+
+    /// E4: la frase arriba como titular, el anillo, y los datos en fichas.
+    var variantE4: some View {
+        phoneScroll {
+            phoneTitle
+            weekStrip
+            Text(quote)
+                .font(.system(size: 19, weight: .light, design: .serif)).italic()
+                .foregroundStyle(Palette.text)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+            bigRing(310).frame(maxWidth: .infinity)
+            HStack(spacing: 10) {
+                glassChip("\(streak)", streak == 1 ? "día de racha" : "días de racha")
+                glassChip("\(doneToday)/\(store.habits.count)", "hábitos hoy")
+                glassChip("\(pendingPriority)", "prioritarias")
+            }
+            phoneHabits
+        }
+    }
+
+    /// E5: la semana justo debajo del anillo, como su raíz: hoy arriba, en
+    /// grande, y los días que lo trajeron hasta acá debajo.
+    var variantE5: some View {
+        phoneScroll {
+            phoneTitle
+            bigRing(320).frame(maxWidth: .infinity).padding(.top, 4)
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity)
+            weekStrip
+                .padding(.horizontal, 6)
+                .background(RoundedRectangle(cornerRadius: 24).fill(Palette.panel.opacity(0.55)))
+            quoteText
+            phoneHabits
+        }
+    }
+
+    /// E6: el anillo sobre un disco de vidrio esmerilado, flotando en un
+    /// cielo más intenso.
+    var variantE6: some View {
+        phoneScroll {
+            phoneTitle
+            weekStrip
+            ZStack {
+                Circle().fill(tone.opacity(0.35)).frame(width: 300).blur(radius: 70).offset(x: -40, y: -30)
+                Circle().fill(Color(hex: "#f5c46b").opacity(0.35)).frame(width: 220).blur(radius: 70).offset(x: 80, y: 60)
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 330, height: 330)
+                    .overlay(Circle().stroke(.white.opacity(0.7), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.08), radius: 24, y: 10)
+                CongruenceRing(percentage: congruence, size: 290, level: level, celebrate: celebrate)
+                pctLabel(290)
+            }
+            .frame(height: 360)
+            .frame(maxWidth: .infinity)
+            quoteText
+            miniStats.foregroundStyle(Palette.text).frame(maxWidth: .infinity)
+            phoneHabits
+        }
+    }
+}
+
+// MARK: - E2 y E3 con los hábitos a la vista
+
+extension TodayView {
+    /// La fecha ya está en la semana; arriba basta "Hoy" y cómo vas.
+    private var compactHeader: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(isToday ? "Hoy" : "Ese día")
+                .font(.system(size: 34, weight: .black)).tracking(-1)
+                .foregroundStyle(Palette.text)
+            Spacer()
+            if streak > 0 { chip("flame.fill", streak == 1 ? "1 día" : "\(streak) días", .orange) }
+            chip("checkmark.circle.fill", "\(doneToday)/\(store.habits.count)", tone)
+        }
+    }
+
+    /// El anillo con tus últimos 30 días alrededor, en puntos.
+    private func haloRing(_ size: CGFloat) -> some View {
+        let hoy = HabitDay.current()
+        let dias = (0..<30).reversed().map { store.congruence(on: HabitDay.key(HabitDay.adding(-$0, to: hoy))) }
+        let radio = size * 0.58
+        return ZStack {
+            ForEach(Array(dias.enumerated()), id: \.offset) { i, v in
+                Circle()
+                    .fill(v <= 0 ? Palette.textFaint.opacity(0.3) : tone.opacity(0.4 + 0.6 * Double(v) / 100))
+                    .frame(width: v >= 100 ? 7 : 4.5, height: v >= 100 ? 7 : 4.5)
+                    .offset(y: -radio)
+                    .rotationEffect(.degrees(Double(i) / 30 * 360))
+            }
+            bigRing(size)
+        }
+        .frame(width: radio * 2 + 10, height: radio * 2 + 10)
+    }
+
+    private var habitCards: some View {
+        VStack(spacing: 10) {
+            ForEach(Array(store.habits.enumerated()), id: \.element.id) { i, habit in
+                HabitRow(
+                    habit: habit, day: dayKey,
+                    weekDots: store.weekDots(for: habit),
+                    weekCount: store.weekCount(for: habit),
+                    onToggle: { toggle(habit) },
+                    onSetValue: { store.setValue($0, for: habit.id, on: dayKey) },
+                    onSkip: { store.markSkip(habit.id, on: dayKey, status: $0) },
+                    onEdit: { editingHabit = habit },
+                    onMove: { o in withAnimation(.smooth(duration: 0.3)) { store.move(habit.id, by: o) } },
+                    onDelete: { deletingHabit = habit },
+                    plain: true
+                )
+                .staggeredAppear(i)
+            }
+        }
+    }
+
+    /// Lo mismo que E2/E3, apretado para que los hábitos entren en la
+    /// primera pantalla: la frase y la campana bajan, después de los hábitos.
+    func compactHome(dark: Bool) -> some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                compactHeader
+                weekStrip
+                haloRing(250)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, -6)
+                habitCards
+                quoteText.padding(.top, 10)
+                HStack {
+                    Spacer()
+                    reminderButton
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 120)
+        }
+        .background(alignment: .top) { atmosphere }
+        .background(dark ? Color(hex: "#0a0a0a").ignoresSafeArea() : nil)
+        .environment(\.colorScheme, dark ? .dark : .light)
     }
 }

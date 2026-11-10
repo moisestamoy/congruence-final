@@ -87,9 +87,7 @@ struct PhoneTabBar: View {
     var body: some View {
         HStack(spacing: 10) {
             HStack(spacing: 0) {
-                ForEach(AppSection.allCases) { section in
-                    tab(section)
-                }
+                tabs
                 accountMenu
                     .frame(width: 40, height: 54)
             }
@@ -105,11 +103,90 @@ struct PhoneTabBar: View {
         .padding(.bottom, 4)
         .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection.hasPlus)
         .sensoryFeedback(.impact(weight: .light), trigger: selection)
+        .sensoryFeedback(.selection, trigger: hovered)
         .sensoryFeedback(.impact(weight: .medium), trigger: plusPressed)
     }
 
+    // MARK: Arrastrar por la barra
+
+    /// Dónde está el dedo mientras se arrastra por las secciones; nil si no.
+    @State private var dragX: CGFloat?
+    @State private var tabsWidth: CGFloat = 0
+    /// La sección bajo la lupa. Se elige al soltar, no mientras pasa: cambiar
+    /// de pantalla en cada sección que cruza el dedo sería pesado y confuso.
+    @State private var hovered: AppSection?
+
+    private var tabWidth: CGFloat { tabsWidth / CGFloat(AppSection.allCases.count) }
+
+    /// La sección que queda debajo de un punto de la barra.
+    private func section(at x: CGFloat) -> AppSection {
+        let all = AppSection.allCases
+        guard tabWidth > 0 else { return selection }
+        let i = Int((x / tabWidth).rounded(.down))
+        return all[min(max(i, 0), all.count - 1)]
+    }
+
+    /// Las secciones. Se pueden tocar o recorrer con el dedo: al arrastrar
+    /// aparece una lupa de vidrio que sigue el dedo, sale por encima de la
+    /// barra, y al soltar te deja en la sección que tenía debajo.
+    private var tabs: some View {
+        HStack(spacing: 0) {
+            ForEach(AppSection.allCases) { section in
+                tab(section)
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { tabsWidth = $0 }
+        .background(alignment: .leading) {
+            if let dragX {
+                let mitad = tabWidth / 2 + 6
+                lens
+                    .frame(width: tabWidth + 12, height: 68)
+                    .position(x: min(max(dragX, mitad), tabsWidth - mitad), y: 27)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+            }
+        }
+        .coordinateSpace(.named("tabs"))
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .named("tabs"))
+                .onChanged { g in
+                    if dragX == nil {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { dragX = g.location.x }
+                    } else {
+                        dragX = g.location.x
+                    }
+                    let debajo = section(at: g.location.x)
+                    if debajo != hovered { hovered = debajo }
+                }
+                .onEnded { g in
+                    let destino = section(at: g.location.x)
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.75)) {
+                        selection = destino
+                        dragX = nil
+                        hovered = nil
+                    }
+                }
+        )
+    }
+
+    /// La lupa: vidrio más grande que la barra, con un borde que brilla.
+    @ViewBuilder
+    private var lens: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: Capsule())
+                .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        } else {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().stroke(.white.opacity(0.6), lineWidth: 1))
+                .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
+        }
+    }
+
     private func tab(_ section: AppSection) -> some View {
-        let activa = selection == section
+        let activa = (dragX != nil ? hovered ?? selection : selection) == section
+        let bajoLupa = dragX != nil && activa
         return Button {
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) { selection = section }
         } label: {
@@ -125,9 +202,13 @@ struct PhoneTabBar: View {
                     .minimumScaleFactor(0.8)
             }
             .foregroundStyle(activa ? Palette.text : Palette.textMuted)
+            // Lo que queda bajo la lupa se ve agrandado, como a través de un vidrio.
+            .scaleEffect(bajoLupa ? 1.22 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: bajoLupa)
             .frame(maxWidth: .infinity, minHeight: 54)
             .background {
-                if activa {
+                // Mientras se arrastra, la lupa reemplaza a la pastilla.
+                if activa && dragX == nil {
                     Capsule()
                         .fill(Palette.fill(0.08))
                         .matchedGeometryEffect(id: "sección", in: nav)
