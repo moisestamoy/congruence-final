@@ -24,8 +24,12 @@ import CryptoKit
 ///    que no conocemos — los que tu Atajo de iPhone escribe directo en la base —
 ///    salvo los que borraste acá.
 /// 6. Tareas y notas (`tasks_data`) van como los hábitos: sin tocar
-///    `updated_at`. `stats_data` no se toca nunca.
-/// 7. Cada versión distinta que baja se guarda en
+///    `updated_at`.
+/// 7. Los pilares viven en `stats_data.pillars`, al lado de los `checkIns` de
+///    la web, que acá no se tocan. Antes de subir se vuelve a leer la columna:
+///    se conserva todo lo demás y los cierres y revisiones se suman a los de
+///    la nube en vez de pisarlos.
+/// 8. Cada versión distinta que baja se guarda en
 ///    Application Support/Congruence/backups (las últimas 20 de cada una).
 @MainActor
 @Observable
@@ -42,6 +46,7 @@ final class SyncService {
     private let habits: HabitStore
     private let finances: FinanceStore
     private let tasks: TaskStore
+    private let pillars: PillarStore
     private let auth: AuthService
 
     private var hasPulled = false
@@ -68,6 +73,14 @@ final class SyncService {
         get { defaults.string(forKey: "sync.tasks.lastHash") }
         set { defaults.set(newValue, forKey: "sync.tasks.lastHash") }
     }
+    private var pillarsPending: Bool {
+        get { defaults.bool(forKey: "sync.pillars.pending") }
+        set { defaults.set(newValue, forKey: "sync.pillars.pending") }
+    }
+    private var pillarsLastHash: String? {
+        get { defaults.string(forKey: "sync.pillars.lastHash") }
+        set { defaults.set(newValue, forKey: "sync.pillars.lastHash") }
+    }
     private var financesPending: Bool {
         get { defaults.bool(forKey: "sync.fin.pending") }
         set { defaults.set(newValue, forKey: "sync.fin.pending") }
@@ -82,10 +95,11 @@ final class SyncService {
         set { defaults.set(newValue, forKey: "sync.fin.forceApplied") }
     }
 
-    init(habits: HabitStore, finances: FinanceStore, tasks: TaskStore, auth: AuthService) {
+    init(habits: HabitStore, finances: FinanceStore, tasks: TaskStore, pillars: PillarStore, auth: AuthService) {
         self.habits = habits
         self.finances = finances
         self.tasks = tasks
+        self.pillars = pillars
         self.auth = auth
         self.status = auth.isSignedIn ? .syncing : .signedOut
         habits.onLocalChange = { [weak self] in
@@ -96,6 +110,9 @@ final class SyncService {
         }
         tasks.onLocalChange = { [weak self] in
             Task { @MainActor in self?.tasksChanged() }
+        }
+        pillars.onLocalChange = { [weak self] in
+            Task { @MainActor in self?.pillarsChanged() }
         }
     }
 
@@ -113,6 +130,8 @@ final class SyncService {
         financesPending = false
         tasksPending = false
         tasksLastHash = nil
+        pillarsPending = false
+        pillarsLastHash = nil
         finances.clearTombstones()
         hasPulled = false
         await pull(adoptUnconditionally: false, firstLogin: true)
@@ -128,6 +147,7 @@ final class SyncService {
         try? FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
         habits.backupFile(to: carpeta)
         tasks.backupFile(to: carpeta)
+        pillars.backupFile(to: carpeta)
         finances.backupFile(to: carpeta)
     }
 
@@ -145,6 +165,7 @@ final class SyncService {
         habitsPending = false
         financesPending = false
         tasksPending = false
+        pillarsPending = false
         status = .signedOut
     }
 
@@ -157,6 +178,12 @@ final class SyncService {
     private func tasksChanged() {
         guard auth.isSignedIn else { return }
         tasksPending = true
+        schedulePush()
+    }
+
+    private func pillarsChanged() {
+        guard auth.isSignedIn else { return }
+        pillarsPending = true
         schedulePush()
     }
 
@@ -183,12 +210,13 @@ final class SyncService {
     private func pull(adoptUnconditionally force: Bool, firstLogin: Bool = false) async {
         status = .syncing
         do {
-            guard let row = try await fetchRow(columns: "habits_data,finances_data,tasks_data,updated_at") else {
+            guard let row = try await fetchRow(columns: "habits_data,finances_data,tasks_data,stats_data,updated_at") else {
                 try await insertEmptyRow()
                 hasPulled = true
                 habitsPending = true
                 financesPending = true
                 tasksPending = true
+                pillarsPending = !pillars.document.isBlank
                 await push()
                 return
             }
@@ -198,6 +226,9 @@ final class SyncService {
                 // Lo pendiente no se adopta: se queda y se sube.
                 habitsPending = localIsNewer(habits.lastLocalWrite, than: row.updatedAt)
                 tasksPending = localIsNewer(tasks.lastLocalWrite, than: row.updatedAt)
+                // Pilares sin nada escrito no son trabajo local: no pisan los de la nube.
+                pillarsPending = !pillars.document.isBlank
+                    && localIsNewer(pillars.lastLocalWrite, than: row.updatedAt)
                 if localIsNewer(finances.lastLocalWrite, than: row.updatedAt),
                    let fecha = finances.lastLocalWrite {
                     financesPending = true
@@ -210,8 +241,9 @@ final class SyncService {
             applyHabits(row, force: force)
             applyFinances(row, force: force)
             applyTasks(row, force: force)
+            applyPillars(row, force: force)
 
-            if habitsPending || financesPending || tasksPending {
+            if habitsPending || financesPending || tasksPending || pillarsPending {
                 await push()
             } else {
                 status = .synced(Date())
@@ -245,6 +277,27 @@ final class SyncService {
             tasksLastHash = hash
             tasksPending = false
         }
+    }
+
+    private func applyPillars(_ row: Row, force: Bool) {
+        guard let remote = Self.pillars(in: row.stats) else {
+            // La nube todavía no tiene pilares: si acá hay algo escrito, se sube.
+            if !pillars.document.isBlank { pillarsPending = true }
+            return
+        }
+        let hash = Self.hash(remote)
+        if force || !pillarsPending {
+            if force || hash != pillarsLastHash { pillars.adoptRemote(remote) }
+            pillarsLastHash = hash
+            pillarsPending = false
+        }
+    }
+
+    /// Los pilares dentro de `stats_data`, si están y se entienden.
+    private static func pillars(in stats: [String: JSONValue]?) -> PillarsDocument? {
+        guard let crudo = stats?["pillars"], case .object = crudo,
+              let data = try? JSONEncoder().encode(crudo) else { return nil }
+        return try? JSONDecoder().decode(PillarsDocument.self, from: data)
     }
 
     private func applyFinances(_ row: Row, force: Bool) {
@@ -285,7 +338,7 @@ final class SyncService {
 
     private func push() async {
         guard auth.isSignedIn, hasPulled,
-              habitsPending || financesPending || tasksPending, !isPushing else { return }
+              habitsPending || financesPending || tasksPending || pillarsPending, !isPushing else { return }
         isPushing = true
         defer { isPushing = false }
         status = .syncing
@@ -293,8 +346,11 @@ final class SyncService {
         let sendHabits = habitsPending
         let sendFinances = financesPending
         let sendTasks = tasksPending
+        let sendPillars = pillarsPending
         let habitsDoc = habits.document
         let tasksDoc = tasks.document
+        let pillarsBefore = pillars.document
+        var pillarsDoc = pillarsBefore
 
         do {
             var body: [String: JSONValue] = [:]
@@ -303,6 +359,18 @@ final class SyncService {
             }
             if sendTasks {
                 body["tasks_data"] = tasksDoc.json
+            }
+
+            if sendPillars {
+                // Releer `stats_data` justo antes de escribir: los `checkIns` y
+                // lo que la web guarde ahí se conservan tal cual, y los cierres
+                // y revisiones de otro dispositivo se suman a los de acá.
+                var stats = try await fetchRow(columns: "stats_data")?.stats ?? [:]
+                if let remote = Self.pillars(in: stats) {
+                    pillarsDoc = PillarsDocument.merged(local: pillarsDoc, remote: remote)
+                }
+                stats["pillars"] = try Self.jsonValue(pillarsDoc)
+                body["stats_data"] = .object(stats)
             }
 
             let financesBefore = finances.document
@@ -330,6 +398,14 @@ final class SyncService {
                 tasksLastHash = Self.hash(tasksDoc)
                 if tasks.document == tasksDoc { tasksPending = false }
             }
+            if sendPillars {
+                pillarsLastHash = Self.hash(pillarsDoc)
+                // Si editaste algo mientras subía, eso queda pendiente y no se pisa.
+                if pillars.document == pillarsBefore {
+                    pillars.adoptRemote(pillarsDoc)
+                    pillarsPending = false
+                }
+            }
             if sendFinances {
                 // Si editaste algo mientras subía, eso queda pendiente y no se pisa.
                 if finances.document == financesBefore {
@@ -340,7 +416,7 @@ final class SyncService {
                 financesLocalEditAt = stamp.timeIntervalSince1970 * 1000
             }
             status = .synced(Date())
-            if habitsPending || financesPending || tasksPending { schedulePush() }
+            if habitsPending || financesPending || tasksPending || pillarsPending { schedulePush() }
         } catch {
             status = .error(Self.describe(error))
         }
@@ -364,6 +440,8 @@ final class SyncService {
         var habits: HabitsDocument?
         var finances: FinancesDocument?
         var tasks: TasksDocument?
+        /// `stats_data` tal cual, sin interpretar: acá sólo importan los pilares.
+        var stats: [String: JSONValue]?
         /// `updated_at` en milisegundos (0 si no hay).
         var updatedAt: Double
     }
@@ -373,7 +451,7 @@ final class SyncService {
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let row = rows.first else { return nil }
 
-        var out = Row(habits: nil, finances: nil, tasks: nil, updatedAt: 0)
+        var out = Row(habits: nil, finances: nil, tasks: nil, stats: nil, updatedAt: 0)
 
         if let raw = row["habits_data"] as? [String: Any], !raw.isEmpty {
             let json = try JSONSerialization.data(withJSONObject: raw)
@@ -392,6 +470,11 @@ final class SyncService {
             let doc = try JSONDecoder().decode(TasksDocument.self, from: json)
             backup(json, name: "tasks", hash: Self.hash(doc))
             out.tasks = doc
+        }
+        if let raw = row["stats_data"] as? [String: Any] {
+            let json = try JSONSerialization.data(withJSONObject: raw)
+            out.stats = try JSONDecoder().decode([String: JSONValue].self, from: json)
+            if raw["pillars"] != nil { backup(json, name: "stats", hash: Self.hash(out.stats)) }
         }
         if let stamp = row["updated_at"] as? String {
             out.updatedAt = (Self.parseISO(stamp)?.timeIntervalSince1970 ?? 0) * 1000

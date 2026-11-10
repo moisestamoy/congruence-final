@@ -27,43 +27,67 @@ struct PanelCard<Content: View>: View {
     }
 }
 
-struct IdentityCard: View {
-    let manifesto: IdentityManifesto
+/// Los pilares en chico: el pentágono, el promedio y cuántos van hoy.
+/// Tocarla abre la pantalla de Pilares.
+struct PillarsCard: View {
+    @Environment(PillarStore.self) private var pillars
+    @Environment(HabitStore.self) private var habits
 
     var body: some View {
+        let day = HabitDay.key(HabitDay.current())
+        let foco = pillars.inFocus
+        let hechos = foco.filter { pillars.isDone($0, on: day, habits: habits) }.count
+        let lejos = pillars.furthest
+
         PanelCard {
             VStack(alignment: .leading, spacing: 0) {
-                PanelHeader(title: "Tu identidad")
-                    .padding(.bottom, 22)
-
-                if manifesto.isEmpty {
-                    Text("Todavía no definiste quién estás siendo.")
-                        .font(.system(size: 14, weight: .medium))
+                HStack {
+                    PanelHeader(title: "Tus pilares")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(Palette.textFaint)
-                        .lineSpacing(4)
-                } else {
-                    Text("“\(manifesto.identityStatement)”")
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundStyle(Palette.text)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.bottom, 16)
+
+                HStack(spacing: 18) {
+                    PentagonRadar(scoresA: PillarId.allCases.map { pillars.pillar($0).scoreA },
+                                  scoresB: PillarId.allCases.map { pillars.pillar($0).scoreB },
+                                  labels: false)
+                        .frame(width: 92, height: 92)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(format: "%.1f", pillars.average))
+                            .font(.system(size: 34, weight: .heavy))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.text)
+                        Text("Equilibrio").microLabelStyle(Palette.accent, size: 9)
+                        Text("\(hechos) de \(foco.count) hoy")
+                            .font(.system(size: 11, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(Palette.textMuted)
+                            .padding(.top, 6)
+                    }
+                    Spacer(minLength: 0)
                 }
 
-                if !manifesto.ninetyDayGoal.isEmpty {
-                    HStack(alignment: .top, spacing: 6) {
-                        Text("90 días:")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Palette.accent)
-                        Text(manifesto.ninetyDayGoal)
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.textMuted)
-                            .lineSpacing(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.top, 16)
+                if pillars.document.isBlank {
+                    Text("Define dónde estás y a dónde vas en cada uno.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Palette.textFaint)
+                        .padding(.top, 14)
+                } else if lejos.gap > 0 {
+                    (Text("Lo más lejos de tu meta: ").foregroundStyle(Palette.textFaint)
+                     + Text(lejos.id.label).foregroundStyle(Palette.text).fontWeight(.semibold))
+                        .font(.system(size: 11))
+                        .padding(.top, 14)
                 }
             }
         }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("Tus pilares, equilibrio \(String(format: "%.1f", pillars.average)), \(hechos) de \(foco.count) hoy")
     }
 }
 

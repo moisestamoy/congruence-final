@@ -5,6 +5,7 @@ struct CongruenceApp: App {
     @State private var store: HabitStore
     @State private var finances: FinanceStore
     @State private var tasks: TaskStore
+    @State private var pillars: PillarStore
     @State private var auth: AuthService
     @State private var sync: SyncService
 
@@ -16,12 +17,14 @@ struct CongruenceApp: App {
         let store = HabitStore()
         let finances = FinanceStore()
         let tasks = TaskStore()
+        let pillars = PillarStore()
         let auth = AuthService()
         _store = State(initialValue: store)
         _finances = State(initialValue: finances)
         _tasks = State(initialValue: tasks)
+        _pillars = State(initialValue: pillars)
         _auth = State(initialValue: auth)
-        _sync = State(initialValue: SyncService(habits: store, finances: finances, tasks: tasks, auth: auth))
+        _sync = State(initialValue: SyncService(habits: store, finances: finances, tasks: tasks, pillars: pillars, auth: auth))
     }
 
     var body: some Scene {
@@ -30,6 +33,7 @@ struct CongruenceApp: App {
                 .environment(store)
                 .environment(finances)
                 .environment(tasks)
+                .environment(pillars)
                 .environment(auth)
                 .environment(sync)
                 .preferredColorScheme(Appearance(rawValue: appearanceRaw)?.colorScheme)

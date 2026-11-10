@@ -123,6 +123,16 @@ struct Habit: Codable, Identifiable, Hashable {
 
     var isDaily: Bool { weeklyTarget == nil }
 
+    /// El pilar al que sirve, si es la acción mínima de alguno. Mismo campo
+    /// `pillar` que la web; vive en `extras` como la frecuencia.
+    var pillar: PillarId? {
+        get { extras["pillar"]?.stringValue.flatMap(PillarId.init(rawValue:)) }
+        set {
+            if let newValue { extras["pillar"] = .string(newValue.rawValue) }
+            else { extras.removeValue(forKey: "pillar") }
+        }
+    }
+
     init(id: String, title: String, subtitle: String?, type: HabitKind, goal: Double,
          unit: String?, color: String, icon: String?, identityAxis: IdentityAxis?,
          logs: [String: HabitLog], isDemo: Bool?, archived: Bool? = nil) {

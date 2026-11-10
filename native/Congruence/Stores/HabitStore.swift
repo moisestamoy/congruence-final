@@ -3,16 +3,11 @@ import Observation
 
 @Observable
 final class HabitStore {
-    /// Todo lo que vive en `habits_data`: hábitos, manifiesto y lo que la web
+    /// Todo lo que vive en `habits_data`: los hábitos y lo que la web
     /// agregue. Se guarda y se sube entero, sin perder campos.
     private(set) var document: HabitsDocument
 
     var habits: [Habit] { document.habits }
-
-    var manifesto: IdentityManifesto {
-        get { document.identity }
-        set { document.identity = newValue; commit() }
-    }
 
     /// Se llama después de cada cambio hecho acá (no de los que llegan de la
     /// nube). La sincronización se engancha acá para subir.
@@ -143,6 +138,7 @@ final class HabitStore {
         // Los extras guardados mandan para no perder nada de la web, pero la
         // frecuencia sí la edita esta hoja, así que esa pasa por encima.
         merged.weeklyTarget = edited.weeklyTarget
+        merged.pillar = edited.pillar
         merged.archived = document.habits[i].archived
         merged.isDemo = false
         document.habits[i] = merged

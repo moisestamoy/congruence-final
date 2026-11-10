@@ -22,6 +22,7 @@ struct HabitEditorSheet: View {
     @State private var unit: String
     @State private var axis: IdentityAxis
     @State private var weeklyTarget: Int?
+    @State private var pillar: PillarId?
     @State private var confirmingDelete = false
 
     init(existing: Habit? = nil,
@@ -38,6 +39,7 @@ struct HabitEditorSheet: View {
         _unit = State(initialValue: existing?.unit ?? "min")
         _axis = State(initialValue: existing?.identityAxis ?? .physical)
         _weeklyTarget = State(initialValue: existing?.weeklyTarget)
+        _pillar = State(initialValue: existing?.pillar)
     }
 
     private var trimmed: String {
@@ -150,6 +152,27 @@ struct HabitEditorSheet: View {
                     }
                 }
 
+                section("Pilar") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                            spacing: 8
+                        ) {
+                            Chip(label: "Ninguno", isSelected: pillar == nil, tint: tint, fillsWidth: true) { pillar = nil }
+                            ForEach(PillarId.allCases, id: \.self) { option in
+                                Chip(label: option.label, isSelected: pillar == option,
+                                     tint: tint, fillsWidth: true) { pillar = option }
+                            }
+                        }
+                        if pillar != nil && !isNumeric {
+                            Text("Será la acción mínima de ese pilar: marcarlo en Pilares marca este hábito, y al revés.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Palette.textFaint)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+
                 Divider().overlay(Palette.hairlineFaint)
 
                 section("Cada cuánto") {
@@ -258,6 +281,7 @@ struct HabitEditorSheet: View {
             isDemo: false
         )
         habit.weeklyTarget = weeklyTarget
+        habit.pillar = pillar
         onSave(habit)
         dismiss()
     }
@@ -268,52 +292,6 @@ struct HabitEditorSheet: View {
             Text(label).microLabelStyle(Palette.textFaint, size: 9)
             content()
         }
-    }
-}
-
-struct IdentityEditSheet: View {
-    @Binding var manifesto: IdentityManifesto
-    let onSave: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var statement = ""
-    @State private var goal = ""
-
-    var body: some View {
-        SheetShell(title: "Tu identidad", canSave: true, onCancel: { dismiss() }) {
-            manifesto.identityStatement = statement.trimmingCharacters(in: .whitespacesAndNewlines)
-            manifesto.ninetyDayGoal = goal.trimmingCharacters(in: .whitespacesAndNewlines)
-            onSave()
-            dismiss()
-        } content: {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("Soy una persona que…").microLabelStyle(Palette.textFaint, size: 9)
-                    editor(text: $statement, height: 88)
-                }
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("En 90 días").microLabelStyle(Palette.textFaint, size: 9)
-                    editor(text: $goal, height: 66)
-                }
-            }
-        }
-        .onAppear {
-            statement = manifesto.identityStatement
-            goal = manifesto.ninetyDayGoal
-        }
-    }
-
-    private func editor(text: Binding<String>, height: CGFloat) -> some View {
-        TextEditor(text: text)
-            .font(.system(size: 13))
-            .foregroundStyle(Palette.text)
-            .scrollContentBackground(.hidden)
-            .padding(8)
-            .frame(height: height)
-            .background(Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Radius.control))
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.control).stroke(Palette.hairlineFaint, lineWidth: 1)
-            )
     }
 }
 

@@ -35,7 +35,8 @@ struct TodayView: View {
     @Environment(\.phonePlus) private var phonePlus
     @State private var editingReminder = false
     @AppStorage(HabitReminder.enabledKey) private var reminderOn = false
-    @State private var isEditingIdentity = false
+    /// Los Pilares no están en la barra: se entra tocando el anillo.
+    @State private var showPillars = false
     @State private var editingHabit: Habit?
     @State private var deletingHabit: Habit?
 
@@ -53,83 +54,20 @@ struct TodayView: View {
         return f
     }()
 
+    private func openPillars() {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { showPillars = true }
+    }
+
     var body: some View {
         Group {
-            GeometryReader { geo in
-                let w = geo.size.width
-                // Las tarjetas laterales sólo entran en vista central y con lugar.
-                let showSidePanels = layout == .central && w >= 1180
-                let showTwoColumns = w >= 860
-
-                // El tamaño del anillo se calcula acá, fuera de cualquier
-                // GeometryReader anidado: así depende de `layout` (un estado) y
-                // la animación del botón lo alcanza. Si dependiera de la
-                // geometría interna, el cambio llegaría en otra pasada y saltaría.
-                let habitsW: CGFloat = layout == .split
-                    ? max(380, min(w * 0.44, 720))
-                    : 380
-                let sideW: CGFloat = showSidePanels ? 344 : 0
-                let ringW = max(220, w - 48 - sideW - habitsW - 24)
-                let ringSize = ringDiameter(width: ringW, height: geo.size.height - 48)
-
-                if showTwoColumns {
-                    HStack(alignment: .center, spacing: 24) {
-                        if showSidePanels {
-                            leftColumn
-                                .frame(width: 320)
-                                .transition(
-                                    .move(edge: .leading).combined(with: .opacity)
-                                )
-                        }
-
-                        ringHero(size: ringSize)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                        // En vista dividida el panel respira más; en central se
-                        // mantiene angosto para no comerle lugar al anillo.
-                        habitsColumn(maxListHeight: max(180, geo.size.height - 260))
-                            .frame(width: habitsW)
-                    }
-                    .padding(24)
-                } else {
-                    // En el teléfono el anillo cede lugar: los hábitos son lo
-                    // que se toca, y tienen que asomar sin hacer scroll.
-                    // En el iPhone, chico y sin la frase: con 480 puntos de
-                    // anillo los hábitos quedaban debajo del pliegue y había
-                    // que bajar para marcar uno, que es a lo que se viene.
-                    if isCompact {
-                        switch UserDefaults.standard.string(forKey: "homeVariant") {
-                        case "A": homeVariantA
-                        case "B": homeVariantB
-                        case "C": homeVariantC
-                        case "D": homeVariantD
-                        case "E": homeVariantE
-                        case "F": homeVariantF
-                        case "G": homeVariantG
-                        case "H": homeVariantH
-                        case "I": homeVariantI
-                        case "E1": variantE1
-                        case "E2": variantE2
-                        case "E3": variantE3
-                        case "E4": variantE4
-                        case "E5": variantE5
-                        case "E6": variantE6
-                        case "E7": compactHome(dark: true)
-                        case "E8": compactHome(dark: false)
-                        default: phoneHome
-                        }
-                    } else {
-                        ScrollView {
-                            VStack(spacing: 24) {
-                                ringHero(size: ringDiameter(width: w - 40, height: 560))
-                                    .frame(height: 560)
-                                habitsColumn(maxListHeight: 4000)
-                                leftColumn
-                            }
-                            .padding(20)
-                        }
-                    }
+            if showPillars {
+                PillarsView {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) { showPillars = false }
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.985)))
+            } else {
+                today
+                    .transition(.opacity.combined(with: .scale(scale: 1.015)))
             }
         }
         #if DEBUG
@@ -151,7 +89,7 @@ struct TodayView: View {
             HabitReminder.reschedule(habits: store)
         }
         // El + de la barra del teléfono, en Hábitos, crea un hábito.
-        .onChange(of: phonePlus.tick) { isAddingHabit = true }
+        .onChange(of: phonePlus.tick) { if !showPillars { isAddingHabit = true } }
         .sheet(isPresented: $isAddingHabit) {
             HabitEditorSheet(onSave: { store.add($0) })
         }
@@ -177,9 +115,85 @@ struct TodayView: View {
         } message: {
             Text("Se pierden todos los días registrados. No se puede deshacer.")
         }
-        .sheet(isPresented: $isEditingIdentity) {
-            @Bindable var store = store
-            IdentityEditSheet(manifesto: $store.manifesto) {}
+    }
+
+    /// La pantalla de hoy: el anillo y los hábitos.
+    private var today: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            // Las tarjetas laterales sólo entran en vista central y con lugar.
+            let showSidePanels = layout == .central && w >= 1180
+            let showTwoColumns = w >= 860
+
+            // El tamaño del anillo se calcula acá, fuera de cualquier
+            // GeometryReader anidado: así depende de `layout` (un estado) y
+            // la animación del botón lo alcanza. Si dependiera de la
+            // geometría interna, el cambio llegaría en otra pasada y saltaría.
+            let habitsW: CGFloat = layout == .split
+                ? max(380, min(w * 0.44, 720))
+                : 380
+            let sideW: CGFloat = showSidePanels ? 344 : 0
+            let ringW = max(220, w - 48 - sideW - habitsW - 24)
+            let ringSize = ringDiameter(width: ringW, height: geo.size.height - 48)
+
+            if showTwoColumns {
+                HStack(alignment: .center, spacing: 24) {
+                    if showSidePanels {
+                        leftColumn
+                            .frame(width: 320)
+                            .transition(
+                                .move(edge: .leading).combined(with: .opacity)
+                            )
+                    }
+
+                    ringHero(size: ringSize)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    // En vista dividida el panel respira más; en central se
+                    // mantiene angosto para no comerle lugar al anillo.
+                    habitsColumn(maxListHeight: max(180, geo.size.height - 260))
+                        .frame(width: habitsW)
+                }
+                .padding(24)
+            } else {
+                // En el teléfono el anillo cede lugar: los hábitos son lo
+                // que se toca, y tienen que asomar sin hacer scroll.
+                // En el iPhone, chico y sin la frase: con 480 puntos de
+                // anillo los hábitos quedaban debajo del pliegue y había
+                // que bajar para marcar uno, que es a lo que se viene.
+                if isCompact {
+                    switch UserDefaults.standard.string(forKey: "homeVariant") {
+                    case "A": homeVariantA
+                    case "B": homeVariantB
+                    case "C": homeVariantC
+                    case "D": homeVariantD
+                    case "E": homeVariantE
+                    case "F": homeVariantF
+                    case "G": homeVariantG
+                    case "H": homeVariantH
+                    case "I": homeVariantI
+                    case "E1": variantE1
+                    case "E2": variantE2
+                    case "E3": variantE3
+                    case "E4": variantE4
+                    case "E5": variantE5
+                    case "E6": variantE6
+                    case "E7": compactHome(dark: true)
+                    case "E8": compactHome(dark: false)
+                    default: phoneHome
+                    }
+                } else {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            ringHero(size: ringDiameter(width: w - 40, height: 560))
+                                .frame(height: 560)
+                            habitsColumn(maxListHeight: 4000)
+                            leftColumn
+                        }
+                        .padding(20)
+                    }
+                }
+            }
         }
     }
 
@@ -203,6 +217,11 @@ struct TodayView: View {
                     // El lugar del anillo grande: el anillo en sí vive arriba,
                     // fijo, y se transforma mientras esto sube.
                     Color.clear.frame(height: alto - 20)
+                        // El anillo vive encima y no recibe toques; este hueco sí.
+                        .contentShape(Rectangle())
+                        .onTapGesture { openPillars() }
+                        .accessibilityLabel("Tus pilares")
+                        .accessibilityAddTraits(.isButton)
                     habitsColumn(maxListHeight: 4000)
                     leftColumn
                 }
@@ -253,6 +272,12 @@ struct TodayView: View {
                 celebrate: celebrate
             )
             .sensoryFeedback(.impact(weight: .heavy), trigger: celebrate)
+            // El anillo es la puerta a los Pilares.
+            .contentShape(Circle())
+            .onTapGesture { openPillars() }
+            .help("Tus pilares")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Abre tus pilares")
 
             Spacer(minLength: 0)
 
@@ -288,8 +313,9 @@ struct TodayView: View {
 
     private var leftColumn: some View {
         VStack(spacing: 20) {
-            IdentityCard(manifesto: store.manifesto)
-                .onTapGesture { isEditingIdentity = true }
+            PillarsCard()
+                .hoverHighlight(Radius.card)
+                .onTapGesture { openPillars() }
             NinetyDayCard(
                 congruentDays: store.ninetyDayCongruentDays(),
                 weekDots: store.congruenceWeekDots()
