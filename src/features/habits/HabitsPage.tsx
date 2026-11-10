@@ -371,8 +371,8 @@ export default function HabitsPage() {
                                     "lg:origin-center lg:!scale-100",
                                     isScrolled ? "scale-[0.58]" : "scale-100"
                                 )}
-                                onClick={() => navigate('/identity')}
-                                title="Tu Identidad"
+                                onClick={() => navigate('/pilares')}
+                                title="Tus pilares"
                             >
                                 <CongruenceLevelIndicator
                                     percentage={congruence}
@@ -644,8 +644,8 @@ export default function HabitsPage() {
                             )} />
                             <div
                                 className="scale-[0.3] md:scale-60 lg:scale-110 relative z-10 transition-transform duration-500 cursor-pointer"
-                                onClick={() => navigate('/identity')}
-                                title="Tu Identidad"
+                                onClick={() => navigate('/pilares')}
+                                title="Tus pilares"
                             >
                                 <CongruenceLevelIndicator percentage={congruence} size={600} strokeWidth={35} level={currentLevel} />
                             </div>

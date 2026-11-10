@@ -5,6 +5,7 @@ import { useHabitStore } from '../habits/useHabitStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { useTaskStore } from '../tasks/useTaskStore';
 import { useHolisticStore } from '../stats/useHolisticStore';
+import { usePillarsStore, normalizePillars } from '../pillars/usePillarsStore';
 import { Loader2, CloudOff, RefreshCw } from 'lucide-react';
 
 // Tracks when this device last edited finance data (client epoch ms).
@@ -46,6 +47,7 @@ export function SupabaseSync() {
     const financeState = useFinanceStore();
     const taskState = useTaskStore();
     const holisticState = useHolisticStore();
+    const pillarsState = usePillarsStore();
 
     useEffect(() => {
         if (!initialLoadDoneRef.current) return;
@@ -68,6 +70,7 @@ export function SupabaseSync() {
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
             const { tasks, groups, notes, soundEnabled } = useTaskStore.getState();
             const { checkIns } = useHolisticStore.getState();
+            const { pillars, closes, reviews, themeStart } = usePillarsStore.getState();
 
             // Fetch remote expenses BEFORE saving to preserve any iOS Shortcut additions
             // that may have been added to Supabase without going through local state
@@ -94,7 +97,7 @@ export function SupabaseSync() {
                     habits_data: { habits, manifesto },
                     finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
                     tasks_data: { tasks, groups, notes, soundEnabled },
-                    stats_data: { checkIns },
+                    stats_data: { checkIns, pillars: { pillars, closes, reviews, themeStart } },
                     updated_at: nowIso
                 })
                 .eq('id', user.id);
@@ -188,6 +191,10 @@ export function SupabaseSync() {
                     if (s && Array.isArray(s.checkIns)) {
                         useHolisticStore.setState({ checkIns: s.checkIns });
                     }
+                    // Sólo si la nube ya tiene pilares: una nube sin ellos no debe vaciar los locales.
+                    if (s && s.pillars && typeof s.pillars === 'object') {
+                        usePillarsStore.setState(normalizePillars(s.pillars));
+                    }
                 }
 
                 if (data.finances_data && Object.keys(data.finances_data).length > 0) {
@@ -275,6 +282,7 @@ export function SupabaseSync() {
         financeState.savingsEntries, financeState.categoryBudgets,
         taskState.tasks, taskState.groups, taskState.notes, taskState.soundEnabled,
         holisticState.checkIns,
+        pillarsState.pillars, pillarsState.closes, pillarsState.reviews, pillarsState.themeStart,
     ]);
 
     useEffect(() => {

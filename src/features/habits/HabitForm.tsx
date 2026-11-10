@@ -5,6 +5,7 @@ import { X, Activity, Heart, Briefcase, Smile, Trash2 } from 'lucide-react';
 import { useHabitStore } from './useHabitStore';
 import { cn } from '../../utils/cn';
 import { Habit, IdentityAxis } from '../../types';
+import { PILLAR_IDS, PILLAR_META, PillarId } from '../pillars/usePillarsStore';
 
 const AXIS_OPTIONS: { id: IdentityAxis; label: string; color: string; emoji: string }[] = [
     { id: 'physical',    label: 'Físico',      color: '#34d399', emoji: '💪' },
@@ -39,6 +40,7 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
     const [color, setColor] = useState(initialData?.color || '#fbbf24');
     const [icon, setIcon] = useState(initialData?.icon || '🎯');
     const [identityAxis, setIdentityAxis] = useState<IdentityAxis | undefined>(initialData?.identityAxis);
+    const [pillar, setPillar] = useState<PillarId | undefined>(initialData?.pillar);
 
     // Emoji Tab State
     const [activeEmojiTab, setActiveEmojiTab] = useState('Salud');
@@ -57,6 +59,7 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
             color,
             icon,
             identityAxis: identityAxis || undefined,
+            pillar: pillar || undefined,
             subtitle: initialData?.subtitle || '0 días de racha'
         };
 
@@ -234,6 +237,32 @@ export function HabitForm({ onClose, initialData }: HabitFormProps) {
                                 × Quitar eje
                             </button>
                         )}
+                    </div>
+
+                    {/* Pillar Selector */}
+                    <div className="space-y-3">
+                        <label className="text-xs uppercase font-bold text-neutral-500 tracking-wider block">
+                            ¿Es la acción mínima de un pilar? <span className="text-neutral-700 normal-case font-normal">(opcional)</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {PILLAR_IDS.map(id => (
+                                <button
+                                    key={id}
+                                    type="button"
+                                    onClick={() => setPillar(pillar === id ? undefined : id)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all border",
+                                        pillar === id
+                                            ? "border-current bg-white/10 shadow-[0_0_10px_rgba(0,0,0,0.3)]"
+                                            : "border-white/10 bg-neutral-900/50 text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+                                    )}
+                                    style={pillar === id ? { color: PILLAR_META[id].color, borderColor: PILLAR_META[id].color + '60' } : {}}
+                                >
+                                    <span>{PILLAR_META[id].emoji}</span>
+                                    <span>{PILLAR_META[id].label}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Color Picker */}

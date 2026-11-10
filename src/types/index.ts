@@ -1,3 +1,4 @@
+import type { PillarId } from '../features/pillars/usePillarsStore';
 // Habits
 export type IdentityAxis = 'physical' | 'emotional' | 'vision' | 'standards' | 'growth' | 'environment';
 export type HabitType = 'boolean' | 'numeric';
@@ -22,6 +23,7 @@ export interface Habit {
     logs: Record<string, HabitLog>; // Map date to log for O(1) access
     archived?: boolean;
     identityAxis?: IdentityAxis; // Which identity axis this habit serves
+    pillar?: PillarId; // Pilar al que sirve: su check en Pilares marca este hábito
     isDemo?: boolean; // Starter demo habits shown to new users
 }
 
