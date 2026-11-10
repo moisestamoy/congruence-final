@@ -6,9 +6,10 @@ interface PentagonRadarProps {
     onSelect: (id: PillarId) => void;
 }
 
-const SIZE = 320;
+const SIZE = 340;
 const CENTER = SIZE / 2;
-const RADIUS = 112;
+const RADIUS = 118;
+const ACCENT = 'rgb(var(--accent-400))';
 
 /** Punto del eje i a una distancia de 0 a 1 del centro. El primer eje apunta arriba. */
 function point(i: number, t: number) {
@@ -16,69 +17,50 @@ function point(i: number, t: number) {
     return { x: CENTER + Math.cos(angle) * RADIUS * t, y: CENTER + Math.sin(angle) * RADIUS * t };
 }
 
-const SPRING = { type: 'spring', stiffness: 90, damping: 16 } as const;
-
 const polygon = (values: number[]) =>
     values.map((v, i) => { const p = point(i, Math.max(0, Math.min(10, v)) / 10); return `${p.x},${p.y}`; }).join(' ');
 
-/** Pentágono de los 5 pilares: sólido = dónde estás (A), punteado = a dónde vas (B). */
+/** Los 5 pilares en un pentágono: trazo lleno = dónde estás, punteado = a dónde vas. */
 export function PentagonRadar({ pillars, onSelect }: PentagonRadarProps) {
     const scoresA = PILLAR_IDS.map(id => pillars[id].scoreA);
     const scoresB = PILLAR_IDS.map(id => pillars[id].scoreB);
 
     return (
-        <div className="flex flex-col items-center">
-            <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-[340px]" role="img" aria-label="Radar de tus pilares">
-                {/* Rejilla */}
-                {[0.2, 0.4, 0.6, 0.8, 1].map(t => (
-                    <polygon
-                        key={t}
-                        points={PILLAR_IDS.map((_, i) => { const p = point(i, t); return `${p.x},${p.y}`; }).join(' ')}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.07)"
-                        strokeWidth={1}
-                    />
-                ))}
-                {PILLAR_IDS.map((_, i) => {
-                    const p = point(i, 1);
-                    return <line key={i} x1={CENTER} y1={CENTER} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />;
-                })}
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-[420px]" role="img" aria-label="Tus pilares">
+            {[0.25, 0.5, 0.75, 1].map(t => (
+                <polygon key={t} points={PILLAR_IDS.map((_, i) => { const p = point(i, t); return `${p.x},${p.y}`; }).join(' ')}
+                    fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+            ))}
 
-                {/* Crecen desde el centro al entrar. (Animar `points` directamente da NaN con un resorte.) */}
-                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING}
-                    style={{ transformOrigin: `${CENTER}px ${CENTER}px`, transformBox: 'view-box' }}>
-                    {/* Punto B: a dónde vas */}
-                    <polygon points={polygon(scoresB)} fill="rgba(52,211,153,0.04)" stroke="rgb(52,211,153)" strokeOpacity={0.7}
-                        strokeWidth={1.5} strokeDasharray="5 5" />
-                    {/* Punto A: dónde estás */}
-                    <polygon points={polygon(scoresA)} fill="rgba(129,140,248,0.18)" stroke="rgb(129,140,248)" strokeWidth={2} strokeLinejoin="round"
-                        style={{ filter: 'drop-shadow(0 0 10px rgba(129,140,248,0.35))' }} />
-                </motion.g>
-
-                {/* Vértices: tocar uno abre su tarjeta */}
+            {/* Crecen desde el centro al entrar. (Animar `points` directamente da NaN con un resorte.) */}
+            <motion.g initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 90, damping: 16 }}
+                style={{ transformOrigin: `${CENTER}px ${CENTER}px`, transformBox: 'view-box' }}>
+                <polygon points={polygon(scoresB)} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth={1} strokeDasharray="3 5" />
+                <polygon points={polygon(scoresA)} fill={ACCENT} fillOpacity={0.1} stroke={ACCENT} strokeWidth={2.5} strokeLinejoin="round" />
                 {PILLAR_IDS.map((id, i) => {
-                    const meta = PILLAR_META[id];
                     const a = point(i, pillars[id].scoreA / 10);
-                    const label = point(i, 1.24);
-                    return (
-                        <g key={id} onClick={() => onSelect(id)} className="cursor-pointer" role="button" aria-label={`Abrir pilar ${meta.label}`}>
-                            <motion.circle initial={{ cx: CENTER, cy: CENTER, opacity: 0 }} animate={{ cx: a.x, cy: a.y, opacity: 1 }}
-                                transition={SPRING} r={5} fill={meta.color} />
-                            <circle cx={label.x} cy={label.y} r={24} fill="transparent" />
-                            <text x={label.x} y={label.y - 4} textAnchor="middle" fontSize={15}>{meta.emoji}</text>
-                            <text x={label.x} y={label.y + 13} textAnchor="middle" fontSize={10} fontWeight={700}
-                                fill="rgb(163,163,163)" style={{ letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                                {meta.label}
-                            </text>
-                        </g>
-                    );
+                    return <circle key={id} cx={a.x} cy={a.y} r={3.5} fill="#0a0a0a" stroke={ACCENT} strokeWidth={2} />;
                 })}
-            </svg>
+            </motion.g>
 
-            <div className="flex items-center gap-5 text-[10px] font-bold uppercase tracking-widest text-neutral-500 -mt-2">
-                <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-indigo-400 rounded-full" />Punto A · hoy</span>
-                <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-emerald-400" />Punto B · meta</span>
-            </div>
-        </div>
+            {/* Nombre y puntaje en cada punta: tocarlo abre ese pilar */}
+            {PILLAR_IDS.map((id, i) => {
+                const p = point(i, 1.26);
+                return (
+                    <g key={id} onClick={() => onSelect(id)} className="cursor-pointer" role="button" aria-label={`Abrir ${PILLAR_META[id].label}`}>
+                        <rect x={p.x - 38} y={p.y - 18} width={76} height={36} fill="transparent" />
+                        <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={9.5} fontWeight={800} fill="rgba(255,255,255,0.55)"
+                            style={{ letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                            {PILLAR_META[id].label}
+                        </text>
+                        <text x={p.x} y={p.y + 12} textAnchor="middle" fontSize={11} fontWeight={800} fill="white"
+                            style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {pillars[id].scoreA}<tspan fill="rgba(255,255,255,0.3)" fontWeight={500}> / {pillars[id].scoreB}</tspan>
+                        </text>
+                    </g>
+                );
+            })}
+        </svg>
     );
 }
