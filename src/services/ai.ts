@@ -9,12 +9,23 @@ export interface DailyInsight {
     score_context?: string;
 }
 
+/** Lo que el coach necesita saber de cada pilar. */
+export interface PillarBrief {
+    pilar: string;
+    puntoA: string;
+    puntoB: string;
+    barrera: string;
+    minimo: string;
+}
+
 export const AIService = {
     generateInsight: async (
         habits: any[],
         finances: any[],
-        manifesto?: any,
-        holisticCheckIns?: any[]
+        pillars?: PillarBrief[],
+        holisticCheckIns?: any[],
+        // Contexto extra de los coaches de Finanzas y Estadísticas. El servidor todavía no lo usa.
+        context?: unknown
     ): Promise<DailyInsight> => {
         try {
             // Uses supabase.functions.invoke so the JWT is sent automatically
@@ -23,7 +34,8 @@ export const AIService = {
                 body: {
                     habits,
                     finances,
-                    manifesto,
+                    pillars,
+                    context,
                     holisticCheckIns: holisticCheckIns?.slice(-3) ?? []
                 }
             });

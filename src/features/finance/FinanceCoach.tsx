@@ -1,3 +1,4 @@
+import { usePillarsStore, pillarBriefs } from '../pillars/usePillarsStore';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw, TrendingDown, TrendingUp, Minus, DollarSign } from 'lucide-react';
@@ -43,13 +44,9 @@ export function FinanceCoach({ finances, config, savingsGoals, monthIncome, mont
             const result = await AIService.generateInsight(
                 [],
                 [financeContext],
-                {
-                    type: 'finance_analysis',
-                    savingsGoals,
-                    config,
-                    monthSummary: financeContext
-                },
-                []
+                pillarBriefs(usePillarsStore.getState().pillars),
+                [],
+                { type: 'finance_analysis', savingsGoals, config, monthSummary: financeContext }
             );
             setInsight(result);
         } catch (error) {

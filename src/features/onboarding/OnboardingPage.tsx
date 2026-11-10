@@ -4,6 +4,7 @@ import { ArrowRight, Wallet, Activity, Target, BookOpen, Check } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from '../habits/CongruenceLevelIndicator';
 import { useHabitStore } from '../habits/useHabitStore';
+import { usePillarsStore, PILLAR_IDS, PILLAR_META, PillarId } from '../pillars/usePillarsStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { cn } from '../../utils/cn';
 
@@ -52,7 +53,8 @@ const slideVariants = {
 
 export default function OnboardingPage() {
     const navigate = useNavigate();
-    const { addHabit, setManifesto } = useHabitStore();
+    const { addHabit } = useHabitStore();
+    const updatePillar = usePillarsStore(s => s.updatePillar);
     const { updateConfig } = useFinanceStore();
 
     const [step, setStep] = useState(0);
@@ -61,8 +63,9 @@ export default function OnboardingPage() {
     // Data
     const [name, setName] = useState('');
     const [focusAreas, setFocusAreas] = useState<string[]>([]);
-    const [identityStatement, setIdentityStatement] = useState('');
-    const [goal90, setGoal90] = useState('');
+    const [pillarId, setPillarId] = useState<PillarId>('fisico');
+    const [puntoB, setPuntoB] = useState('');
+    const [minimo, setMinimo] = useState('');
     const [habitTitle, setHabitTitle] = useState('');
     const [habitIcon, setHabitIcon] = useState('💪');
     const [currency, setCurrency] = useState('MXN');
@@ -98,14 +101,8 @@ export default function OnboardingPage() {
         if (name.trim()) localStorage.setItem('congruence_user_name', name.trim());
         if (focusAreas.length) localStorage.setItem('congruence_focus_areas', JSON.stringify(focusAreas));
 
-        if (identityStatement.trim() || goal90.trim()) {
-            setManifesto({
-                identityStatement: identityStatement.trim() || undefined,
-                identities: { personal: identityStatement.trim(), professional: '', financial: '' },
-                goals: { oneYear: '', ninetyDays: goal90.trim(), antiGoals: '' },
-                ignoranceDebt: { missingSkill: '', investmentAction: '' },
-                executionProtocol: { planA_Action: '', planA_Volume: '', planB_Minimum: '' },
-            });
+        if (puntoB.trim() || minimo.trim()) {
+            updatePillar(pillarId, { puntoB: puntoB.trim(), minimo: minimo.trim() });
         }
 
         if (habitTitle.trim()) {
@@ -128,7 +125,7 @@ export default function OnboardingPage() {
     // Activation checklist for the aha-moment
     const checklist = [
         { done: !!name.trim(), label: `Te llamas ${name.trim() || '...'}`, key: 'name' },
-        { done: !!identityStatement.trim() || !!goal90.trim(), label: 'Identidad definida', key: 'id' },
+        { done: !!puntoB.trim() || !!minimo.trim(), label: 'Primer pilar definido', key: 'id' },
         { done: !!habitTitle.trim(), label: habitTitle.trim() ? `Hábito: ${habitTitle.trim()}` : 'Crear tu primer hábito', key: 'habit' },
         { done: financeConfigured, label: 'Configurar tus finanzas', key: 'fin' },
         { done: false, label: 'Escribir tu primera nota', key: 'note' },
@@ -255,31 +252,42 @@ export default function OnboardingPage() {
                             </>
                         )}
 
-                        {/* ── 3 · IDENTIDAD ── */}
+                        {/* ── 3 · PRIMER PILAR ── */}
                         {step === 3 && (
                             <>
                                 <div>
-                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Tu Identidad</p>
-                                    <h1 className="text-2xl font-black text-white leading-tight">El 95% nunca define quién quiere ser</h1>
+                                    <p className="text-cyan-400/70 text-xs font-bold uppercase tracking-widest mb-2">Tu primer pilar</p>
+                                    <h1 className="text-2xl font-black text-white leading-tight">El 95% nunca define a dónde quiere llegar</h1>
                                     <p className="text-neutral-400 text-sm mt-2 leading-relaxed">
-                                        Y por eso actúan sin dirección. Esta frase es tu norte: cuando tengas un día difícil, te recuerda por qué haces lo que haces. Puedes editarla cuando quieras.
+                                        Y por eso actúan sin dirección. Elige el pilar que más te importa hoy y dale un destino. Los otros cuatro los defines después, tocando el anillo.
                                     </p>
                                 </div>
                                 <div className="space-y-4">
+                                    <div className="flex flex-wrap gap-2">
+                                        {PILLAR_IDS.map(id => (
+                                            <button key={id} type="button" onClick={() => setPillarId(id)}
+                                                className={cn(
+                                                    "px-3 py-2 rounded-xl text-xs font-bold border transition-all",
+                                                    pillarId === id ? "bg-white/10 text-white border-cyan-500/50" : "bg-white/5 text-neutral-500 border-white/10 hover:text-neutral-300"
+                                                )}>
+                                                {PILLAR_META[id].emoji} {PILLAR_META[id].label}
+                                            </button>
+                                        ))}
+                                    </div>
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">Completa: "Soy una persona que..."</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">¿A dónde quieres llegar en este pilar?</label>
                                         <textarea
-                                            value={identityStatement} onChange={e => setIdentityStatement(e.target.value)}
-                                            placeholder="...siempre cumple lo que dice y trabaja con disciplina"
+                                            value={puntoB} onChange={e => setPuntoB(e.target.value)}
+                                            placeholder="Ej: Bajar 5 kg, lanzar mi negocio, ahorrar $X..."
                                             rows={2}
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/20 outline-none focus:border-cyan-500/50 transition-colors text-sm leading-relaxed resize-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">¿Qué quieres lograr en 90 días?</label>
+                                        <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 block mb-1.5">¿Cuál es lo mínimo que harás cada día?</label>
                                         <input
-                                            value={goal90} onChange={e => setGoal90(e.target.value)}
-                                            placeholder="Ej: Bajar 5kg, lanzar mi negocio, ahorrar $X..."
+                                            value={minimo} onChange={e => setMinimo(e.target.value)}
+                                            placeholder="Lo mínimo, aunque el día salga mal"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/20 outline-none focus:border-cyan-500/50 transition-colors text-sm"
                                         />
                                     </div>

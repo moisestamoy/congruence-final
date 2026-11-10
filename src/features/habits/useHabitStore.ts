@@ -5,9 +5,6 @@ import { generateId } from '../../utils/id';
 
 interface HabitsState {
     habits: Habit[];
-    manifesto?: IdentityManifesto;
-    setManifesto: (manifesto: IdentityManifesto) => void;
-
     // Legacy (to be removed or kept for backward compat if needed, but better replace)
     identity?: any;
     setIdentity: (identity: any) => void;
@@ -19,39 +16,6 @@ interface HabitsState {
     removeHabit: (id: string) => void;
     markHabitSkip: (habitId: string, date: string, status: 'rest' | 'emergency', reason?: string) => void;
     getCongruence: (date: string) => number; // 0-100
-}
-
-// --- IDENTITY MANIFESTO TYPES ---
-export interface IdentityManifesto {
-    // New unified identity statement (Step 1 of redesigned wizard)
-    identityStatement?: string;
-    // Kept for backward compat with old wizard data
-    identities: {
-        personal: string;
-        professional: string;
-        financial: string;
-    };
-    // Belief system — "Soy el tipo de persona que..."
-    beliefs?: {
-        empowering: string[];   // 3-5 creencias potenciadoras
-        limiting?: string;      // Creencia limitante que elimino
-    };
-    goals: {
-        oneYear: string;
-        ninetyDays: string;
-        antiGoals: string;
-        sacrifice?: string;    // What I'll give up
-        toxicHabit?: string;   // What I won't tolerate
-    };
-    ignoranceDebt: {
-        missingSkill: string;
-        investmentAction: string;
-    };
-    executionProtocol: {
-        planA_Action: string;
-        planA_Volume: string;
-        planB_Minimum: string;
-    };
 }
 
 export const useHabitStore = create<HabitsState>()(
@@ -113,9 +77,6 @@ export const useHabitStore = create<HabitsState>()(
             },
             setIdentity: (identity) => {
                 set({ identity });
-            },
-            setManifesto: (manifesto) => {
-                set({ manifesto });
             },
             removeHabit: (id) => {
                 set((state) => ({ habits: state.habits.filter((h) => h.id !== id) }));
@@ -202,6 +163,16 @@ export const useHabitStore = create<HabitsState>()(
         }),
         {
             name: 'lifeos-habits-storage',
+            version: 1,
+            // v1: Mi Norte dejó de existir (lo reemplazan los Pilares). Se descarta
+            // el `manifesto` que haya quedado guardado en el dispositivo.
+            migrate: (persisted: any) => {
+                if (persisted && typeof persisted === 'object') {
+                    const { manifesto: _descartado, ...rest } = persisted;
+                    return rest;
+                }
+                return persisted;
+            },
         }
     )
 );

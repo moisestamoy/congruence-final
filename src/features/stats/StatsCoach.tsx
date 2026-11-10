@@ -1,3 +1,4 @@
+import { usePillarsStore, pillarBriefs } from '../pillars/usePillarsStore';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -45,8 +46,9 @@ export function StatsCoach({
             const result = await AIService.generateInsight(
                 habitStats,
                 [],
-                { type: 'stats_analysis', statsContext: context },
-                []
+                pillarBriefs(usePillarsStore.getState().pillars),
+                [],
+                { type: 'stats_analysis', statsContext: context }
             );
             setInsight(result);
         } catch (e) {

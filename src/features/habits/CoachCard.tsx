@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { Brain, Sparkles, RefreshCw, Loader2, TrendingUp, Zap, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHabitStore } from './useHabitStore';
+import { usePillarsStore, pillarBriefs } from '../pillars/usePillarsStore';
 import { useFinanceStore } from '../finance/useFinanceStore';
 import { AIService, DailyInsight } from '../../services/ai';
 import { useTheme } from '../../hooks/useTheme';
 import { cn } from '../../utils/cn';
 
 export function CoachCard() {
-    const { habits, manifesto } = useHabitStore();
+    const { habits } = useHabitStore();
+    const pillars = usePillarsStore(s => s.pillars);
     const { realExpenses } = useFinanceStore();
     const { theme } = useTheme();
     const isAccion = theme === 'accion';
@@ -19,7 +21,7 @@ export function CoachCard() {
     const generate = async () => {
         setIsLoading(true);
         try {
-            const result = await AIService.generateInsight(habits, realExpenses, manifesto, []);
+            const result = await AIService.generateInsight(habits, realExpenses, pillarBriefs(pillars), []);
             setInsight(result);
         } catch (e) {
             console.error('Coach error:', e);

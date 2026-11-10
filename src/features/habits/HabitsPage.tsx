@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Shield, Flame, CheckCircle2, ArrowRight, Brain } from 'lucide-react';
+import { LayoutTemplate, Monitor, User, ChevronLeft, ChevronRight, LogIn, LogOut, Flame, CheckCircle2, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CongruenceLevelIndicator } from './CongruenceLevelIndicator';
 import { HabitCard } from './HabitCard';
@@ -12,7 +12,6 @@ import { format, addDays, subDays } from 'date-fns';
 import { getHabitDay } from '../../utils/habitDay';
 import { cn } from '../../utils/cn';
 
-import { IdentityProtocolWizard } from './IdentityProtocolWizard';
 import { Habit } from '../../types';
 import { useFabStore } from '../../hooks/useFabStore';
 import { useAuth } from '../../context/AuthContext';
@@ -23,7 +22,6 @@ import { useTheme } from '../../hooks/useTheme';
 export default function HabitsPage() {
     const navigate = useNavigate();
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [isIdentityBuilderOpen, setIsIdentityBuilderOpen] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [layoutView, setLayoutView] = useState<'split' | 'central'>('split');
@@ -39,7 +37,7 @@ export default function HabitsPage() {
     const isAccion = theme === 'accion';
     const isOcean = theme === 'ocean';
     const isSakura = theme === 'sakura';
-    const { habits, getCongruence, toggleHabit, setHabitValue, manifesto, markHabitSkip } = useHabitStore();
+    const { habits, getCongruence, toggleHabit, setHabitValue, markHabitSkip } = useHabitStore();
 
     const navigateDate = (days: number) => {
         setCurrentDate(prev => addDays(prev, days));
@@ -231,27 +229,6 @@ export default function HabitsPage() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Identity Builder Option */}
-                                    <motion.button
-                                        variants={{
-                                            hidden: { opacity: 0, x: -10 },
-                                            visible: { opacity: 1, x: 0 }
-                                        }}
-                                        onClick={() => {
-                                            setIsProfileMenuOpen(false);
-                                            setIsIdentityBuilderOpen(true);
-                                        }}
-                                        className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors text-left group"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-cyan-400/10 flex items-center justify-center group-hover:bg-cyan-400/20 transition-colors shrink-0">
-                                            <Shield size={16} className="text-cyan-400" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-white tracking-wide">Protocolo de Persona</span>
-                                            <span className="text-[10px] text-neutral-500 mt-0.5 leading-tight">Tu brújula de 90 días</span>
-                                        </div>
-                                    </motion.button>
 
                                     <div className="h-px bg-white/5 mx-4" />
 
@@ -506,65 +483,10 @@ export default function HabitsPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col lg:grid lg:grid-cols-12 h-full gap-4 lg:gap-8 items-start lg:items-center overflow-y-auto lg:overflow-hidden pb-24 lg:pb-0"
                     >
-                        {/* ── Columna Izquierda: Identidad + Progreso ── */}
+                        {/* ── Columna Izquierda: Progreso ── */}
                         <div className="w-full lg:col-span-3 lg:h-full flex flex-col lg:justify-center gap-3 lg:gap-4 order-3 lg:order-1 lg:py-8">
 
-                            {/* Card 1: Tu Identidad */}
-                            <div
-                                onClick={() => setIsIdentityBuilderOpen(true)}
-                                className={cn(
-                                    "rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-8 flex flex-col justify-between relative overflow-hidden group transition-all duration-500 min-h-[130px] lg:h-[55%] cursor-pointer",
-                                    isAccion
-                                        ? "bg-[#0a0000]/60 border border-red-950/30 hover:border-red-900/50 hover:shadow-[0_8px_32px_rgba(239,68,68,0.08)]"
-                                        : "bg-white/[0.02] border border-white/[0.08] hover:border-white/[0.14] hover:shadow-cyan-900/20 shadow-lg"
-                                )}
-                            >
-                                {/* Header */}
-                                <h3 className={cn(
-                                    "text-[10px] lg:text-xs font-bold uppercase tracking-widest z-10 flex items-center gap-2",
-                                    isAccion ? "text-red-400" : "text-cyan-400"
-                                )}>
-                                    <div className={cn("w-1 h-3.5 rounded-full", isAccion ? "bg-red-500" : "bg-cyan-500")} />
-                                    Tu Identidad
-                                </h3>
-
-                                {/* Content */}
-                                <div className="z-10 flex-1 flex flex-col justify-center mt-3 lg:mt-4">
-                                    {manifesto?.identityStatement || manifesto?.identities?.personal ? (
-                                        <>
-                                            <p className="text-base lg:text-xl font-bold text-white leading-snug drop-shadow-sm line-clamp-4">
-                                                "{manifesto.identityStatement || manifesto.identities.personal}"
-                                            </p>
-                                            {manifesto.goals?.ninetyDays && (
-                                                <p className="text-[10px] lg:text-xs text-neutral-500 mt-3 line-clamp-2 leading-relaxed">
-                                                    <span className={cn("font-bold uppercase tracking-wider", isAccion ? "text-red-500/60" : "text-cyan-500/60")}>90 días: </span>
-                                                    {manifesto.goals.ninetyDays}
-                                                </p>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="text-neutral-600 text-sm font-medium leading-relaxed">
-                                                Define quién eres y hacia dónde vas. Tu brújula de 90 días.
-                                            </p>
-                                            <div className={cn(
-                                                "mt-4 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest self-start px-3 py-2 rounded-xl border transition-colors",
-                                                isAccion ? "text-red-400 border-red-900/50 bg-red-950/30 group-hover:bg-red-950/50" : "text-cyan-400 border-cyan-900/50 bg-cyan-950/20 group-hover:bg-cyan-950/40"
-                                            )}>
-                                                Iniciar Protocolo <ArrowRight size={10} />
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                {/* Orb glow */}
-                                <div className={cn(
-                                    "absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-[50px] transition-all duration-700 pointer-events-none",
-                                    isAccion ? "bg-red-500/8 group-hover:bg-red-500/15" : "bg-cyan-500/10 group-hover:bg-cyan-500/20"
-                                )} />
-                            </div>
-
-                            {/* Card 2: Progreso 90 Días */}
+                            {/* Progreso 90 Días */}
                             <div className={cn(
                                 "rounded-[1.5rem] lg:rounded-[2rem] p-4 lg:p-8 flex flex-col relative overflow-hidden group transition-all duration-500 min-h-[120px] lg:h-[45%]",
                                 isAccion
@@ -748,10 +670,6 @@ export default function HabitsPage() {
                     initialData={editingHabit}
                 />
             )}
-            <IdentityProtocolWizard
-                isOpen={isIdentityBuilderOpen}
-                onClose={() => setIsIdentityBuilderOpen(false)}
-            />
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
             {/* Pause Reason Modal */}

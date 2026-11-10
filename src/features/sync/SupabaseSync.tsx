@@ -66,7 +66,7 @@ export function SupabaseSync() {
         hasPendingChangesRef.current = false;
         setStatus('saving');
         try {
-            const { habits, manifesto } = useHabitStore.getState();
+            const { habits } = useHabitStore.getState();
             const { config, events, overrides, realExpenses, savingsGoals, savingsEntries, categoryBudgets } = useFinanceStore.getState();
             const { tasks, groups, notes, soundEnabled } = useTaskStore.getState();
             const { checkIns } = useHolisticStore.getState();
@@ -94,7 +94,7 @@ export function SupabaseSync() {
             const { error } = await supabase
                 .from('user_data')
                 .update({
-                    habits_data: { habits, manifesto },
+                    habits_data: { habits },
                     finances_data: { config, events, overrides, realExpenses: mergedExpenses, savingsGoals, savingsEntries, categoryBudgets },
                     tasks_data: { tasks, groups, notes, soundEnabled },
                     stats_data: { checkIns, pillars: { pillars, closes, reviews, themeStart } },
@@ -171,8 +171,9 @@ export function SupabaseSync() {
                     }
                 }
 
-                if (data.habits_data && Object.keys(data.habits_data).length > 0) {
-                    useHabitStore.setState(data.habits_data);
+                // Sólo los hábitos: la nube puede traer todavía campos viejos que ya no existen.
+                if (Array.isArray((data.habits_data as any)?.habits)) {
+                    useHabitStore.setState({ habits: (data.habits_data as any).habits });
                 }
 
                 // Tasks + holistic check-ins: adopt the cloud copy only when it's
@@ -276,7 +277,7 @@ export function SupabaseSync() {
         return () => clearTimeout(timeout);
     }, [
         user, saveToCloud,
-        habitsState.habits, habitsState.manifesto,
+        habitsState.habits,
         financeState.config, financeState.events, financeState.overrides,
         financeState.realExpenses, financeState.savingsGoals,
         financeState.savingsEntries, financeState.categoryBudgets,

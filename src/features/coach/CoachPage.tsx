@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, RefreshCw } from 'lucide-react';
 import { useFinanceStore } from '../../features/finance/useFinanceStore';
 import { useHabitStore } from '../../features/habits/useHabitStore';
+import { usePillarsStore, pillarBriefs } from '../../features/pillars/usePillarsStore';
 import { useHolisticStore } from '../../features/stats/useHolisticStore';
 import { DailyInsight, AIService } from '../../services/ai';
 import { cn } from '../../utils/cn';
@@ -10,7 +11,8 @@ import { cn } from '../../utils/cn';
 const COOLDOWN_SECONDS = 60;
 
 export default function CoachPage() {
-    const { habits, manifesto } = useHabitStore();
+    const { habits } = useHabitStore();
+    const pillars = usePillarsStore(s => s.pillars);
     const { realExpenses } = useFinanceStore();
     const { checkIns } = useHolisticStore();
     const [insight, setInsight] = useState<DailyInsight | null>(() => {
@@ -47,7 +49,7 @@ export default function CoachPage() {
             const result = await AIService.generateInsight(
                 habits,
                 realExpenses,
-                manifesto,
+                pillarBriefs(pillars),
                 checkIns.slice(-3)
             );
             setInsight(result);

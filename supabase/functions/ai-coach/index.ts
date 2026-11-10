@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── 2. Parse body ─────────────────────────────────────────────────────
-    const { habits, finances, manifesto, holisticCheckIns } = await req.json()
+    const { habits, finances, pillars, holisticCheckIns } = await req.json()
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
@@ -91,14 +91,17 @@ Deno.serve(async (req: Request) => {
           .join(', ')
       : 'Sin evaluación reciente'
 
-    const identityStatement = manifesto?.identityStatement ?? ''
-    const goalNinetyDays = manifesto?.goals?.ninetyDays ?? ''
+    // Pilares: dónde está (A), a dónde va (B), qué lo frena y su acción mínima.
+    const corto = (v: unknown) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+    const pillarLines = (Array.isArray(pillars) ? pillars : []).slice(0, 5)
+      .map((p: any) => `  · ${corto(p.pilar)}: A="${corto(p.puntoA)}" → B="${corto(p.puntoB)}" | barrera="${corto(p.barrera)}" | mínimo="${corto(p.minimo)}"`)
+      .join('\n') || '  · Sin pilares definidos'
 
     const prompt = `Eres un coach estoico y directo. Analiza estos datos del usuario y responde ÚNICAMENTE con un JSON válido, sin markdown, sin texto adicional.
 
 DATOS DEL USUARIO (${today}):
-- Identidad: "${identityStatement}"
-- Meta 90 días: "${goalNinetyDays}"
+- Pilares:
+${pillarLines}
 - Hábitos completados hoy: ${completedHabits.length}/${totalHabits} (${congruence}% congruencia)
 - Hábitos completados: ${completedHabits.map((h: any) => h.name).join(', ') || 'ninguno'}
 - Gasto últimos 7 días: ${totalSpentRecently.toFixed(2)}

@@ -12,7 +12,6 @@ import './i18n/config';
 const HabitsPage = lazy(() => import('./features/habits/HabitsPage'));
 const FinancesPage = lazy(() => import('./features/finance/FinancesPage'));
 const StatsPage = lazy(() => import('./features/stats/StatsPage'));
-const IdentityPage = lazy(() => import('./features/identity/IdentityPage'));
 const PillarsPage = lazy(() => import('./features/pillars/PillarsPage'));
 const CoachPage = lazy(() => import('./features/coach/CoachPage'));
 const ToDoPage = lazy(() => import('./features/tasks/ToDoPage'));
@@ -26,7 +25,6 @@ function usePrefetchPages() {
             import('./features/finance/FinancesPage');
             import('./features/stats/StatsPage');
             import('./features/tasks/ToDoPage');
-            import('./features/identity/IdentityPage');
             import('./features/pillars/PillarsPage');
             import('./features/coach/CoachPage');
             import('./features/habits/HabitsPage');
@@ -76,7 +74,6 @@ function App() {
                             <Route path="/" element={<OnboardingGuard><HabitsPage /></OnboardingGuard>} />
                             <Route path="/finances" element={<FinancesPage />} />
                             <Route path="/stats" element={<StatsPage />} />
-                            <Route path="/identity" element={<IdentityPage />} />
                             <Route path="/pilares" element={<PillarsPage />} />
                             <Route path="/coach" element={
                                 <ProtectedRoute>

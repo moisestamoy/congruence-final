@@ -118,3 +118,11 @@ export const usePillarsStore = create<PillarsState>()(
         { name: 'congruence-pillars-storage' }
     )
 );
+
+/** Los pilares definidos, resumidos para el coach. */
+export function pillarBriefs(pillars: Record<PillarId, PillarData>) {
+    return PILLAR_IDS
+        .map(id => pillars[id])
+        .filter(p => p.puntoA.trim() || p.puntoB.trim() || p.barrera.trim() || p.minimo.trim())
+        .map(p => ({ pilar: PILLAR_META[p.id].label, puntoA: p.puntoA, puntoB: p.puntoB, barrera: p.barrera, minimo: p.minimo }));
+}

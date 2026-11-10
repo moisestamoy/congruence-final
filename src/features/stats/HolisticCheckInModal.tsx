@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { X, Save, BrainCircuit, Activity, Heart, Target, TrendingUp, Compass, Skull, Star } from 'lucide-react';
+import { X, Save, BrainCircuit, Activity, Heart, Target, TrendingUp, Compass, Star } from 'lucide-react';
 import { useHolisticStore, HolisticCheckIn } from './useHolisticStore';
-import { useHabitStore } from '../habits/useHabitStore';
 import { cn } from '../../utils/cn';
 
 interface HolisticCheckInModalProps {
@@ -67,7 +66,6 @@ const ALL_AXES = [
 
 export function HolisticCheckInModal({ onClose }: HolisticCheckInModalProps) {
     const { addCheckIn, getLatestCheckIn, getCheckInAxesForDay, isFullCheckIn } = useHolisticStore();
-    const { manifesto } = useHabitStore();
     const latest = getLatestCheckIn();
 
     const today = new Date();
@@ -103,8 +101,6 @@ export function HolisticCheckInModal({ onClose }: HolisticCheckInModalProps) {
         onClose();
     };
 
-    const planB = manifesto?.executionProtocol?.planB_Minimum;
-
     // Day labels for the rotation badge
     const DAY_LABELS: Record<number, string> = {
         1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
@@ -137,28 +133,6 @@ export function HolisticCheckInModal({ onClose }: HolisticCheckInModalProps) {
                         <X size={20} />
                     </button>
                 </div>
-
-                {/* Plan B Mirror — shown only if manifesto exists */}
-                {planB && (
-                    <div className="mx-6 mt-6 p-5 rounded-2xl bg-yellow-500/5 border border-yellow-500/20">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-yellow-500/10 text-yellow-400 shrink-0 mt-0.5">
-                                <Skull size={16} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/70 mb-1">
-                                    Tu contrato mínimo de hoy
-                                </p>
-                                <p className="text-yellow-100 font-semibold text-sm leading-relaxed">
-                                    "{planB}"
-                                </p>
-                                <p className="text-[10px] text-yellow-400/50 mt-2 italic">
-                                    ¿Lo cumpliste? Usa los sliders abajo para evaluarte.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Content — Axes */}
                 <div className="p-6 md:p-8 space-y-8 bg-[#050505]">
