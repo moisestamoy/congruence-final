@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronDown, Moon, Star, X, Compass } from 'lucide-react';
-import { differenceInCalendarDays } from 'date-fns';
+import { Check, ChevronDown, ChevronLeft, Moon, Star, X, Compass, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { differenceInCalendarDays, format, subDays } from 'date-fns';
 import { PentagonRadar } from './PentagonRadar';
 import {
     usePillarsStore, PILLAR_IDS, PILLAR_META, PillarId, PillarData, todayKey,
@@ -94,8 +95,16 @@ function TodayCard() {
     const visibles = enFoco.length > 0 ? enFoco : PILLAR_IDS;
 
     const [answers, setAnswers] = useState({ hizo: close?.hizo ?? '', mejora: close?.mejora ?? '', evite: close?.evite ?? '' });
-    const [saved, setSaved] = useState(false);
     const dirty = answers.hizo !== (close?.hizo ?? '') || answers.mejora !== (close?.mejora ?? '') || answers.evite !== (close?.evite ?? '');
+    const hasClose = !!(close?.hizo || close?.mejora || close?.evite);
+    // El cierre es para la noche: antes de las 18 h queda plegado para no alargar la pantalla.
+    const [closeOpen, setCloseOpen] = useState(() => new Date().getHours() >= 18 || new Date().getHours() < 5);
+    const persist = () => { if (dirty) saveClose(date, { hizo: answers.hizo.trim(), mejora: answers.mejora.trim(), evite: answers.evite.trim() }); };
+
+    // Los 6 días anteriores, del más viejo al más reciente: la constancia de cada pilar.
+    const previos = Array.from({ length: 6 }, (_, i) => format(subDays(getHabitDay(), 6 - i), 'yyyy-MM-dd'));
+    const hechoEl = (id: PillarId, day: string) =>
+        !!closes.find(c => c.date === day)?.done[id] || !!habits.find(h => h.pillar === id && h.type === 'boolean' && !h.archived)?.logs[day]?.completed;
 
     // Si el pilar tiene un hábito sí/no vinculado, el check también lo marca: así suma al anillo.
     const linkedHabit = (id: PillarId) => habits.find(h => h.pillar === id && h.type === 'boolean' && !h.archived);
@@ -108,14 +117,29 @@ function TodayCard() {
         if (habit && !!habit.logs[date]?.completed !== next) toggleHabit(habit.id, date);
     };
 
+    const hechos = visibles.filter(isDone).length;
+    const completo = hechos === visibles.length;
+
     return (
-        <section className={card}>
-            <div className="flex items-center justify-between mb-4">
+        <section className={cn(card, 'transition-colors duration-500', completo && 'border-emerald-500/30')}>
+            <div className="flex items-center justify-between mb-2">
                 <span className={label}>Hoy</span>
-                <span className="text-[10px] text-neutral-600 font-bold">
-                    {visibles.filter(isDone).length}/{visibles.length}
+                <span className={cn('text-[10px] font-bold tabular-nums', completo ? 'text-emerald-400' : 'text-neutral-600')}>
+                    {hechos}/{visibles.length}
                 </span>
             </div>
+            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden mb-4">
+                <motion.div className="h-full rounded-full bg-emerald-400" initial={false}
+                    animate={{ width: `${(hechos / visibles.length) * 100}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+            </div>
+            <AnimatePresence>
+                {completo && (
+                    <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                        className="flex items-center gap-2 text-sm font-bold text-emerald-300 overflow-hidden">
+                        <Sparkles size={14} /> <span className="pb-3">Hoy cumpliste con todos tus pilares en foco.</span>
+                    </motion.p>
+                )}
+            </AnimatePresence>
 
             <div className="space-y-2 mb-6">
                 {visibles.map(id => {
@@ -135,45 +159,69 @@ function TodayCard() {
                                 'w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors',
                                 done ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'
                             )}>
-                                {done && <Check size={12} className="text-black" strokeWidth={3} />}
+                                <AnimatePresence>
+                                    {done && (
+                                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                                            transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+                                            <Check size={12} className="text-black" strokeWidth={3} />
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </span>
                             <span className="text-base">{meta.emoji}</span>
                             <span className="flex-1 min-w-0">
                                 <span className="block text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</span>
                                 <span className={cn('block text-sm truncate', minimo ? 'text-white' : 'text-neutral-600 italic')}>
-                                    {minimo || 'Define tu acción mínima abajo'}
+                                    {minimo || 'Sin acción mínima'}
                                 </span>
                             </span>
-                            {linkedHabit(id) && <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-widest shrink-0">hábito</span>}
+                            <span className="flex flex-col items-end gap-1.5 shrink-0">
+                                <span className="flex items-center gap-1" aria-label="Últimos 7 días">
+                                    {previos.map(day => (
+                                        <span key={day} className="w-1.5 h-1.5 rounded-full"
+                                            style={{ backgroundColor: hechoEl(id, day) ? meta.color : 'rgba(255,255,255,0.1)' }} />
+                                    ))}
+                                    <span className="w-1.5 h-1.5 rounded-full ring-1 ring-white/20"
+                                        style={{ backgroundColor: done ? meta.color : 'transparent' }} />
+                                </span>
+                                {linkedHabit(id) && <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-widest">hábito</span>}
+                            </span>
                         </button>
                     );
                 })}
             </div>
 
-            <div className="flex items-center gap-2 mb-3">
+            <button onClick={() => setCloseOpen(o => !o)} className="w-full flex items-center gap-2 text-left">
                 <Moon size={13} className="text-indigo-400" />
                 <span className={label}>Cierre nocturno</span>
-            </div>
-            <div className="space-y-3">
-                {PREGUNTAS.map(q => (
-                    <div key={q.key}>
-                        <p className="text-sm text-neutral-300 font-medium mb-1.5">{q.text}</p>
-                        <textarea
-                            rows={2}
-                            value={answers[q.key]}
-                            onChange={e => { setAnswers(a => ({ ...a, [q.key]: e.target.value })); setSaved(false); }}
-                            className={cn(field, 'resize-none')}
-                        />
-                    </div>
-                ))}
-                <button
-                    onClick={() => { saveClose(date, { hizo: answers.hizo.trim(), mejora: answers.mejora.trim(), evite: answers.evite.trim() }); setSaved(true); }}
-                    disabled={!dirty}
-                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-xs font-black uppercase tracking-wide transition-all hover:bg-indigo-400 disabled:opacity-30 disabled:hover:bg-indigo-500"
-                >
-                    {saved && !dirty ? 'Cierre guardado' : 'Guardar cierre'}
-                </button>
-            </div>
+                {hasClose && !dirty && <span className="text-[10px] font-bold text-emerald-400">· guardado</span>}
+                <ChevronDown size={14} className={cn('ml-auto text-neutral-500 transition-transform', closeOpen && 'rotate-180')} />
+            </button>
+            <AnimatePresence initial={false}>
+                {closeOpen && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden">
+                        <div className="space-y-3 pt-3">
+                            {PREGUNTAS.map(q => (
+                                <div key={q.key}>
+                                    <p className="text-sm text-neutral-300 font-medium mb-1.5">{q.text}</p>
+                                    {/* Se guarda solo al salir del campo: no hay botón que olvidar. */}
+                                    <textarea
+                                        rows={2}
+                                        value={answers[q.key]}
+                                        onChange={e => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}
+                                        onBlur={persist}
+                                        className={cn(field, 'resize-none')}
+                                    />
+                                </div>
+                            ))}
+                            <p className="text-[11px] text-neutral-600">
+                                {dirty ? 'Se guarda al salir del campo.' : hasClose ? 'Cierre de hoy guardado.' : 'Tres respuestas cortas bastan.'}
+                            </p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 }
@@ -193,6 +241,10 @@ function ScoreInput({ value, onChange, color }: { value: number; onChange: (v: n
 function PillarCard({ pillar, open, onToggle }: { pillar: PillarData; open: boolean; onToggle: () => void }) {
     const updatePillar = usePillarsStore(s => s.updatePillar);
     const meta = PILLAR_META[pillar.id];
+    const reviews = usePillarsStore(s => s.reviews);
+    // Cuánto se movió este pilar entre las dos últimas revisiones.
+    const delta = reviews.length >= 2 ? reviews[reviews.length - 1].scores[pillar.id] - reviews[reviews.length - 2].scores[pillar.id] : 0;
+    const avance = pillar.scoreB > 0 ? Math.min(1, pillar.scoreA / pillar.scoreB) : 0;
     const set = (updates: Partial<Omit<PillarData, 'id'>>) => updatePillar(pillar.id, updates);
 
     return (
@@ -206,7 +258,16 @@ function PillarCard({ pillar, open, onToggle }: { pillar: PillarData; open: bool
                         {pillar.puntoB.trim() ? `→ ${pillar.puntoB}` : 'Toca para definir tu Punto A y tu Punto B'}
                     </span>
                 </span>
-                <span className="text-xs font-black tabular-nums" style={{ color: meta.color }}>{pillar.scoreA} → {pillar.scoreB}</span>
+                <span className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-xs font-black tabular-nums" style={{ color: meta.color }}>
+                        {pillar.scoreA} → {pillar.scoreB}
+                        {delta !== 0 && <span className={cn('ml-1.5', delta > 0 ? 'text-emerald-400' : 'text-rose-400')}>{delta > 0 ? `+${delta}` : delta}</span>}
+                    </span>
+                    <span className="block w-14 h-1 rounded-full bg-white/10 overflow-hidden">
+                        <motion.span className="block h-full rounded-full" style={{ backgroundColor: meta.color }}
+                            initial={false} animate={{ width: `${avance * 100}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+                    </span>
+                </span>
                 {!pillar.enFoco && <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-600">pausa</span>}
                 <ChevronDown size={16} className={cn('text-neutral-500 transition-transform', open && 'rotate-180')} />
             </button>
@@ -347,19 +408,36 @@ function WeeklyReviewCard({ onOpen }: { onOpen: () => void }) {
 
 // ── Página ──────────────────────────────────────────────────────────────
 
+const entrada = {
+    hidden: { opacity: 0, y: 14 },
+    visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35, ease: 'easeOut' } }),
+};
+
 export default function PillarsPage() {
+    const navigate = useNavigate();
     const { pillars, themeStart } = usePillarsStore();
     const [openId, setOpenId] = useState<PillarId | null>(null);
     const [reviewOpen, setReviewOpen] = useState(false);
 
     const selectFromRadar = (id: PillarId) => {
         setOpenId(id);
-        requestAnimationFrame(() => document.getElementById(`pilar-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        // Un instante para que la tarjeta se abra antes de llevarte a ella.
+        setTimeout(() => document.getElementById(`pilar-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     };
+
+    const sinDefinir = PILLAR_IDS.filter(id => !pillars[id].minimo.trim() && !pillars[id].puntoB.trim());
+    const promedio = PILLAR_IDS.reduce((s, id) => s + pillars[id].scoreA, 0) / PILLAR_IDS.length;
+    // El pilar más lejos de su meta: por ahí conviene empezar.
+    const masLejos = [...PILLAR_IDS].sort((a, b) => (pillars[b].scoreB - pillars[b].scoreA) - (pillars[a].scoreB - pillars[a].scoreA))[0];
+    const brecha = pillars[masLejos].scoreB - pillars[masLejos].scoreA;
 
     return (
         <div className="min-h-screen w-full bg-[#0a0a0a] text-white p-4 md:p-6 lg:p-8 pb-40 lg:pb-16 font-sans">
             <header className="mb-6 md:mb-8">
+                <button onClick={() => navigate('/')}
+                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-neutral-500 hover:text-neutral-300 transition-colors mb-3 -ml-1">
+                    <ChevronLeft size={14} /> Tracker
+                </button>
                 <p className="text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5" style={{ color: 'rgb(var(--accent-400))' }}>
                     <Compass size={12} /> Tu equilibrio
                 </p>
@@ -367,22 +445,47 @@ export default function PillarsPage() {
             </header>
 
             <div className="space-y-4 max-w-2xl">
-                <section className={card}>
+                <motion.section className={card} variants={entrada} initial="hidden" animate="visible" custom={0}>
                     <PentagonRadar pillars={pillars} onSelect={selectFromRadar} />
-                </section>
+                    <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-4">
+                        <div className="shrink-0">
+                            <p className="text-3xl font-black text-white tabular-nums leading-none">{promedio.toFixed(1)}</p>
+                            <p className={cn(label, 'mt-1')}>promedio</p>
+                        </div>
+                        <p className="text-sm text-neutral-400 leading-relaxed">
+                            {brecha > 0 ? (
+                                <>Tu pilar más lejos de su meta es{' '}
+                                    <button onClick={() => selectFromRadar(masLejos)} className="font-bold underline underline-offset-2"
+                                        style={{ color: PILLAR_META[masLejos].color }}>{PILLAR_META[masLejos].label}</button>
+                                    : le faltan {brecha} {brecha === 1 ? 'punto' : 'puntos'}.</>
+                            ) : 'Todos tus pilares están en su meta. Sube el Punto B de alguno.'}
+                        </p>
+                    </div>
+                </motion.section>
 
-                <TodayCard />
-                <WeeklyThemeCard themeStart={themeStart} />
+                {sinDefinir.length === PILLAR_IDS.length && (
+                    <motion.button variants={entrada} initial="hidden" animate="visible" custom={1}
+                        onClick={() => selectFromRadar('fisico')}
+                        className="w-full text-left rounded-2xl border border-indigo-500/30 bg-indigo-500/[0.06] p-5 hover:bg-indigo-500/10 transition-colors">
+                        <p className={cn(label, 'text-indigo-300 mb-1')}>Empieza aquí</p>
+                        <p className="text-sm text-neutral-300">Define un solo pilar: dónde estás, a dónde vas y tu acción mínima. Los demás pueden esperar.</p>
+                    </motion.button>
+                )}
 
-                <div className="space-y-3 pt-2">
+                <motion.div variants={entrada} initial="hidden" animate="visible" custom={2}><TodayCard /></motion.div>
+                <motion.div variants={entrada} initial="hidden" animate="visible" custom={3}><WeeklyThemeCard themeStart={themeStart} /></motion.div>
+
+                <motion.div className="space-y-3 pt-2" variants={entrada} initial="hidden" animate="visible" custom={4}>
                     <p className={label}>Tus 5 pilares</p>
                     {PILLAR_IDS.map(id => (
                         <PillarCard key={id} pillar={pillars[id]} open={openId === id}
                             onToggle={() => setOpenId(openId === id ? null : id)} />
                     ))}
-                </div>
+                </motion.div>
 
-                <WeeklyReviewCard onOpen={() => setReviewOpen(true)} />
+                <motion.div variants={entrada} initial="hidden" animate="visible" custom={5}>
+                    <WeeklyReviewCard onOpen={() => setReviewOpen(true)} />
+                </motion.div>
             </div>
 
             <AnimatePresence>

@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { PILLAR_IDS, PILLAR_META, PillarData, PillarId } from './usePillarsStore';
 
 interface PentagonRadarProps {
@@ -14,6 +15,8 @@ function point(i: number, t: number) {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / PILLAR_IDS.length;
     return { x: CENTER + Math.cos(angle) * RADIUS * t, y: CENTER + Math.sin(angle) * RADIUS * t };
 }
+
+const SPRING = { type: 'spring', stiffness: 90, damping: 16 } as const;
 
 const polygon = (values: number[]) =>
     values.map((v, i) => { const p = point(i, Math.max(0, Math.min(10, v)) / 10); return `${p.x},${p.y}`; }).join(' ');
@@ -41,11 +44,16 @@ export function PentagonRadar({ pillars, onSelect }: PentagonRadarProps) {
                     return <line key={i} x1={CENTER} y1={CENTER} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />;
                 })}
 
-                {/* Punto B: a dónde vas */}
-                <polygon points={polygon(scoresB)} fill="rgba(52,211,153,0.04)" stroke="rgb(52,211,153)" strokeOpacity={0.7}
-                    strokeWidth={1.5} strokeDasharray="5 5" />
-                {/* Punto A: dónde estás */}
-                <polygon points={polygon(scoresA)} fill="rgba(129,140,248,0.18)" stroke="rgb(129,140,248)" strokeWidth={2} strokeLinejoin="round" />
+                {/* Crecen desde el centro al entrar. (Animar `points` directamente da NaN con un resorte.) */}
+                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING}
+                    style={{ transformOrigin: `${CENTER}px ${CENTER}px`, transformBox: 'view-box' }}>
+                    {/* Punto B: a dónde vas */}
+                    <polygon points={polygon(scoresB)} fill="rgba(52,211,153,0.04)" stroke="rgb(52,211,153)" strokeOpacity={0.7}
+                        strokeWidth={1.5} strokeDasharray="5 5" />
+                    {/* Punto A: dónde estás */}
+                    <polygon points={polygon(scoresA)} fill="rgba(129,140,248,0.18)" stroke="rgb(129,140,248)" strokeWidth={2} strokeLinejoin="round"
+                        style={{ filter: 'drop-shadow(0 0 10px rgba(129,140,248,0.35))' }} />
+                </motion.g>
 
                 {/* Vértices: tocar uno abre su tarjeta */}
                 {PILLAR_IDS.map((id, i) => {
@@ -54,7 +62,8 @@ export function PentagonRadar({ pillars, onSelect }: PentagonRadarProps) {
                     const label = point(i, 1.24);
                     return (
                         <g key={id} onClick={() => onSelect(id)} className="cursor-pointer" role="button" aria-label={`Abrir pilar ${meta.label}`}>
-                            <circle cx={a.x} cy={a.y} r={5} fill={meta.color} />
+                            <motion.circle initial={{ cx: CENTER, cy: CENTER, opacity: 0 }} animate={{ cx: a.x, cy: a.y, opacity: 1 }}
+                                transition={SPRING} r={5} fill={meta.color} />
                             <circle cx={label.x} cy={label.y} r={24} fill="transparent" />
                             <text x={label.x} y={label.y - 4} textAnchor="middle" fontSize={15}>{meta.emoji}</text>
                             <text x={label.x} y={label.y + 13} textAnchor="middle" fontSize={10} fontWeight={700}
