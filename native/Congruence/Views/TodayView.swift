@@ -264,19 +264,20 @@ struct TodayView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
-            CongruenceDial(
-                percentage: congruence,
-                level: level,
-                size: size,
-                phrase: phrase,
-                celebrate: celebrate
-            )
-            .sensoryFeedback(.impact(weight: .heavy), trigger: celebrate)
             // El anillo es la puerta a los Pilares.
-            .contentShape(Circle())
-            .onTapGesture { openPillars() }
+            Button(action: openPillars) {
+                CongruenceDial(
+                    percentage: congruence,
+                    level: level,
+                    size: size,
+                    phrase: phrase,
+                    celebrate: celebrate
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .heavy), trigger: celebrate)
             .help("Tus pilares")
-            .accessibilityAddTraits(.isButton)
             .accessibilityHint("Abre tus pilares")
 
             Spacer(minLength: 0)
@@ -313,9 +314,10 @@ struct TodayView: View {
 
     private var leftColumn: some View {
         VStack(spacing: 20) {
-            PillarsCard()
-                .hoverHighlight(Radius.card)
-                .onTapGesture { openPillars() }
+            Button(action: openPillars) {
+                PillarsCard().hoverHighlight(Radius.card)
+            }
+            .buttonStyle(.pressable)
             NinetyDayCard(
                 congruentDays: store.ninetyDayCongruentDays(),
                 weekDots: store.congruenceWeekDots()

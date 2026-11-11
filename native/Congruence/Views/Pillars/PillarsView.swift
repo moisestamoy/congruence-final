@@ -3,9 +3,9 @@ import SwiftUI
 /// Los Pilares: dónde estás y a dónde vas en las cinco partes de tu vida.
 /// Se entra tocando el anillo; no tiene lugar propio en la barra.
 ///
-/// Mismo orden que el día: a la izquierda el pentágono con tu promedio, como
-/// el anillo en Hábitos; a la derecha la lista de pilares para marcar, el
-/// cierre de la noche, el tema de la semana y la revisión.
+/// Es el mapa, no otra lista para marcar: a la izquierda el pentágono con tu
+/// promedio; a la derecha cada pilar con cómo van sus hábitos (que se marcan
+/// en Hábitos), el cierre de la noche, el tema de la semana y la revisión.
 struct PillarsView: View {
     let onClose: () -> Void
 
@@ -144,8 +144,10 @@ struct PillarsView: View {
     }
 
     private var todayPanel: some View {
-        let foco = pillars.inFocus
-        let hechos = foco.filter { pillars.isDone($0, on: day, habits: habits) }.count
+        let activos = pillars.active(in: habits)
+        let hechos = activos.filter { pillars.isDone($0, on: day, habits: habits) }.count
+        // Nadie eligió todavía por dónde empezar: ningún hábito sirve a un pilar.
+        let sinEmpezar = PillarId.allCases.allSatisfy { pillars.habits(for: $0, in: habits).isEmpty }
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
@@ -156,26 +158,68 @@ struct PillarsView: View {
                     .textCase(.uppercase)
                     .foregroundStyle(Palette.text)
                 Spacer()
-                Text("\(DateFormatter.es("d MMM").string(from: HabitDay.current())) · \(hechos)/\(foco.count)")
+                Text(DateFormatter.es("d MMM").string(from: HabitDay.current())
+                     + (activos.isEmpty ? "" : " · \(hechos)/\(activos.count)"))
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(hechos == foco.count ? Palette.accent : Palette.textMuted)
+                    .foregroundStyle(!activos.isEmpty && hechos == activos.count ? Palette.accent : Palette.textMuted)
                     .contentTransition(.numericText())
                     .animation(.smooth(duration: 0.3), value: hechos)
             }
             .padding(.bottom, 16)
 
+            if sinEmpezar { starter.padding(.bottom, 14) }
+
             VStack(spacing: 8) {
                 ForEach(Array(PillarId.allCases.enumerated()), id: \.element) { i, id in
-                    PillarRow(id: id, day: day, isOpen: openId == id) {
+                    PillarRow(id: id, day: day, isOpen: openId == id, goToHabits: onClose) {
                         withAnimation(.smooth(duration: 0.28)) { openId = openId == id ? nil : id }
                     }
                     .id(id)
                     .staggeredAppear(i)
                 }
             }
+
+            Text("Acá no se marca nada: cada pilar muestra cómo van sus hábitos. Se marcan en Hábitos.")
+                .font(.system(size: 10))
+                .foregroundStyle(Palette.textFaint)
+                .padding(.top, 12)
         }
         .padding(20)
         .cardSurface(Radius.card)
+    }
+
+    /// El arranque: elegir uno o dos pilares. Cinco frentes desde el primer
+    /// día suelen abandonarse.
+    private var starter: some View {
+        let enFoco = Set(PillarId.allCases.filter { pillars.pillar($0).enFoco })
+        // Recién llegado, los cinco vienen en foco: eso todavía no es una elección.
+        let elegidos = enFoco.count == PillarId.allCases.count ? [] : enFoco
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Empieza con uno o dos")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.text)
+            Text("Elige en cuáles vas a trabajar ahora. A cada uno le das un hábito; los demás esperan en pausa.")
+                .font(.system(size: 11))
+                .foregroundStyle(Palette.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 6) {
+                ForEach(PillarId.allCases, id: \.self) { id in
+                    Chip(label: id.label, isSelected: elegidos.contains(id)) {
+                        var nuevos = elegidos
+                        if nuevos.contains(id) { nuevos.remove(id) } else { nuevos.insert(id) }
+                        guard !nuevos.isEmpty else { return }
+                        pillars.setFocus(nuevos)
+                        withAnimation(.smooth(duration: 0.28)) { openId = nuevos.contains(id) ? id : nil }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Radius.row).fill(Palette.accent.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: Radius.row).stroke(Palette.accent.opacity(0.22), lineWidth: 1))
     }
 
     private var reviewPanel: some View {
@@ -217,25 +261,36 @@ struct PillarsView: View {
     }
 }
 
-// MARK: - Una fila por pilar, como los hábitos
+// MARK: - Una fila por pilar
 
+/// Un pilar: cómo van hoy sus hábitos, sus últimos 7 días y su puntaje. No se
+/// marca acá. Al abrirla se edita el mapa (dónde estoy, a dónde voy, qué me
+/// frena) y se eligen los hábitos que lo sostienen.
 private struct PillarRow: View {
     let id: PillarId
     let day: String
     let isOpen: Bool
+    let goToHabits: () -> Void
     let onToggleOpen: () -> Void
 
     @Environment(PillarStore.self) private var pillars
     @Environment(HabitStore.self) private var habits
     @Environment(\.isCompact) private var isCompact
 
-    private var pillar: Pillar { pillars.pillar(id) }
-    private var done: Bool { pillars.isDone(id, on: day, habits: habits) }
+    @State private var creating = false
 
-    /// Los últimos 7 días, del más viejo a hoy.
-    private var week: [Bool] {
+    private var pillar: Pillar { pillars.pillar(id) }
+    private var linked: [Habit] { pillars.habits(for: id, in: habits) }
+    private var today: (done: Int, total: Int) { pillars.progress(id, on: day, habits: habits) }
+    private var done: Bool { today.total > 0 && today.done == today.total }
+
+    /// Los últimos 7 días, del más viejo a hoy: qué parte de sus hábitos se cumplió.
+    private var week: [Double?] {
         let hoy = HabitDay.current()
-        return (0..<7).reversed().map { pillars.isDone(id, on: HabitDay.key(HabitDay.adding(-$0, to: hoy)), habits: habits) }
+        return (0..<7).reversed().map { atras in
+            let p = pillars.progress(id, on: HabitDay.key(HabitDay.adding(-atras, to: hoy)), habits: habits)
+            return p.total == 0 ? nil : Double(p.done) / Double(p.total)
+        }
     }
 
     /// Cuánto se movió entre las dos últimas revisiones.
@@ -247,58 +302,58 @@ private struct PillarRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                check.padding(.trailing, 14)
+            Button(action: onToggleOpen) {
+                HStack(spacing: 12) {
+                    gauge
 
-                Button(action: onToggleOpen) {
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(id.label)
-                                .textCase(.uppercase)
-                                .font(.system(size: 12, weight: .bold))
-                                .tracking(1.1)
-                                .foregroundStyle(done ? Palette.accent : Palette.text)
-                            Text(subtitle)
-                                .font(.system(size: 11))
-                                .foregroundStyle(Palette.textFaint)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 8)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(id.label)
+                            .textCase(.uppercase)
+                            .font(.system(size: 12, weight: .bold))
+                            .tracking(1.1)
+                            .foregroundStyle(done ? Palette.accent : Palette.text)
+                        Text(subtitle)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.textFaint)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
 
+                    if !linked.isEmpty {
                         HStack(spacing: 5) {
-                            ForEach(Array(week.enumerated()), id: \.offset) { _, hecho in
+                            ForEach(Array(week.enumerated()), id: \.offset) { _, parte in
                                 Circle()
-                                    .fill(hecho ? Palette.accent.opacity(0.85) : Palette.fill(0.10))
+                                    .fill((parte ?? 0) > 0 ? Palette.accent.opacity(0.3 + 0.6 * (parte ?? 0)) : Palette.fill(0.10))
                                     .frame(width: 4, height: 4)
                             }
                         }
                         .accessibilityHidden(true)
-
-                        VStack(alignment: .trailing, spacing: 1) {
-                            (Text("\(pillar.scoreA)").foregroundStyle(Palette.text)
-                             + Text(" → \(pillar.scoreB)").foregroundStyle(Palette.textFaint))
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                            if delta != 0 {
-                                Text(delta > 0 ? "+\(delta)" : "\(delta)")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(delta > 0 ? Palette.positive : Palette.negative)
-                            }
-                        }
-                        .frame(minWidth: 46, alignment: .trailing)
-
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(Palette.textFaint)
-                            .rotationEffect(.degrees(isOpen ? 180 : 0))
                     }
-                    .frame(height: 56)
-                    .contentShape(Rectangle())
+
+                    VStack(alignment: .trailing, spacing: 1) {
+                        (Text("\(pillar.scoreA)").foregroundStyle(Palette.text)
+                         + Text(" → \(pillar.scoreB)").foregroundStyle(Palette.textFaint))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        if delta != 0 {
+                            Text(delta > 0 ? "+\(delta)" : "\(delta)")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(delta > 0 ? Palette.positive : Palette.negative)
+                        }
+                    }
+                    .frame(minWidth: 46, alignment: .trailing)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Palette.textFaint)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(id.label), \(pillar.scoreA) de \(pillar.scoreB). \(isOpen ? "Cerrar" : "Editar")")
+                .frame(height: 56)
+                .padding(.horizontal, 16)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 16)
+            .buttonStyle(.plain)
             .opacity(pillar.enFoco ? 1 : 0.5)
+            .accessibilityLabel("\(id.label), \(pillar.scoreA) de \(pillar.scoreB). \(subtitle). \(isOpen ? "Cerrar" : "Abrir")")
 
             if isOpen {
                 editor
@@ -312,44 +367,35 @@ private struct PillarRow: View {
             .stroke(done ? Palette.accent.opacity(0.4) : Palette.hairlineFaint, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: Radius.row))
         .animation(.smooth(duration: 0.3), value: done)
-        .sensoryFeedback(.impact(weight: .light), trigger: done)
+        .sheet(isPresented: $creating) {
+            // Si había una acción escrita de antes, el hábito nace con ese nombre.
+            HabitEditorSheet(initialPillar: id,
+                             initialTitle: linked.isEmpty ? pillar.minimo.trimmingCharacters(in: .whitespacesAndNewlines) : "",
+                             onSave: { habits.add($0) })
+        }
     }
 
     private var subtitle: String {
-        let minimo = pillar.minimo.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !minimo.isEmpty { return minimo }
-        return pillar.enFoco ? "Falta tu acción mínima" : "En pausa"
+        if !pillar.enFoco { return "En pausa" }
+        if linked.isEmpty { return "Sin hábito todavía" }
+        let nombres = linked.map { $0.title.unshouted }.joined(separator: " · ")
+        return today.total == 0 ? "\(nombres) — hoy descansa" : "\(today.done) de \(today.total) hoy — \(nombres)"
     }
 
-    /// El mismo círculo de los hábitos. Un pilar en pausa no se marca.
-    @ViewBuilder
-    private var check: some View {
-        if pillar.enFoco {
-            Button { pillars.toggle(id, on: day, habits: habits) } label: {
-                ZStack {
-                    Circle()
-                        .stroke(done ? Palette.accent : Palette.hairline, lineWidth: 1.5)
-                        .frame(width: 20, height: 20)
-                    if done {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 10, height: 10)
-                            .shadow(color: Palette.nightGlow(Palette.accent, 0.6), radius: 6)
-                            .transition(.scale(scale: 0.1).combined(with: .opacity)
-                                .animation(.spring(response: 0.35, dampingFraction: 0.55)))
-                    }
-                }
-                // Más grande que el dibujo: que se acierte con el dedo.
-                .frame(width: 32, height: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(done ? "Desmarcar \(id.label)" : "Marcar \(id.label)")
-            .accessibilityAddTraits(done ? .isSelected : [])
-            .padding(.horizontal, -6)
-        } else {
-            Rectangle().fill(Palette.textFaint).frame(width: 9, height: 1.5).frame(width: 20, height: 20)
+    /// Un medidor, no un botón: se llena con los hábitos cumplidos hoy.
+    private var gauge: some View {
+        let parte = today.total == 0 ? 0 : Double(today.done) / Double(today.total)
+        return ZStack {
+            Circle()
+                .stroke(Palette.fill(0.10), style: StrokeStyle(lineWidth: 2.5, dash: linked.isEmpty ? [2, 3] : []))
+            Circle()
+                .trim(from: 0, to: parte)
+                .stroke(Palette.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(response: 0.5, dampingFraction: 0.8), value: parte)
         }
+        .frame(width: 18, height: 18)
+        .accessibilityHidden(true)
     }
 
     // MARK: Editar
@@ -369,25 +415,20 @@ private struct PillarRow: View {
             Rectangle().fill(Palette.hairlineFaint).frame(height: 1)
 
             pair {
-                field("Dónde estoy", "Cómo está esto hoy, sin adornos", bind(\.puntoA), score: bind(\.scoreA))
+                field("Dónde estoy", "Hoy, con hechos y no con deseos", bind(\.puntoA), score: bind(\.scoreA))
             } _: {
-                field("A dónde voy", "Cómo se ve cuando lo logre", bind(\.puntoB), score: bind(\.scoreB))
+                field("A dónde voy", "Concreto y con plazo: en 90 días…", bind(\.puntoB), score: bind(\.scoreB))
             }
             pair {
-                field("Qué me frena", "La barrera de ahora", bind(\.barrera))
+                field("Qué me frena", "Lo que me separa de llegar", bind(\.barrera))
             } _: {
-                field("Acción mínima", "Lo que hago aunque el día salga mal", bind(\.minimo))
+                field("Quién tengo que ser para sostenerlo", "Opcional", bind(\.quienSere))
             }
-            field("Quién tengo que ser para sostenerlo", "Opcional", bind(\.quienSere))
 
-            if let habit = pillars.linkedHabit(id, in: habits) {
-                Text("Su check es el del hábito \(habit.title.unshouted): marcar uno marca el otro.")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Palette.textFaint)
-            }
+            habitPicker
 
             Toggle(isOn: Binding(get: { pillar.enFoco }, set: { v in pillars.update(id) { $0.enFoco = v } })) {
-                Text(pillar.enFoco ? "En foco: lo marco cada día" : "En pausa: no lo marco por ahora")
+                Text(pillar.enFoco ? "En foco: trabajo en él ahora" : "En pausa: lo retomo más adelante")
                     .font(.system(size: 11))
                     .foregroundStyle(Palette.textMuted)
             }
@@ -395,6 +436,95 @@ private struct PillarRow: View {
             .tint(Palette.accent)
             .controlSize(.small)
         }
+    }
+
+    /// La acción de cada día es un hábito: se elige uno que ya existe o se crea.
+    private var habitPicker: some View {
+        let libres = habits.habits.filter { $0.pillar != id && !$0.isArchived }
+        let escrita = pillar.minimo.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Acción de cada día").microLabelStyle(Palette.textFaint, size: 9)
+
+            if linked.isEmpty {
+                Text(escrita.isEmpty
+                     ? "Tan chica que no puedas fallar. Cuenta la repetición, no la intensidad."
+                     : "Antes escribiste: “\(escrita)”. Conviértela en un hábito para que cuente.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.textFaint)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            ForEach(linked) { habit in
+                HStack(spacing: 8) {
+                    Button(action: goToHabits) {
+                        HStack(spacing: 8) {
+                            if let icon = habit.icon, !icon.isEmpty { Text(icon).font(.system(size: 13)) }
+                            Text(habit.title.unshouted)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Palette.text)
+                                .lineLimit(1)
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(Palette.textFaint)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.pressable)
+                    .help("Ir a Hábitos a marcarlo")
+                    Spacer(minLength: 0)
+                    Button { habits.setPillar(nil, for: habit.id) } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(Palette.textFaint)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.pressable)
+                    .help("Quitarlo de este pilar (el hábito no se borra)")
+                    .accessibilityLabel("Quitar \(habit.title.unshouted) de \(id.label)")
+                }
+                .padding(.leading, 10)
+                .frame(height: 32)
+                .background(Palette.fill(0.05), in: RoundedRectangle(cornerRadius: Radius.control))
+            }
+
+            HStack(spacing: 8) {
+                if !libres.isEmpty {
+                    Menu {
+                        ForEach(libres) { habit in
+                            Button {
+                                habits.setPillar(id, for: habit.id)
+                            } label: {
+                                // Si ya servía a otro pilar, se dice: elegirlo lo mueve.
+                                Text(habit.title.unshouted + (habit.pillar.map { " (ahora en \($0.label))" } ?? ""))
+                            }
+                        }
+                    } label: {
+                        actionLabel("Usar un hábito que ya tengo")
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.pressable)
+                    #if os(macOS)
+                    .menuIndicator(.hidden)
+                    #endif
+                    .fixedSize()
+                }
+                Button { creating = true } label: { actionLabel("Crear uno nuevo") }
+                    .buttonStyle(.pressable)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func actionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Palette.accent)
+            .padding(.horizontal, 10)
+            .frame(height: 28)
+            .background(Palette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.control))
+            .contentShape(Rectangle())
     }
 
     /// Dos campos lado a lado en la Mac; uno debajo del otro en el teléfono.

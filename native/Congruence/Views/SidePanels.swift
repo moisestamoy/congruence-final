@@ -35,7 +35,7 @@ struct PillarsCard: View {
 
     var body: some View {
         let day = HabitDay.key(HabitDay.current())
-        let foco = pillars.inFocus
+        let foco = pillars.active(in: habits)
         let hechos = foco.filter { pillars.isDone($0, on: day, habits: habits) }.count
         let lejos = pillars.furthest
 
@@ -62,7 +62,7 @@ struct PillarsCard: View {
                             .monospacedDigit()
                             .foregroundStyle(Palette.text)
                         Text("Equilibrio").microLabelStyle(Palette.accent, size: 9)
-                        Text("\(hechos) de \(foco.count) hoy")
+                        Text(foco.isEmpty ? "Sin hábitos asignados" : "\(hechos) de \(foco.count) hoy")
                             .font(.system(size: 11, weight: .medium))
                             .monospacedDigit()
                             .foregroundStyle(Palette.textMuted)
@@ -86,7 +86,6 @@ struct PillarsCard: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
         .accessibilityLabel("Tus pilares, equilibrio \(String(format: "%.1f", pillars.average)), \(hechos) de \(foco.count) hoy")
     }
 }

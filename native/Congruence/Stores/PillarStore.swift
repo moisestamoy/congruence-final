@@ -61,10 +61,14 @@ final class PillarStore {
 
     func pillar(_ id: PillarId) -> Pillar { document[id] }
 
-    /// Los que se marcan cada día. Si ninguno está en foco, todos.
-    var inFocus: [PillarId] {
-        let foco = PillarId.allCases.filter { document[$0].enFoco }
-        return foco.isEmpty ? PillarId.allCases : foco
+    /// Deja en foco sólo estos. Es el arranque: uno o dos pilares, no cinco.
+    func setFocus(_ ids: Set<PillarId>) {
+        var cambio = false
+        for id in PillarId.allCases where document[id].enFoco != ids.contains(id) {
+            document[id].enFoco = ids.contains(id)
+            cambio = true
+        }
+        if cambio { commit() }
     }
 
     var average: Double {
@@ -79,10 +83,6 @@ final class PillarStore {
         return (peor, document[peor].scoreB - document[peor].scoreA)
     }
 
-    func markedDone(_ id: PillarId, on day: String) -> Bool {
-        document.close(on: day)?.done[id.rawValue] == true
-    }
-
     // MARK: - Cambios
 
     func update(_ id: PillarId, _ change: (inout Pillar) -> Void) {
@@ -93,11 +93,6 @@ final class PillarStore {
         guard p != document[id] else { return }
         document[id] = p
         commit()
-    }
-
-    func setDone(_ id: PillarId, on day: String, _ done: Bool) {
-        guard markedDone(id, on: day) != done else { return }
-        withClose(day) { $0.done[id.rawValue] = done }
     }
 
     func setAnswer(_ key: WritableKeyPath<DailyClose, String>, on day: String, _ text: String) {
@@ -133,22 +128,33 @@ final class PillarStore {
 }
 
 extension PillarStore {
-    /// El hábito sí/no que sirve a un pilar, si hay uno: su check es el del pilar.
-    func linkedHabit(_ id: PillarId, in habits: HabitStore) -> Habit? {
-        habits.habits.first { $0.pillar == id && $0.type == .boolean && !$0.isArchived }
+    /// Los hábitos que sirven a un pilar: son su acción de cada día. Acá no se
+    /// marca nada; marcar es cosa de Hábitos.
+    func habits(for id: PillarId, in habits: HabitStore) -> [Habit] {
+        habits.habits.filter { $0.pillar == id && !$0.isArchived }
     }
 
-    func isDone(_ id: PillarId, on day: String, habits: HabitStore) -> Bool {
-        markedDone(id, on: day) || linkedHabit(id, in: habits)?.log(on: day)?.completed == true
-    }
-
-    /// Marca o desmarca el pilar y, si tiene hábito, también el hábito: así
-    /// suma al anillo.
-    func toggle(_ id: PillarId, on day: String, habits: HabitStore) {
-        let next = !isDone(id, on: day, habits: habits)
-        setDone(id, on: day, next)
-        if let h = linkedHabit(id, in: habits), (h.log(on: day)?.completed == true) != next {
-            habits.toggle(h.id, on: day)
+    /// Cuántos de sus hábitos se cumplieron ese día. Los que ese día están en
+    /// pausa (descanso o imprevisto) no cuentan ni a favor ni en contra.
+    func progress(_ id: PillarId, on day: String, habits: HabitStore) -> (done: Int, total: Int) {
+        var done = 0, total = 0
+        for h in self.habits(for: id, in: habits) {
+            let log = h.log(on: day)
+            if log?.isPaused == true { continue }
+            total += 1
+            if log?.completed == true { done += 1 }
         }
+        return (done, total)
+    }
+
+    /// Hoy tenía algo que hacer por este pilar y lo hizo todo.
+    func isDone(_ id: PillarId, on day: String, habits: HabitStore) -> Bool {
+        let p = progress(id, on: day, habits: habits)
+        return p.total > 0 && p.done == p.total
+    }
+
+    /// Los pilares en foco que tienen al menos un hábito: los que hoy piden algo.
+    func active(in habits: HabitStore) -> [PillarId] {
+        PillarId.allCases.filter { document[$0].enFoco && !self.habits(for: $0, in: habits).isEmpty }
     }
 }

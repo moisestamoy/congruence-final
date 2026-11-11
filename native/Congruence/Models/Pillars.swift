@@ -1,7 +1,9 @@
 import Foundation
 
 /// Los cinco pilares. Los mismos ids que usa la web en `stats_data.pillars`.
-enum PillarId: String, CaseIterable, Hashable {
+enum PillarId: String, CaseIterable, Hashable, Identifiable {
+    var id: String { rawValue }
+
     case mental, fisico, financiero, laboral, social
 
     var label: String {
@@ -209,7 +211,7 @@ struct PillarsDocument: Codable, Hashable {
     /// Nadie escribió nada todavía: no hay nada propio que cuidar.
     var isBlank: Bool {
         closes.allSatisfy(\.isEmpty) && reviews.isEmpty
-            && PillarId.allCases.allSatisfy { self[$0].isBlank && self[$0].scoreA == 5 && self[$0].scoreB == 8 && self[$0].enFoco }
+            && PillarId.allCases.allSatisfy { self[$0].isBlank && self[$0].scoreA == 5 && self[$0].scoreB == 8 }
     }
 
     var themeStartDate: Date { Self.parse(themeStart) ?? Date() }

@@ -123,6 +123,13 @@ final class HabitStore {
         commit()
     }
 
+    /// Pone o quita el pilar al que sirve un hábito.
+    func setPillar(_ pillar: PillarId?, for habitId: String) {
+        guard let i = index(of: habitId), document.habits[i].pillar != pillar else { return }
+        document.habits[i].pillar = pillar
+        commit()
+    }
+
     func remove(_ habitId: String) {
         document.habits.removeAll { $0.id == habitId }
         commit()

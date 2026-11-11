@@ -26,12 +26,14 @@ struct HabitEditorSheet: View {
     @State private var confirmingDelete = false
 
     init(existing: Habit? = nil,
+         initialPillar: PillarId? = nil,
+         initialTitle: String = "",
          onSave: @escaping (Habit) -> Void,
          onDelete: (() -> Void)? = nil) {
         self.existing = existing
         self.onSave = onSave
         self.onDelete = onDelete
-        _title = State(initialValue: existing?.title ?? "")
+        _title = State(initialValue: existing?.title ?? initialTitle)
         _icon = State(initialValue: existing?.icon ?? "💪")
         _color = State(initialValue: existing?.color ?? habitColors[0])
         _isNumeric = State(initialValue: existing?.type == .numeric)
@@ -39,7 +41,7 @@ struct HabitEditorSheet: View {
         _unit = State(initialValue: existing?.unit ?? "min")
         _axis = State(initialValue: existing?.identityAxis ?? .physical)
         _weeklyTarget = State(initialValue: existing?.weeklyTarget)
-        _pillar = State(initialValue: existing?.pillar)
+        _pillar = State(initialValue: existing?.pillar ?? initialPillar)
     }
 
     private var trimmed: String {
@@ -164,8 +166,8 @@ struct HabitEditorSheet: View {
                                      tint: tint, fillsWidth: true) { pillar = option }
                             }
                         }
-                        if pillar != nil && !isNumeric {
-                            Text("Será la acción mínima de ese pilar: marcarlo en Pilares marca este hábito, y al revés.")
+                        if pillar != nil {
+                            Text("Es tu acción diaria por ese pilar. Se marca acá, en Hábitos; en Pilares sólo se ve cómo va.")
                                 .font(.system(size: 10))
                                 .foregroundStyle(Palette.textFaint)
                                 .fixedSize(horizontal: false, vertical: true)

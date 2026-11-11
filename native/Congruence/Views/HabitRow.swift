@@ -55,6 +55,15 @@ struct HabitRow: View {
                 .animatedStrike(isPaused || weeklyMet, color: Palette.textFaint,
                                 delay: weeklyMet ? 0.35 : 0)
 
+            if let pilar = habit.pillar {
+                Text(pilar.label)
+                    .microLabelStyle(Palette.textFaint, size: 8)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.leading, 8)
+                    .accessibilityLabel("Pilar \(pilar.label)")
+            }
+
             Spacer(minLength: 10)
 
             // Los hábitos numéricos muestran el contador; el resto, la semana.
