@@ -15,8 +15,12 @@ import CryptoKit
 ///    Antes la nube mandaba siempre. Eso tenía sentido cuando la app nativa
 ///    estaba vacía; con días de trabajo en el Mac y una nube de hace meses,
 ///    entrar habría pisado todo lo nuevo con lo viejo.
-/// 3. Hábitos, igual que la web: si hay cambios locales sin subir ganan; si no,
-///    se adopta la nube. Subir hábitos no toca `updated_at`.
+/// 3. Hábitos y tareas: sin cambios locales se adopta la nube. Con cambios
+///    locales, antes de subir se vuelve a leer la nube y se fusionan las tres
+///    copias (lo último que coincidió, lo de acá y lo de allá; ver
+///    `JSONMerge`): un hábito marcado en el iPhone y una tarea agregada en la
+///    Mac sobreviven los dos, y lo que escribe el servidor (Trello) no se
+///    pisa. Subirlos no toca `updated_at`.
 /// 4. Finanzas, igual que la web: "el último que editó gana", comparando la
 ///    hora de la última edición local contra `updated_at` de la nube. Al subir
 ///    se sella `updated_at`, como hace cualquier dispositivo con la web.
@@ -81,6 +85,27 @@ final class SyncService {
         get { defaults.string(forKey: "sync.pillars.lastHash") }
         set { defaults.set(newValue, forKey: "sync.pillars.lastHash") }
     }
+    // Lo último que esta app y la nube tuvieron igual, por documento. Es la
+    // tercera copia de la fusión; va a disco para sobrevivir un cierre con
+    // cambios sin subir.
+    private func baseURL(_ name: String) -> URL {
+        let dir = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Congruence", isDirectory: true)
+        return dir.appendingPathComponent("sync-base-\(name).json")
+    }
+    private func loadBase(_ name: String) -> JSONValue? {
+        guard let data = try? Data(contentsOf: baseURL(name)) else { return nil }
+        return try? JSONDecoder().decode(JSONValue.self, from: data)
+    }
+    private func saveBase(_ name: String, _ value: JSONValue?) {
+        guard let value, let data = try? JSONEncoder().encode(value) else {
+            try? FileManager.default.removeItem(at: baseURL(name))
+            return
+        }
+        try? data.write(to: baseURL(name), options: .atomic)
+    }
+
     private var financesPending: Bool {
         get { defaults.bool(forKey: "sync.fin.pending") }
         set { defaults.set(newValue, forKey: "sync.fin.pending") }
@@ -132,6 +157,8 @@ final class SyncService {
         tasksLastHash = nil
         pillarsPending = false
         pillarsLastHash = nil
+        saveBase("habits", nil)
+        saveBase("tasks", nil)
         finances.clearTombstones()
         hasPulled = false
         await pull(adoptUnconditionally: false, firstLogin: true)
@@ -263,6 +290,7 @@ final class SyncService {
             if force || hash != habitsLastHash { habits.adoptRemote(remote) }
             habitsLastHash = hash
             habitsPending = false
+            saveBase("habits", try? Self.jsonValue(remote))
         }
     }
 
@@ -276,6 +304,7 @@ final class SyncService {
             if force || hash != tasksLastHash { tasks.adoptRemote(remote) }
             tasksLastHash = hash
             tasksPending = false
+            saveBase("tasks", remote.json)
         }
     }
 
@@ -347,18 +376,38 @@ final class SyncService {
         let sendFinances = financesPending
         let sendTasks = tasksPending
         let sendPillars = pillarsPending
-        let habitsDoc = habits.document
-        let tasksDoc = tasks.document
+        let habitsBefore = habits.document
+        let tasksBefore = tasks.document
+        var habitsDoc = habitsBefore
+        var tasksDoc = tasksBefore
         let pillarsBefore = pillars.document
         var pillarsDoc = pillarsBefore
 
         do {
             var body: [String: JSONValue] = [:]
-            if sendHabits {
-                body["habits_data"] = try Self.jsonValue(habitsDoc)
-            }
-            if sendTasks {
-                body["tasks_data"] = tasksDoc.json
+            if sendHabits || sendTasks {
+                // Releer la nube justo antes de escribir y fusionar: lo que
+                // cambió allá desde la última vez no se pisa.
+                let columnas = [sendHabits ? "habits_data" : nil, sendTasks ? "tasks_data" : nil]
+                    .compactMap { $0 }.joined(separator: ",")
+                let fresh = try await fetchRow(columns: columnas)
+                if sendHabits {
+                    var merged = try Self.jsonValue(habitsDoc)
+                    if let remote = fresh?.habits {
+                        merged = JSONMerge.threeWay(base: loadBase("habits"), local: merged,
+                                                    remote: try Self.jsonValue(remote))
+                        habitsDoc = try JSONDecoder().decode(HabitsDocument.self, from: JSONEncoder().encode(merged))
+                    }
+                    body["habits_data"] = try Self.jsonValue(habitsDoc)
+                }
+                if sendTasks {
+                    if let remote = fresh?.tasks,
+                       case let .object(merged) = JSONMerge.threeWay(base: loadBase("tasks"), local: tasksDoc.json,
+                                                                    remote: remote.json) {
+                        tasksDoc = TasksDocument(raw: merged)
+                    }
+                    body["tasks_data"] = tasksDoc.json
+                }
             }
 
             if sendPillars {
@@ -392,11 +441,21 @@ final class SyncService {
 
             if sendHabits {
                 habitsLastHash = Self.hash(habitsDoc)
-                if habits.document == habitsDoc { habitsPending = false }
+                saveBase("habits", body["habits_data"])
+                // Si editaste algo mientras subía, eso queda pendiente y no se pisa:
+                // la próxima subida lo fusiona contra esta base.
+                if habits.document == habitsBefore {
+                    if habitsDoc != habitsBefore { habits.adoptRemote(habitsDoc) }
+                    habitsPending = false
+                }
             }
             if sendTasks {
                 tasksLastHash = Self.hash(tasksDoc)
-                if tasks.document == tasksDoc { tasksPending = false }
+                saveBase("tasks", tasksDoc.json)
+                if tasks.document == tasksBefore {
+                    if tasksDoc != tasksBefore { tasks.adoptRemote(tasksDoc) }
+                    tasksPending = false
+                }
             }
             if sendPillars {
                 pillarsLastHash = Self.hash(pillarsDoc)
